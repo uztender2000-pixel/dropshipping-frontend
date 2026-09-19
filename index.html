@@ -30,254 +30,151 @@
     line-height: 1.5;
   }
 
-  h1, h2, h3, .display {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    line-height: 1.1;
-    margin: 0;
-  }
-
+  h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 500; line-height: 1.1; margin: 0; }
   a { color: inherit; }
 
   /* ---------- Header ---------- */
   header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    position: sticky; top: 0; z-index: 20;
     background: var(--sand-light);
     border-bottom: 1px solid var(--line);
   }
-
   .header-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 18px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    max-width: 1280px; margin: 0 auto; padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
-
-  .logo {
-    font-family: 'Fraunces', serif;
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-
+  .logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; }
   .logo span { color: var(--rust); }
+  .header-note { font-size: 13px; color: var(--forest); display: none; }
+  @media (min-width: 640px) { .header-note { display: block; } }
 
-  .header-note {
-    font-size: 14px;
-    color: var(--forest);
-    display: none;
+  .sidebar-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--forest); color: var(--white); border: none;
+    padding: 8px 14px; border-radius: 4px; font-family: 'Karla', sans-serif;
+    font-size: 14px; cursor: pointer;
+  }
+  @media (min-width: 900px) { .sidebar-toggle { display: none; } }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    max-width: 1280px; margin: 0 auto; padding: 20px;
+    display: flex; align-items: flex-start; gap: 24px;
   }
 
-  @media (min-width: 640px) {
-    .header-note { display: block; }
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 280px; flex-shrink: 0;
+    background: var(--white); border: 1px solid var(--line); border-radius: 6px;
+    position: sticky; top: 70px; max-height: calc(100vh - 90px);
+    overflow-y: auto; padding: 8px;
+  }
+  .sidebar-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #857D5F; padding: 10px 10px 6px;
+  }
+  .all-products-link {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 10px; font-family: 'Karla', sans-serif; font-weight: 700; font-size: 14px;
+    color: var(--ink); cursor: pointer; border-radius: 4px; border-bottom: 1px solid var(--line);
+    margin-bottom: 4px;
+  }
+  .all-products-link.active { color: var(--rust-dark); background: var(--sand); }
+  .all-products-link:hover { background: var(--sand-light); }
+
+  .section-item { border-bottom: 1px solid var(--line); }
+  .section-item:last-child { border-bottom: none; }
+  .section-toggle {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: none; border: none; padding: 10px; cursor: pointer;
+    font-family: 'Karla', sans-serif; font-weight: 700; font-size: 14px; color: var(--ink);
+    border-radius: 4px; text-align: left;
+  }
+  .section-toggle:hover { background: var(--sand-light); }
+  .section-toggle.active { color: var(--rust-dark); }
+  .section-toggle .count { font-weight: 400; color: #857D5F; font-size: 12px; }
+  .section-toggle .chevron { transition: transform 0.15s ease; color: #857D5F; }
+  .section-toggle.open .chevron { transform: rotate(90deg); }
+
+  .category-list { display: none; padding: 2px 0 6px 10px; }
+  .category-list.open { display: block; }
+  .category-item button {
+    width: 100%; text-align: left; background: none; border: none;
+    padding: 7px 10px; font-family: 'Karla', sans-serif; font-size: 13px;
+    color: #4A4738; cursor: pointer; border-radius: 4px;
+  }
+  .category-item button:hover { background: var(--sand-light); }
+  .category-item button.active { background: var(--sand); color: var(--forest); font-weight: 700; }
+  .category-loading { padding: 8px 10px; font-size: 12px; color: #9C9270; }
+
+  @media (max-width: 899px) {
+    .sidebar {
+      display: none; position: fixed; inset: 0; top: 60px; z-index: 30;
+      width: 100%; max-height: none; border-radius: 0; border: none;
+    }
+    .sidebar.open { display: block; }
   }
 
-  /* ---------- Hero ---------- */
-  .hero {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 56px 24px 40px;
-    display: grid;
-    gap: 12px;
+  /* ---------- Content ---------- */
+  .content { flex: 1; min-width: 0; }
+
+  .content-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .content-title { font-size: clamp(20px, 3vw, 28px); }
+  .content-count { font-size: 13px; color: #857D5F; margin-top: 2px; }
+
+  .sort-select {
+    font-family: 'Karla', sans-serif; font-size: 14px; padding: 9px 12px;
+    border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink);
   }
 
-  .hero h1 {
-    font-size: clamp(32px, 5vw, 52px);
-    max-width: 14ch;
-  }
-
-  .hero p {
-    max-width: 46ch;
-    color: #4A4738;
-    font-size: 17px;
-  }
-
-  .hero-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 8px;
-  }
-
-  .badge {
-    font-size: 13px;
-    padding: 6px 12px;
-    border: 1px solid var(--line);
-    border-radius: 100px;
-    background: var(--white);
-    color: var(--forest);
-  }
-
-  /* ---------- Category filter ---------- */
-  .filters {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 24px 8px;
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .filters::-webkit-scrollbar { display: none; }
-
-  .filter-btn {
-    flex: 0 0 auto;
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--ink);
-    padding: 8px 16px;
-    border-radius: 100px;
-    font-family: 'Karla', sans-serif;
-    font-size: 14px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .filter-btn:hover { border-color: var(--forest); }
-
-  .filter-btn.active {
-    background: var(--forest);
-    border-color: var(--forest);
-    color: var(--white);
-  }
-
-  /* ---------- Product grid ---------- */
-  main {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 24px;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 20px;
-  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
 
   .card {
-    background: var(--white);
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    background: var(--white); border: 1px solid var(--line); border-radius: 4px;
+    overflow: hidden; display: flex; flex-direction: column;
   }
-
   .card-image {
-    aspect-ratio: 1 / 1;
-    background: var(--sand) center/cover no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #9C9270;
-    font-size: 13px;
+    aspect-ratio: 1 / 1; background: var(--sand) center/cover no-repeat;
+    display: flex; align-items: center; justify-content: center; color: #9C9270; font-size: 13px;
   }
-
-  .card-body {
-    padding: 14px 16px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex: 1;
-  }
-
-  .card-name {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.3;
-  }
-
-  .card-vendor {
-    font-size: 12px;
-    color: #857D5F;
-    text-transform: none;
-  }
-
-  .card-stock {
-    font-size: 12px;
-    color: var(--forest);
-    font-weight: 500;
-  }
-
-  .card-price {
-    margin-top: auto;
-    font-family: 'Fraunces', serif;
-    font-size: 20px;
-    color: var(--rust-dark);
-  }
-
+  .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .card-name { font-size: 15px; font-weight: 500; line-height: 1.3; }
+  .card-vendor { font-size: 12px; color: #857D5F; }
+  .card-stock { font-size: 12px; color: var(--forest); font-weight: 500; }
+  .card-price { margin-top: auto; font-family: 'Fraunces', serif; font-size: 20px; color: var(--rust-dark); }
   .card-buy {
-    background: var(--forest);
-    color: var(--white);
-    border: none;
-    border-radius: 3px;
-    padding: 10px 14px;
-    font-family: 'Karla', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 6px;
+    background: var(--forest); color: var(--white); border: none; border-radius: 3px;
+    padding: 10px 14px; font-family: 'Karla', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 6px;
   }
-
   .card-buy:hover { background: var(--forest-dark); }
 
-  .state-message {
-    text-align: center;
-    padding: 60px 20px;
-    color: #857D5F;
-  }
+  .state-message { text-align: center; padding: 60px 20px; color: #857D5F; }
 
   .load-more {
-    display: block;
-    margin: 32px auto 0;
-    background: transparent;
-    border: 1px solid var(--forest);
-    color: var(--forest);
-    padding: 12px 28px;
-    border-radius: 3px;
-    font-family: 'Karla', sans-serif;
-    font-weight: 700;
-    cursor: pointer;
+    display: block; margin: 32px auto 0; background: transparent; border: 1px solid var(--forest);
+    color: var(--forest); padding: 12px 28px; border-radius: 3px; font-family: 'Karla', sans-serif;
+    font-weight: 700; cursor: pointer;
   }
-
   .load-more:hover { background: var(--forest); color: var(--white); }
   .load-more[hidden] { display: none; }
 
   /* ---------- Order modal ---------- */
   .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(28, 38, 32, 0.55);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    z-index: 100;
-    padding: 0;
+    position: fixed; inset: 0; background: rgba(28, 38, 32, 0.55);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 100;
   }
   .modal-backdrop[hidden] { display: none; }
-
-  @media (min-width: 640px) {
-    .modal-backdrop { align-items: center; padding: 24px; }
-  }
+  @media (min-width: 640px) { .modal-backdrop { align-items: center; padding: 24px; } }
 
   .modal {
-    background: var(--sand-light);
-    width: 100%;
-    max-width: 440px;
-    border-radius: 12px 12px 0 0;
-    padding: 28px 24px 24px;
-    max-height: 90vh;
-    overflow-y: auto;
+    background: var(--sand-light); width: 100%; max-width: 440px;
+    border-radius: 12px 12px 0 0; padding: 28px 24px 24px; max-height: 90vh; overflow-y: auto;
   }
-
-  @media (min-width: 640px) {
-    .modal { border-radius: 6px; }
-  }
+  @media (min-width: 640px) { .modal { border-radius: 6px; } }
 
   .modal h2 { font-size: 24px; margin-bottom: 4px; }
   .modal .modal-product { color: var(--rust-dark); font-size: 15px; margin-bottom: 18px; }
@@ -285,60 +182,27 @@
   .field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
   .field label { font-size: 13px; color: #4A4738; }
   .field input, .field textarea {
-    font-family: 'Karla', sans-serif;
-    font-size: 15px;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    background: var(--white);
-    color: var(--ink);
+    font-family: 'Karla', sans-serif; font-size: 15px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink);
   }
-  .field input:focus, .field textarea:focus {
-    outline: 2px solid var(--forest);
-    outline-offset: 1px;
-  }
+  .field input:focus, .field textarea:focus { outline: 2px solid var(--forest); outline-offset: 1px; }
 
   .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
-
   .btn-primary {
-    flex: 1;
-    background: var(--rust);
-    color: var(--white);
-    border: none;
-    padding: 13px;
-    border-radius: 4px;
-    font-family: 'Karla', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
+    flex: 1; background: var(--rust); color: var(--white); border: none; padding: 13px;
+    border-radius: 4px; font-family: 'Karla', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer;
   }
   .btn-primary:hover { background: var(--rust-dark); }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
   .btn-secondary {
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--ink);
-    padding: 13px 16px;
-    border-radius: 4px;
-    font-family: 'Karla', sans-serif;
-    cursor: pointer;
+    background: transparent; border: 1px solid var(--line); color: var(--ink);
+    padding: 13px 16px; border-radius: 4px; font-family: 'Karla', sans-serif; cursor: pointer;
   }
-
   .modal-status { font-size: 14px; margin-top: 12px; }
   .modal-status.error { color: var(--rust-dark); }
   .modal-status.success { color: var(--forest); }
 
-  footer {
-    text-align: center;
-    padding: 40px 24px 60px;
-    color: #9C9270;
-    font-size: 13px;
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .card { transition: border-color 0.15s ease; }
-  }
+  footer { text-align: center; padding: 40px 24px 60px; color: #9C9270; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -346,36 +210,41 @@
 <header>
   <div class="header-inner">
     <div class="logo">Лапка<span>.</span></div>
-    <div class="header-note">Нова пошта • оплата при отриманні</div>
+    <button class="sidebar-toggle" id="sidebarToggle">☰ Розділи</button>
+    <div class="header-note">📦 Нова пошта • 💳 оплата при отриманні</div>
   </div>
 </header>
 
-<section class="hero">
-  <h1>Все, що треба вашому улюбленцю, в одному місці</h1>
-  <p>Переноски, амуніція, одяг та іграшки для котів і собак. Відправляємо по всій Україні.</p>
-  <div class="hero-badges">
-    <span class="badge">📦 Доставка 1–2 дні</span>
-    <span class="badge">💳 Оплата при отриманні</span>
-    <span class="badge">🇺🇦 Є товари українського виробництва</span>
-  </div>
-</section>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">Каталог</div>
+    <button class="all-products-link active" id="allProductsLink">Усі товари</button>
+    <div id="sectionsList"></div>
+  </aside>
 
-<nav class="filters" id="sections">
-  <button class="filter-btn active" data-section="">Усі розділи</button>
-</nav>
-<nav class="filters" id="filters">
-  <button class="filter-btn active" data-category="">Усі товари</button>
-</nav>
+  <main class="content">
+    <div class="content-header">
+      <div>
+        <h2 class="content-title" id="contentTitle">Усі товари</h2>
+        <div class="content-count" id="contentCount"></div>
+      </div>
+      <select class="sort-select" id="sortSelect">
+        <option value="newest">Спершу нові</option>
+        <option value="popular">Спершу популярні</option>
+        <option value="price_asc">Ціна: дешевші спершу</option>
+        <option value="price_desc">Ціна: дорожчі спершу</option>
+        <option value="name_asc">За назвою (А–Я)</option>
+        <option value="name_desc">За назвою (Я–А)</option>
+      </select>
+    </div>
 
-<main>
-  <div class="grid" id="grid"></div>
-  <p class="state-message" id="stateMessage" hidden></p>
-  <button class="load-more" id="loadMore" hidden>Показати ще</button>
-</main>
+    <div class="grid" id="grid"></div>
+    <p class="state-message" id="stateMessage" hidden></p>
+    <button class="load-more" id="loadMore" hidden>Показати ще</button>
+  </main>
+</div>
 
-<footer>
-  Лапка — приватний магазин товарів для тварин. Питання щодо замовлення — у Instagram.
-</footer>
+<footer>Лапка — приватний магазин товарів для тварин.</footer>
 
 <!-- Order modal -->
 <div class="modal-backdrop" id="modalBackdrop" hidden>
@@ -383,26 +252,11 @@
     <h2>Оформити замовлення</h2>
     <div class="modal-product" id="modalProductName"></div>
     <form id="orderForm">
-      <div class="field">
-        <label for="customerName">Ім'я та прізвище</label>
-        <input type="text" id="customerName" required>
-      </div>
-      <div class="field">
-        <label for="customerPhone">Телефон</label>
-        <input type="tel" id="customerPhone" placeholder="+380..." required>
-      </div>
-      <div class="field">
-        <label for="customerCity">Місто</label>
-        <input type="text" id="customerCity" required>
-      </div>
-      <div class="field">
-        <label for="npBranch">Відділення Нової пошти</label>
-        <input type="text" id="npBranch" placeholder="Наприклад, відділення №5">
-      </div>
-      <div class="field">
-        <label for="comment">Коментар (необов'язково)</label>
-        <textarea id="comment" rows="2"></textarea>
-      </div>
+      <div class="field"><label for="customerName">Ім'я та прізвище</label><input type="text" id="customerName" required></div>
+      <div class="field"><label for="customerPhone">Телефон</label><input type="tel" id="customerPhone" placeholder="+380..." required></div>
+      <div class="field"><label for="customerCity">Місто</label><input type="text" id="customerCity" required></div>
+      <div class="field"><label for="npBranch">Відділення Нової пошти</label><input type="text" id="npBranch" placeholder="Наприклад, відділення №5"></div>
+      <div class="field"><label for="comment">Коментар (необов'язково)</label><textarea id="comment" rows="2"></textarea></div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="modalCancel">Скасувати</button>
         <button type="submit" class="btn-primary" id="modalSubmit">Замовити</button>
@@ -416,14 +270,19 @@
   // ЗАМІНИ на адресу свого бекенду на Render.
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
-  const state = { section: '', categoryId: '', page: 1, limit: 24, loading: false };
+  const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', page: 1, limit: 24, loading: false };
   let currentOrderProduct = null;
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
   const loadMoreBtn = document.getElementById('loadMore');
-  const sectionsNav = document.getElementById('sections');
-  const categoriesNav = document.getElementById('filters');
+  const sectionsList = document.getElementById('sectionsList');
+  const allProductsLink = document.getElementById('allProductsLink');
+  const contentTitle = document.getElementById('contentTitle');
+  const contentCount = document.getElementById('contentCount');
+  const sortSelect = document.getElementById('sortSelect');
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
 
   function money(n) {
     return new Intl.NumberFormat('uk-UA').format(n) + ' грн';
@@ -462,7 +321,7 @@
     }
 
     try {
-      const params = new URLSearchParams({ page: state.page, limit: state.limit });
+      const params = new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
       if (state.section) params.set('section', state.section);
       if (state.categoryId) params.set('category_id', state.categoryId);
 
@@ -475,8 +334,10 @@
       if (data.products.length === 0 && !append) {
         stateMessage.textContent = 'У цій категорії поки немає товарів.';
         stateMessage.hidden = false;
+        contentCount.textContent = '';
       } else {
         renderProducts(data.products, append);
+        contentCount.textContent = `${data.pagination.total} товар(ів)`;
       }
 
       const hasMore = data.pagination.page < data.pagination.totalPages;
@@ -491,65 +352,120 @@
     }
   }
 
-  // First-level nav: sections (Зоотовари, Дім, Парфумерія...), built from
-  // /meta/sections. Selecting one loads its categories as the second level.
+  function setActiveSectionButton(sectionName) {
+    allProductsLink.classList.toggle('active', !sectionName);
+    document.querySelectorAll('.section-toggle').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.section === sectionName);
+    });
+  }
+
+  function setActiveCategoryButton(categoryId) {
+    document.querySelectorAll('.category-item button').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.category === categoryId);
+    });
+  }
+
+  async function selectSection(sectionName, sectionLabel) {
+    state.section = sectionName;
+    state.categoryId = '';
+    state.categoryName = '';
+    state.page = 1;
+    contentTitle.textContent = sectionName ? sectionLabel : 'Усі товари';
+    setActiveSectionButton(sectionName);
+    setActiveCategoryButton('');
+    loadProducts(false);
+    closeSidebarOnMobile();
+  }
+
+  function selectCategory(categoryId, categoryName, sectionName) {
+    state.section = sectionName;
+    state.categoryId = categoryId;
+    state.categoryName = categoryName;
+    state.page = 1;
+    contentTitle.textContent = categoryName || 'Товари';
+    setActiveSectionButton(sectionName);
+    setActiveCategoryButton(categoryId);
+    loadProducts(false);
+    closeSidebarOnMobile();
+  }
+
+  async function loadCategoriesInto(container, sectionName) {
+    container.innerHTML = '<div class="category-loading">Завантаження…</div>';
+    try {
+      const res = await fetch(`${API_BASE}/api/products/meta/categories?section=${encodeURIComponent(sectionName)}`);
+      if (!res.ok) throw new Error('Request failed');
+      const categories = await res.json();
+      container.innerHTML = '';
+      if (categories.length === 0) {
+        container.innerHTML = '<div class="category-loading">Немає підрозділів</div>';
+        return;
+      }
+      for (const c of categories) {
+        const item = document.createElement('div');
+        item.className = 'category-item';
+        const label = c.category_name || `Категорія ${c.category_id}`;
+        item.innerHTML = `<button data-category="${c.category_id}">${label} (${c.count})</button>`;
+        item.querySelector('button').addEventListener('click', () => {
+          selectCategory(c.category_id, label, sectionName);
+        });
+        container.appendChild(item);
+      }
+    } catch (err) {
+      container.innerHTML = '<div class="category-loading">Не вдалося завантажити</div>';
+      console.error(err);
+    }
+  }
+
   async function loadSections() {
     try {
       const res = await fetch(`${API_BASE}/api/products/meta/sections`);
       if (!res.ok) return;
       const sections = await res.json();
+
       for (const s of sections) {
-        const btn = document.createElement('button');
-        btn.className = 'filter-btn';
-        btn.dataset.section = s.section;
-        btn.textContent = `${s.section} (${s.count})`;
-        sectionsNav.appendChild(btn);
+        const item = document.createElement('div');
+        item.className = 'section-item';
+        item.innerHTML = `
+          <button class="section-toggle" data-section="${s.section}">
+            <span>${s.section} <span class="count">(${s.count})</span></span>
+            <span class="chevron">›</span>
+          </button>
+          <div class="category-list"></div>
+        `;
+        const toggleBtn = item.querySelector('.section-toggle');
+        const catList = item.querySelector('.category-list');
+        let loaded = false;
+
+        toggleBtn.addEventListener('click', () => {
+          const isOpen = catList.classList.contains('open');
+          // Clicking a section both filters to that whole section AND
+          // expands/collapses its subcategory list underneath.
+          selectSection(s.section, s.section);
+
+          if (!isOpen) {
+            catList.classList.add('open');
+            toggleBtn.classList.add('open');
+            if (!loaded) {
+              loaded = true;
+              loadCategoriesInto(catList, s.section);
+            }
+          } else {
+            catList.classList.remove('open');
+            toggleBtn.classList.remove('open');
+          }
+        });
+
+        sectionsList.appendChild(item);
       }
     } catch (err) {
       console.error(err);
     }
   }
 
-  // Second-level nav: categories within the chosen section, using the
-  // human-readable name the feed itself provides (category_name) — no
-  // manual label mapping needed.
-  async function loadCategories(section) {
-    categoriesNav.innerHTML = '<button class="filter-btn active" data-category="">Усі товари</button>';
-    try {
-      const params = section ? `?section=${encodeURIComponent(section)}` : '';
-      const res = await fetch(`${API_BASE}/api/products/meta/categories${params}`);
-      if (!res.ok) return;
-      const categories = await res.json();
-      for (const c of categories) {
-        const btn = document.createElement('button');
-        btn.className = 'filter-btn';
-        btn.dataset.category = c.category_id;
-        btn.textContent = `${c.category_name || 'Категорія ' + c.category_id} (${c.count})`;
-        categoriesNav.appendChild(btn);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
+  allProductsLink.addEventListener('click', () => selectSection('', ''));
 
-  sectionsNav.addEventListener('click', (e) => {
-    const btn = e.target.closest('.filter-btn');
-    if (!btn) return;
-    sectionsNav.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.section = btn.dataset.section || '';
-    state.categoryId = '';
-    state.page = 1;
-    loadCategories(state.section);
-    loadProducts(false);
-  });
-
-  categoriesNav.addEventListener('click', (e) => {
-    const btn = e.target.closest('.filter-btn');
-    if (!btn) return;
-    categoriesNav.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.categoryId = btn.dataset.category || '';
+  sortSelect.addEventListener('change', () => {
+    state.sort = sortSelect.value;
     state.page = 1;
     loadProducts(false);
   });
@@ -558,6 +474,11 @@
     state.page += 1;
     loadProducts(true);
   });
+
+  function closeSidebarOnMobile() {
+    if (window.innerWidth < 900) sidebar.classList.remove('open');
+  }
+  sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
 
   // ---------- Order modal ----------
   const modalBackdrop = document.getElementById('modalBackdrop');
@@ -576,12 +497,8 @@
     modalBackdrop.hidden = false;
   });
 
-  document.getElementById('modalCancel').addEventListener('click', () => {
-    modalBackdrop.hidden = true;
-  });
-  modalBackdrop.addEventListener('click', (e) => {
-    if (e.target === modalBackdrop) modalBackdrop.hidden = true;
-  });
+  document.getElementById('modalCancel').addEventListener('click', () => { modalBackdrop.hidden = true; });
+  modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) modalBackdrop.hidden = true; });
 
   orderForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -622,7 +539,6 @@
 
   // ---------- Init ----------
   loadSections();
-  loadCategories('');
   loadProducts(false);
 </script>
 
