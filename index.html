@@ -198,6 +198,12 @@
     text-transform: none;
   }
 
+  .card-stock {
+    font-size: 12px;
+    color: var(--forest);
+    font-weight: 500;
+  }
+
   .card-price {
     margin-top: auto;
     font-family: 'Fraunces', serif;
@@ -406,14 +412,11 @@
 <script>
   // ЗАМІНИ на адресу свого бекенду на Render, наприклад:
   // const API_BASE = 'https://dropshipping-backend-xxxx.onrender.com';
-  const API_BASE = 'https://allshop-stjp.onrender.com';
+  const API_BASE = 'https://YOUR-BACKEND.onrender.com';
 
   const CATEGORY_LABELS = {
-    '3421': 'Намордники',
-    '3422': 'Нашийники',
-    '3423': 'Повідки',
-    '3424': 'Шлеї',
-    '3425': 'Переноски',
+    // За бажання підпиши сюди зрозумілі назви замість технічних category_id,
+    // наприклад: '3425': 'Переноски', '3412': 'Одяг'
   };
 
   const state = { categoryId: '', page: 1, limit: 24, loading: false };
@@ -441,6 +444,7 @@
         <div class="card-body">
           <div class="card-name">${p.name}</div>
           ${p.vendor ? `<div class="card-vendor">${p.vendor}</div>` : ''}
+          <div class="card-stock">✓ В наявності</div>
           <div class="card-price">${price}</div>
           <button class="card-buy" data-id="${p.id}" data-name="${p.name.replace(/"/g, '&quot;')}">Замовити</button>
         </div>
