@@ -360,6 +360,9 @@
   </div>
 </section>
 
+<nav class="filters" id="sections">
+  <button class="filter-btn active" data-section="">Усі розділи</button>
+</nav>
 <nav class="filters" id="filters">
   <button class="filter-btn active" data-category="">Усі товари</button>
 </nav>
@@ -410,22 +413,17 @@
 </div>
 
 <script>
-  // ЗАМІНИ на адресу свого бекенду на Render, наприклад:
-  // const API_BASE = 'https://dropshipping-backend-xxxx.onrender.com';
-  const API_BASE = 'https://YOUR-BACKEND.onrender.com';
+  // ЗАМІНИ на адресу свого бекенду на Render.
+  const API_BASE = 'https://allshop-stjp.onrender.com';
 
-  const CATEGORY_LABELS = {
-    // За бажання підпиши сюди зрозумілі назви замість технічних category_id,
-    // наприклад: '3425': 'Переноски', '3412': 'Одяг'
-  };
-
-  const state = { categoryId: '', page: 1, limit: 24, loading: false };
+  const state = { section: '', categoryId: '', page: 1, limit: 24, loading: false };
   let currentOrderProduct = null;
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
   const loadMoreBtn = document.getElementById('loadMore');
-  const filtersNav = document.getElementById('filters');
+  const sectionsNav = document.getElementById('sections');
+  const categoriesNav = document.getElementById('filters');
 
   function money(n) {
     return new Intl.NumberFormat('uk-UA').format(n) + ' грн';
@@ -465,6 +463,7 @@
 
     try {
       const params = new URLSearchParams({ page: state.page, limit: state.limit });
+      if (state.section) params.set('section', state.section);
       if (state.categoryId) params.set('category_id', state.categoryId);
 
       const res = await fetch(`${API_BASE}/api/products?${params}`);
@@ -492,27 +491,63 @@
     }
   }
 
-  async function loadCategories() {
+  // First-level nav: sections (Зоотовари, Дім, Парфумерія...), built from
+  // /meta/sections. Selecting one loads its categories as the second level.
+  async function loadSections() {
     try {
-      const res = await fetch(`${API_BASE}/api/products/meta/categories`);
+      const res = await fetch(`${API_BASE}/api/products/meta/sections`);
       if (!res.ok) return;
-      const categories = await res.json();
-      for (const c of categories) {
+      const sections = await res.json();
+      for (const s of sections) {
         const btn = document.createElement('button');
         btn.className = 'filter-btn';
-        btn.dataset.category = c.category_id;
-        btn.textContent = `${CATEGORY_LABELS[c.category_id] || 'Категорія ' + c.category_id} (${c.count})`;
-        filtersNav.appendChild(btn);
+        btn.dataset.section = s.section;
+        btn.textContent = `${s.section} (${s.count})`;
+        sectionsNav.appendChild(btn);
       }
     } catch (err) {
       console.error(err);
     }
   }
 
-  filtersNav.addEventListener('click', (e) => {
+  // Second-level nav: categories within the chosen section, using the
+  // human-readable name the feed itself provides (category_name) — no
+  // manual label mapping needed.
+  async function loadCategories(section) {
+    categoriesNav.innerHTML = '<button class="filter-btn active" data-category="">Усі товари</button>';
+    try {
+      const params = section ? `?section=${encodeURIComponent(section)}` : '';
+      const res = await fetch(`${API_BASE}/api/products/meta/categories${params}`);
+      if (!res.ok) return;
+      const categories = await res.json();
+      for (const c of categories) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.dataset.category = c.category_id;
+        btn.textContent = `${c.category_name || 'Категорія ' + c.category_id} (${c.count})`;
+        categoriesNav.appendChild(btn);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  sectionsNav.addEventListener('click', (e) => {
     const btn = e.target.closest('.filter-btn');
     if (!btn) return;
-    filtersNav.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+    sectionsNav.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.section = btn.dataset.section || '';
+    state.categoryId = '';
+    state.page = 1;
+    loadCategories(state.section);
+    loadProducts(false);
+  });
+
+  categoriesNav.addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    categoriesNav.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     state.categoryId = btn.dataset.category || '';
     state.page = 1;
@@ -586,7 +621,8 @@
   });
 
   // ---------- Init ----------
-  loadCategories();
+  loadSections();
+  loadCategories('');
   loadProducts(false);
 </script>
 
