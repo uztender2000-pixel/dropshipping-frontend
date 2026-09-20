@@ -44,7 +44,7 @@
   }
   .header-inner {
     max-width: 1280px; margin: 0 auto; padding: 14px 20px;
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   }
   .logo { display: flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
   .logo .oll { color: var(--forest); }
@@ -60,6 +60,21 @@
   @media (min-width: 640px) { .header-note { display: block; } }
 
   .header-right { display: flex; align-items: center; gap: 10px; }
+
+  .header-search { flex: 1; max-width: 480px; min-width: 0; }
+  .header-search form { display: flex; }
+  .header-search input {
+    flex: 1; min-width: 0; font-family: 'Inter', sans-serif; font-size: 14px;
+    padding: 9px 12px; border: 1px solid var(--line); border-radius: 4px 0 0 4px;
+    background: var(--white); color: var(--ink);
+  }
+  .header-search input:focus { outline: none; border-color: var(--forest); }
+  .header-search button {
+    background: var(--forest); color: var(--white); border: none; padding: 0 16px;
+    border-radius: 0 4px 4px 0; cursor: pointer; font-size: 15px;
+  }
+  .header-search button:hover { background: var(--forest-dark); }
+  @media (max-width: 720px) { .header-search { order: 3; flex-basis: 100%; max-width: none; margin-top: 10px; } }
 
   .icon-btn {
     display: inline-flex; align-items: center; gap: 6px;
@@ -199,10 +214,12 @@
   .breadcrumb a:hover { color: var(--forest); text-decoration: underline; }
   .breadcrumb .current { color: var(--ink); }
 
-  .detail-layout { display: grid; grid-template-columns: 1fr; gap: 28px; margin-bottom: 28px; }
-  @media (min-width: 760px) { .detail-layout { grid-template-columns: 400px 1fr; } }
+  .detail-layout {
+    display: grid; grid-template-columns: 1fr; gap: 28px; margin-bottom: 28px; align-items: start;
+  }
+  @media (min-width: 760px) { .detail-layout { grid-template-columns: minmax(280px, 400px) minmax(240px, 1fr); } }
 
-  .gallery { display: flex; gap: 10px; }
+  .gallery { display: flex; gap: 10px; min-width: 0; }
   .gallery-thumbs {
     display: flex; flex-direction: column; gap: 8px; width: 64px; flex-shrink: 0;
     max-height: 420px; overflow-y: auto;
@@ -213,11 +230,11 @@
   }
   .gallery-thumb.active { border-color: var(--forest); }
   .gallery-main {
-    flex: 1; aspect-ratio: 1 / 1; background: var(--sand) center/contain no-repeat;
-    border-radius: 6px; border: 1px solid var(--line); max-width: 420px;
+    flex: 1; min-width: 0; max-width: 100%; aspect-ratio: 1 / 1;
+    background: var(--sand) center/contain no-repeat; border-radius: 6px; border: 1px solid var(--line);
   }
 
-  .detail-info { display: flex; flex-direction: column; gap: 6px; }
+  .detail-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .detail-info h2 { font-size: 22px; margin-bottom: 4px; }
   .detail-meta { font-size: 13px; color: #8B98AD; display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
   .detail-meta b { color: var(--ink); font-weight: 500; }
@@ -331,6 +348,12 @@
         <path d="M9 9V7C9 4.79086 10.7909 3 13 3C15.2091 3 17 4.79086 17 7V9" stroke="#FF7A1A" stroke-width="2" stroke-linecap="round"/>
       </svg>
       <span class="oll">Oll</span><span class="shop">Shop</span>
+    </div>
+    <div class="header-search">
+      <form id="searchForm">
+        <input type="text" id="searchInput" placeholder="Пошук за назвою або артикулом…" autocomplete="off">
+        <button type="submit">🔍</button>
+      </form>
     </div>
     <div class="header-right">
       <button class="sidebar-toggle" id="sidebarToggle">☰ Розділи</button>
@@ -470,7 +493,7 @@
   // ЗАМІНИ на адресу свого бекенду на Render.
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
-  const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', page: 1, limit: 24, loading: false };
+  const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', query: '', page: 1, limit: 24, loading: false };
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
@@ -523,6 +546,7 @@
       const params = new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
       if (state.section) params.set('section', state.section);
       if (state.categoryId) params.set('category_id', state.categoryId);
+      if (state.query) params.set('q', state.query);
 
       const res = await fetch(`${API_BASE}/api/products?${params}`);
       if (!res.ok) throw new Error('Request failed');
@@ -568,7 +592,9 @@
     state.section = sectionName;
     state.categoryId = '';
     state.categoryName = '';
+    state.query = '';
     state.page = 1;
+    searchInput.value = '';
     contentTitle.textContent = sectionName ? sectionLabel : 'Усі товари';
     setActiveSectionButton(sectionName);
     setActiveCategoryButton('');
@@ -580,7 +606,9 @@
     state.section = sectionName;
     state.categoryId = categoryId;
     state.categoryName = categoryName;
+    state.query = '';
     state.page = 1;
+    searchInput.value = '';
     contentTitle.textContent = categoryName || 'Товари';
     setActiveSectionButton(sectionName);
     setActiveCategoryButton(categoryId);
@@ -663,6 +691,25 @@
   }
 
   allProductsLink.addEventListener('click', () => selectSection('', ''));
+
+  const searchForm = document.getElementById('searchForm');
+  const searchInput = document.getElementById('searchInput');
+
+  searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = searchInput.value.trim();
+    if (!q) return;
+
+    state.query = q;
+    state.section = '';
+    state.categoryId = '';
+    state.page = 1;
+    setActiveSectionButton('');
+    setActiveCategoryButton('');
+    contentTitle.textContent = `Результати пошуку: «${q}»`;
+    loadProducts(false);
+    closeSidebarOnMobile();
+  });
 
   sortSelect.addEventListener('change', () => {
     state.sort = sortSelect.value;
