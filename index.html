@@ -185,19 +185,63 @@
   }
   .card-cart:hover { border-color: var(--forest); }
 
-  .product-detail { max-width: 900px; }
-  .detail-layout { display: grid; grid-template-columns: 1fr; gap: 28px; }
-  @media (min-width: 700px) { .detail-layout { grid-template-columns: 360px 1fr; } }
-  .detail-image {
-    aspect-ratio: 1 / 1; background: var(--sand) center/cover no-repeat; border-radius: 6px;
-    border: 1px solid var(--line);
+  .product-detail { max-width: 1000px; }
+
+  .breadcrumb {
+    font-size: 13px; color: #8B98AD; margin-bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap;
   }
-  .detail-info { display: flex; flex-direction: column; gap: 8px; }
-  .detail-info h2 { font-size: 24px; }
-  .detail-description {
-    margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);
-    font-size: 14px; line-height: 1.7; color: var(--ink); white-space: pre-line;
+  .breadcrumb a { color: #8B98AD; cursor: pointer; text-decoration: none; }
+  .breadcrumb a:hover { color: var(--forest); text-decoration: underline; }
+  .breadcrumb .current { color: var(--ink); }
+
+  .detail-layout { display: grid; grid-template-columns: 1fr; gap: 28px; margin-bottom: 28px; }
+  @media (min-width: 760px) { .detail-layout { grid-template-columns: 400px 1fr; } }
+
+  .gallery { display: flex; gap: 10px; }
+  .gallery-thumbs {
+    display: flex; flex-direction: column; gap: 8px; width: 64px; flex-shrink: 0;
+    max-height: 420px; overflow-y: auto;
   }
+  .gallery-thumb {
+    width: 64px; height: 64px; border-radius: 4px; border: 2px solid var(--line);
+    background: var(--sand) center/cover no-repeat; cursor: pointer; flex-shrink: 0; padding: 0;
+  }
+  .gallery-thumb.active { border-color: var(--forest); }
+  .gallery-main {
+    flex: 1; aspect-ratio: 1 / 1; background: var(--sand) center/contain no-repeat;
+    border-radius: 6px; border: 1px solid var(--line); max-width: 420px;
+  }
+
+  .detail-info { display: flex; flex-direction: column; gap: 6px; }
+  .detail-info h2 { font-size: 22px; margin-bottom: 4px; }
+  .detail-meta { font-size: 13px; color: #8B98AD; display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+  .detail-meta b { color: var(--ink); font-weight: 500; }
+
+  .qty-row { display: flex; align-items: center; gap: 14px; margin: 14px 0; }
+  .qty-control { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 4px; }
+  .qty-control button {
+    width: 34px; height: 34px; border: none; background: var(--sand-light); font-size: 16px;
+    cursor: pointer; color: var(--ink);
+  }
+  .qty-control input {
+    width: 42px; height: 34px; border: none; border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+    text-align: center; font-family: 'Inter', sans-serif; font-size: 14px;
+  }
+
+  .detail-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+  .detail-tab {
+    background: none; border: none; padding: 10px 16px; font-family: 'Inter', sans-serif; font-size: 14px;
+    font-weight: 600; color: #8B98AD; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .detail-tab.active { color: var(--forest); border-bottom-color: var(--forest); }
+  .detail-tab-panel { font-size: 14px; line-height: 1.7; color: var(--ink); white-space: pre-line; }
+  .detail-tab-panel[hidden] { display: none; }
+
+  .specs-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .specs-table tr { border-bottom: 1px solid var(--line); }
+  .specs-table td { padding: 9px 4px; vertical-align: top; }
+  .specs-table td:first-child { color: #8B98AD; width: 45%; }
+
 
   .state-message { text-align: center; padding: 60px 20px; color: #6B7A93; }
 
@@ -648,23 +692,99 @@
       if (!res.ok) throw new Error('Not found');
       const p = await res.json();
 
+      const images = (p.pictures && p.pictures.length ? p.pictures : [p.picture_url]).filter(Boolean);
+      const mainImage = images[0] || '';
+
+      const thumbsHtml = images.length > 1 ? images.map((url, i) => `
+        <button class="gallery-thumb ${i === 0 ? 'active' : ''}" data-img="${url}" style="background-image:url('${url}')"></button>
+      `).join('') : '';
+
+      const specsRows = p.params && Object.keys(p.params).length
+        ? Object.entries(p.params).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')
+        : '';
+
       productDetailEl.innerHTML = `
+        <div class="breadcrumb">
+          <a id="breadcrumbAll">Усі товари</a>
+          ${p.section ? `<span>›</span><a id="breadcrumbSection" data-section="${p.section}">${p.section}</a>` : ''}
+          ${p.category_name ? `<span>›</span><a id="breadcrumbCategory" data-category="${p.category_id}" data-section="${p.section}">${p.category_name}</a>` : ''}
+          <span>›</span><span class="current">${p.name}</span>
+        </div>
+
         <button class="btn-secondary" id="detailBackBtn" style="margin-bottom:18px;">← Повернутися</button>
+
         <div class="detail-layout">
-          <div class="detail-image" style="${p.picture_url ? `background-image:url('${p.picture_url}')` : ''}"></div>
+          <div class="gallery">
+            ${thumbsHtml ? `<div class="gallery-thumbs">${thumbsHtml}</div>` : ''}
+            <div class="gallery-main" id="galleryMain" style="${mainImage ? `background-image:url('${mainImage}')` : ''}"></div>
+          </div>
           <div class="detail-info">
             <h2>${p.name}</h2>
-            ${p.vendor ? `<div class="card-vendor">${p.vendor}</div>` : ''}
+            <div class="detail-meta">
+              ${p.vendor_code ? `<div>Артикул: <b>${p.vendor_code}</b></div>` : ''}
+              ${p.vendor ? `<div>Бренд: <b>${p.vendor}</b></div>` : ''}
+            </div>
             <div class="card-stock">✓ В наявності</div>
             <div class="card-price" style="font-size:26px;">${p.retail_price ? money(p.retail_price) : 'Ціна уточнюється'}</div>
-            <button class="card-buy" id="detailAddToCart" data-cart-id="${p.id}" style="margin-top:10px;">🛒 Додати в кошик</button>
-            <div class="detail-description">${(p.description || 'Опис відсутній.').replace(/</g, '&lt;')}</div>
+
+            <div class="qty-row">
+              <div class="qty-control">
+                <button type="button" id="qtyMinus">−</button>
+                <input type="text" id="qtyInput" value="1" inputmode="numeric">
+                <button type="button" id="qtyPlus">+</button>
+              </div>
+              <button class="card-buy" id="detailAddToCart" style="flex:1;max-width:260px;">🛒 Додати в кошик</button>
+            </div>
           </div>
         </div>
+
+        <div class="detail-tabs">
+          <button class="detail-tab active" data-tab="description">Опис</button>
+          ${specsRows ? `<button class="detail-tab" data-tab="specs">Характеристики</button>` : ''}
+        </div>
+        <div class="detail-tab-panel" id="tabDescription">${(p.description || 'Опис відсутній.').replace(/</g, '&lt;')}</div>
+        ${specsRows ? `<table class="specs-table detail-tab-panel" id="tabSpecs" hidden><tbody>${specsRows}</tbody></table>` : ''}
       `;
 
+      // Gallery: click a thumbnail to swap the main image.
+      productDetailEl.querySelectorAll('.gallery-thumb').forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+          productDetailEl.querySelectorAll('.gallery-thumb').forEach((t) => t.classList.remove('active'));
+          thumb.classList.add('active');
+          document.getElementById('galleryMain').style.backgroundImage = `url('${thumb.dataset.img}')`;
+        });
+      });
+
+      // Tabs
+      productDetailEl.querySelectorAll('.detail-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          productDetailEl.querySelectorAll('.detail-tab').forEach((t) => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('tabDescription').hidden = tab.dataset.tab !== 'description';
+          const specsEl = document.getElementById('tabSpecs');
+          if (specsEl) specsEl.hidden = tab.dataset.tab !== 'specs';
+        });
+      });
+
+      // Quantity stepper
+      const qtyInput = document.getElementById('qtyInput');
+      document.getElementById('qtyMinus').addEventListener('click', () => {
+        qtyInput.value = Math.max(1, (parseInt(qtyInput.value, 10) || 1) - 1);
+      });
+      document.getElementById('qtyPlus').addEventListener('click', () => {
+        qtyInput.value = (parseInt(qtyInput.value, 10) || 1) + 1;
+      });
+
       document.getElementById('detailBackBtn').addEventListener('click', hideProductDetail);
-      document.getElementById('detailAddToCart').addEventListener('click', () => addToCart(p.id));
+      document.getElementById('breadcrumbAll').addEventListener('click', () => { hideProductDetail(); selectSection('', ''); });
+      const sectionCrumb = document.getElementById('breadcrumbSection');
+      if (sectionCrumb) sectionCrumb.addEventListener('click', () => { hideProductDetail(); selectSection(p.section, p.section); });
+      const categoryCrumb = document.getElementById('breadcrumbCategory');
+      if (categoryCrumb) categoryCrumb.addEventListener('click', () => { hideProductDetail(); selectCategory(p.category_id, p.category_name, p.section); });
+
+      document.getElementById('detailAddToCart').addEventListener('click', () => {
+        addToCart(p.id, parseInt(qtyInput.value, 10) || 1);
+      });
     } catch (err) {
       productDetailEl.innerHTML = '<p class="state-message">Не вдалося завантажити товар.</p>';
       console.error(err);
@@ -840,7 +960,7 @@
     } catch (err) { console.error(err); }
   }
 
-  async function addToCart(productId) {
+  async function addToCart(productId, quantity) {
     if (!authToken) {
       openAuth();
       return;
@@ -849,7 +969,7 @@
       const res = await fetch(`${API_BASE}/api/cart`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ product_id: productId, quantity: 1 }),
+        body: JSON.stringify({ product_id: productId, quantity: quantity || 1 }),
       });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
