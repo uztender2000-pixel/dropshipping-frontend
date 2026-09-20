@@ -235,12 +235,31 @@
   .modal-status.error { color: var(--rust-dark); }
   .modal-status.success { color: var(--forest); }
 
+  .delivery-toggle { display: flex; gap: 16px; margin-bottom: 4px; }
+  .delivery-toggle label {
+    display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); cursor: pointer;
+  }
+  .delivery-toggle input { accent-color: var(--forest); }
+
+  .city-autocomplete-wrap { position: relative; }
+  .city-suggestions {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 5;
+    background: var(--white); border: 1px solid var(--line); border-top: none;
+    border-radius: 0 0 4px 4px; max-height: 220px; overflow-y: auto;
+  }
+  .city-suggestions[hidden] { display: none; }
+  .city-suggestion-item {
+    padding: 9px 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--sand-light);
+  }
+  .city-suggestion-item:hover { background: var(--sand); }
+  .city-suggestion-item .area { color: #8B98AD; font-size: 12px; }
+
   footer { text-align: center; padding: 40px 24px 60px; color: #8B98AD; font-size: 13px; }
 </style>
 </head>
 <body>
 
-<div class="tagline-bar">Все — в одному місці. <strong>OllShop</strong> — 40 000+ товарів з доставкою по всій Україні</div>
+<div class="tagline-bar">Все — в одному місці. <strong>OllShop</strong> — <span id="productCountText">40 000+</span> товарів з доставкою по всій Україні</div>
 <header>
   <div class="header-inner">
     <div class="logo">
@@ -308,8 +327,27 @@
     <form id="orderForm">
       <div class="field"><label for="customerName">Ім'я та прізвище</label><input type="text" id="customerName" required></div>
       <div class="field"><label for="customerPhone">Телефон</label><input type="tel" id="customerPhone" placeholder="+380..." required></div>
-      <div class="field"><label for="customerCity">Місто</label><input type="text" id="customerCity" required></div>
-      <div class="field"><label for="npBranch">Відділення Нової пошти</label><input type="text" id="npBranch" placeholder="Наприклад, відділення №5"></div>
+      <div class="field">
+        <label>Спосіб доставки</label>
+        <div class="delivery-toggle">
+          <label><input type="radio" name="deliveryMethod" value="branch" checked> У відділення Нової пошти</label>
+          <label><input type="radio" name="deliveryMethod" value="courier"> Кур'єром</label>
+        </div>
+      </div>
+      <div class="field city-autocomplete-wrap">
+        <label for="npCityInput">Місто</label>
+        <input type="text" id="npCityInput" autocomplete="off" required placeholder="Почніть вводити назву міста">
+        <input type="hidden" id="npCityRef">
+        <div class="city-suggestions" id="npCitySuggestions" hidden></div>
+      </div>
+      <div class="field" id="branchFieldWrap">
+        <label for="npBranchSelect">Відділення</label>
+        <select id="npBranchSelect" required><option value="">Спершу оберіть місто</option></select>
+      </div>
+      <div class="field" id="courierFieldWrap" hidden>
+        <label for="courierAddress">Адреса (вулиця, будинок, квартира)</label>
+        <input type="text" id="courierAddress" placeholder="вул. Хрещатик, 1, кв. 5">
+      </div>
       <div class="field"><label for="comment">Коментар (необов'язково)</label><textarea id="comment" rows="2"></textarea></div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="modalCancel">Скасувати</button>
@@ -369,8 +407,27 @@
     <div id="cartCheckoutForm" hidden style="margin-top:16px;">
       <div class="field"><label for="cartCustomerName">Ім'я та прізвище</label><input type="text" id="cartCustomerName" required></div>
       <div class="field"><label for="cartCustomerPhone">Телефон</label><input type="tel" id="cartCustomerPhone" placeholder="+380..." required></div>
-      <div class="field"><label for="cartCustomerCity">Місто</label><input type="text" id="cartCustomerCity" required></div>
-      <div class="field"><label for="cartNpBranch">Відділення Нової пошти</label><input type="text" id="cartNpBranch" placeholder="Наприклад, відділення №5"></div>
+      <div class="field">
+        <label>Спосіб доставки</label>
+        <div class="delivery-toggle">
+          <label><input type="radio" name="cartDeliveryMethod" value="branch" checked> У відділення Нової пошти</label>
+          <label><input type="radio" name="cartDeliveryMethod" value="courier"> Кур'єром</label>
+        </div>
+      </div>
+      <div class="field city-autocomplete-wrap">
+        <label for="cartNpCityInput">Місто</label>
+        <input type="text" id="cartNpCityInput" autocomplete="off" required placeholder="Почніть вводити назву міста">
+        <input type="hidden" id="cartNpCityRef">
+        <div class="city-suggestions" id="cartNpCitySuggestions" hidden></div>
+      </div>
+      <div class="field" id="cartBranchFieldWrap">
+        <label for="cartNpBranchSelect">Відділення</label>
+        <select id="cartNpBranchSelect" required><option value="">Спершу оберіть місто</option></select>
+      </div>
+      <div class="field" id="cartCourierFieldWrap" hidden>
+        <label for="cartCourierAddress">Адреса (вулиця, будинок, квартира)</label>
+        <input type="text" id="cartCourierAddress" placeholder="вул. Хрещатик, 1, кв. 5">
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cartCancel">Закрити</button>
         <button type="button" class="btn-primary" id="cartCheckoutSubmit">Оформити замовлення</button>
@@ -632,9 +689,8 @@
       product_id: currentOrderProduct.id,
       customer_name: document.getElementById('customerName').value,
       customer_phone: document.getElementById('customerPhone').value,
-      customer_city: document.getElementById('customerCity').value,
-      np_branch: document.getElementById('npBranch').value,
       comment: document.getElementById('comment').value,
+      ...orderDelivery.getData(),
     };
 
     try {
@@ -902,8 +958,7 @@
     const payload = {
       customer_name: document.getElementById('cartCustomerName').value,
       customer_phone: document.getElementById('cartCustomerPhone').value,
-      customer_city: document.getElementById('cartCustomerCity').value,
-      np_branch: document.getElementById('cartNpBranch').value,
+      ...cartDelivery.getData(),
     };
     if (!payload.customer_name || !payload.customer_phone || !payload.customer_city) {
       cartStatus.textContent = "Заповніть ім'я, телефон і місто.";
@@ -932,7 +987,143 @@
     }
   });
 
+  // ---------- Delivery widget (city autocomplete + branch select) ----------
+  // One reusable widget, instantiated once per form (order modal, cart
+  // checkout) via distinct id prefixes so both forms' elements never clash.
+  function setupDeliveryWidget({ radioName, cityInputId, cityRefId, suggestionsId, branchWrapId, branchSelectId, courierWrapId, courierAddressId }) {
+    const cityInput = document.getElementById(cityInputId);
+    const cityRefInput = document.getElementById(cityRefId);
+    const suggestions = document.getElementById(suggestionsId);
+    const branchWrap = document.getElementById(branchWrapId);
+    const branchSelect = document.getElementById(branchSelectId);
+    const courierWrap = document.getElementById(courierWrapId);
+    const courierAddress = document.getElementById(courierAddressId);
+    const radios = document.getElementsByName(radioName);
+
+    let debounceTimer = null;
+
+    function currentMethod() {
+      for (const r of radios) if (r.checked) return r.value;
+      return 'branch';
+    }
+
+    function applyMethodVisibility() {
+      const method = currentMethod();
+      const isBranch = method === 'branch';
+      branchWrap.hidden = !isBranch;
+      courierWrap.hidden = isBranch;
+      branchSelect.required = isBranch;
+      courierAddress.required = !isBranch;
+    }
+
+    for (const r of radios) r.addEventListener('change', applyMethodVisibility);
+    applyMethodVisibility();
+
+    cityInput.addEventListener('input', () => {
+      cityRefInput.value = '';
+      branchSelect.innerHTML = '<option value="">Спершу оберіть місто</option>';
+      clearTimeout(debounceTimer);
+      const q = cityInput.value.trim();
+      if (q.length < 2) {
+        suggestions.hidden = true;
+        return;
+      }
+      debounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/delivery/cities?q=${encodeURIComponent(q)}`);
+          if (!res.ok) {
+            suggestions.innerHTML = '<div class="city-suggestion-item">Доставку ще не налаштовано — вкажіть місто вручну</div>';
+            suggestions.hidden = false;
+            return;
+          }
+          const cities = await res.json();
+          if (cities.length === 0) {
+            suggestions.hidden = true;
+            return;
+          }
+          suggestions.innerHTML = '';
+          for (const c of cities) {
+            const item = document.createElement('div');
+            item.className = 'city-suggestion-item';
+            item.innerHTML = `${c.name} <span class="area">${c.area || ''}</span>`;
+            item.addEventListener('click', () => {
+              cityInput.value = c.name;
+              cityRefInput.value = c.ref;
+              suggestions.hidden = true;
+              loadWarehouses(c.ref);
+            });
+            suggestions.appendChild(item);
+          }
+          suggestions.hidden = false;
+        } catch (err) {
+          console.error(err);
+        }
+      }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!suggestions.contains(e.target) && e.target !== cityInput) suggestions.hidden = true;
+    });
+
+    async function loadWarehouses(cityRef) {
+      branchSelect.innerHTML = '<option value="">Завантаження…</option>';
+      try {
+        const res = await fetch(`${API_BASE}/api/delivery/warehouses?cityRef=${encodeURIComponent(cityRef)}`);
+        if (!res.ok) {
+          branchSelect.innerHTML = '<option value="">Введіть відділення в коментарі</option>';
+          return;
+        }
+        const warehouses = await res.json();
+        branchSelect.innerHTML = '<option value="">Оберіть відділення</option>' +
+          warehouses.map((w) => `<option value="${w.name.replace(/"/g, '&quot;')}">${w.name}</option>`).join('');
+      } catch (err) {
+        branchSelect.innerHTML = '<option value="">Не вдалося завантажити</option>';
+        console.error(err);
+      }
+    }
+
+    // Called at submit time to gather everything the widget knows.
+    function getData() {
+      const method = currentMethod();
+      return {
+        delivery_method: method,
+        customer_city: cityInput.value,
+        np_branch: method === 'branch' ? branchSelect.value : '',
+        courier_address: method === 'courier' ? courierAddress.value : '',
+      };
+    }
+
+    return { getData };
+  }
+
+  const orderDelivery = setupDeliveryWidget({
+    radioName: 'deliveryMethod',
+    cityInputId: 'npCityInput', cityRefId: 'npCityRef', suggestionsId: 'npCitySuggestions',
+    branchWrapId: 'branchFieldWrap', branchSelectId: 'npBranchSelect',
+    courierWrapId: 'courierFieldWrap', courierAddressId: 'courierAddress',
+  });
+  const cartDelivery = setupDeliveryWidget({
+    radioName: 'cartDeliveryMethod',
+    cityInputId: 'cartNpCityInput', cityRefId: 'cartNpCityRef', suggestionsId: 'cartNpCitySuggestions',
+    branchWrapId: 'cartBranchFieldWrap', branchSelectId: 'cartNpBranchSelect',
+    courierWrapId: 'cartCourierFieldWrap', courierAddressId: 'cartCourierAddress',
+  });
+
+  async function loadProductCount() {
+    try {
+      const res = await fetch(`${API_BASE}/api/products/meta/stats`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const rounded = Math.floor(data.totalProducts / 1000) * 1000;
+      document.getElementById('productCountText').textContent =
+        rounded > 0 ? `${rounded.toLocaleString('uk-UA')}+` : `${data.totalProducts}`;
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   // ---------- Init ----------
+  loadProductCount();
   loadSections();
   loadProducts(false);
   restoreSession();
