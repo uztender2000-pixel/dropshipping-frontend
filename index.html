@@ -264,6 +264,24 @@
   .specs-table td { padding: 9px 4px; vertical-align: top; }
   .specs-table td:first-child { color: #8B98AD; width: 45%; }
 
+  .account-section {
+    background: var(--white); border: 1px solid var(--line); border-radius: 6px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  .account-section h3 { font-size: 16px; margin-bottom: 14px; }
+  .verify-badge { font-size: 12px; padding: 3px 8px; border-radius: 100px; margin-left: 8px; }
+  .verify-badge.yes { background: #E3F2E5; color: var(--forest); }
+  .verify-badge.no { background: #FCE8E0; color: var(--rust-dark); }
+  .order-row {
+    display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line);
+  }
+  .order-row:last-child { border-bottom: none; }
+  .order-thumb { width: 52px; height: 52px; border-radius: 4px; background: var(--sand) center/cover no-repeat; flex-shrink: 0; }
+  .order-status {
+    font-size: 12px; padding: 4px 10px; border-radius: 100px; background: var(--sand); color: var(--forest);
+    white-space: nowrap;
+  }
+
 
   .state-message { text-align: center; padding: 60px 20px; color: #6B7A93; }
 
@@ -392,6 +410,7 @@
     <button class="load-more" id="loadMore" hidden>Показати ще</button>
 
     <div id="productDetail" class="product-detail" hidden></div>
+    <div id="accountPage" class="product-detail" hidden></div>
   </main>
 </div>
 
@@ -460,18 +479,27 @@
         <label>Спосіб доставки</label>
         <div class="delivery-toggle">
           <label><input type="radio" name="cartDeliveryMethod" value="branch" checked> У відділення Нової пошти</label>
+          <label><input type="radio" name="cartDeliveryMethod" value="postomat"> У поштомат</label>
           <label><input type="radio" name="cartDeliveryMethod" value="courier"> Кур'єром</label>
         </div>
       </div>
       <div class="field city-autocomplete-wrap">
-        <label for="cartNpCityInput">Місто</label>
+        <label for="cartNpCityInput">Населений пункт</label>
         <input type="text" id="cartNpCityInput" autocomplete="off" required placeholder="Почніть вводити назву міста">
         <input type="hidden" id="cartNpCityRef">
         <div class="city-suggestions" id="cartNpCitySuggestions" hidden></div>
       </div>
       <div class="field" id="cartBranchFieldWrap">
         <label for="cartNpBranchSelect">Відділення</label>
-        <select id="cartNpBranchSelect" required><option value="">Спершу оберіть місто</option></select>
+        <select id="cartNpBranchSelect" required><option value="">Спершу оберіть населений пункт</option></select>
+      </div>
+      <div class="field" id="cartPostomatFieldWrap" hidden>
+        <label for="cartNpPostomatSelect">Поштомат</label>
+        <select id="cartNpPostomatSelect"><option value="">Спершу оберіть населений пункт</option></select>
+      </div>
+      <div class="field" id="cartPostomatStreetWrap" hidden>
+        <label for="cartPostomatStreet">Вулиця (за потреби, для орієнтиру)</label>
+        <input type="text" id="cartPostomatStreet" placeholder="вул. Хрещатик, 1">
       </div>
       <div class="field" id="cartCourierFieldWrap" hidden>
         <label for="cartCourierAddress">Адреса (вулиця, будинок, квартира)</label>
@@ -508,7 +536,30 @@
   const sidebarToggle = document.getElementById('sidebarToggle');
 
   function money(n) {
-    return new Intl.NumberFormat('uk-UA').format(n) + ' грн';
+    return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 }).format(n) + ' грн';
+  }
+
+  // ---------- Toast notifications ----------
+  const toastContainer = document.createElement('div');
+  toastContainer.id = 'toastContainer';
+  toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;';
+  document.body.appendChild(toastContainer);
+
+  function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+      background:${type === 'error' ? 'var(--rust-dark)' : 'var(--forest)'}; color:#fff; padding:12px 20px;
+      border-radius:6px; font-family:'Inter',sans-serif; font-size:14px; font-weight:500;
+      box-shadow:0 4px 16px rgba(0,0,0,0.2); opacity:0; transform:translateY(10px); transition:all 0.2s ease;
+    `;
+    toastContainer.appendChild(toast);
+    requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      setTimeout(() => toast.remove(), 200);
+    }, 2500);
   }
 
   function renderProducts(products, append) {
@@ -523,6 +574,7 @@
         </div>
         <div class="card-body">
           <div class="card-name">${p.name}</div>
+          ${p.vendor_code ? `<div class="card-vendor">Артикул: ${p.vendor_code}</div>` : ''}
           ${p.vendor ? `<div class="card-vendor">${p.vendor}</div>` : ''}
           <div class="card-stock">✓ В наявності</div>
           <div class="card-price">${price}</div>
@@ -858,6 +910,222 @@
     productDetailEl.hidden = true;
   }
 
+  // ---------- Account page (customer cabinet) ----------
+  const accountPageEl = document.getElementById('accountPage');
+
+  function hideAccountPage() {
+    accountPageEl.hidden = true;
+  }
+
+  async function showAccountPage() {
+    accountPageEl.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    accountPageEl.innerHTML = '<p class="state-message">Завантажуємо…</p>';
+
+    try {
+      const [meRes, ordersRes, configRes] = await Promise.all([
+        fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${authToken}` } }),
+        fetch(`${API_BASE}/api/account/orders`, { headers: { Authorization: `Bearer ${authToken}` } }),
+        fetch(`${API_BASE}/api/config`),
+      ]);
+      const { user } = await meRes.json();
+      const orders = ordersRes.ok ? await ordersRes.json() : [];
+      const config = configRes.ok ? await configRes.json() : {};
+
+      const ordersHtml = orders.length
+        ? orders.map((o) => `
+            <div class="order-row">
+              <div class="order-thumb" style="${o.picture_url ? `background-image:url('${o.picture_url}')` : ''}"></div>
+              <div style="flex:1;">
+                <div style="font-size:14px;">${o.product_name}</div>
+                <div style="font-size:12px;color:#8B98AD;">№${o.id} · ${new Date(o.created_at).toLocaleDateString('uk-UA')}</div>
+              </div>
+              <span class="order-status">${orderStatusLabel(o.status)}</span>
+            </div>
+          `).join('')
+        : '<p style="color:#8B98AD;font-size:14px;">Замовлень ще немає.</p>';
+
+      accountPageEl.innerHTML = `
+        <div class="product-detail-inner">
+          <button class="btn-secondary" id="accountBackBtn" style="margin-bottom:18px;position:sticky;top:0;">← Повернутися</button>
+          <h2 style="margin-bottom:20px;">Особистий кабінет</h2>
+
+          <div class="account-section">
+            <h3>Профіль</h3>
+            <div class="field"><label>Ім'я</label><input type="text" id="acName" value="${user.name}"></div>
+            <div class="field">
+              <label>Email ${user.email_verified ? '<span class="verify-badge yes">підтверджено</span>' : '<span class="verify-badge no">не підтверджено</span>'}</label>
+              <input type="email" id="acEmail" value="${user.email}">
+              ${!user.email_verified ? `
+                <div style="display:flex;gap:8px;margin-top:6px;">
+                  <button type="button" class="btn-secondary" id="sendEmailCodeBtn" style="flex:1;">Надіслати код</button>
+                  <input type="text" id="emailCodeInput" placeholder="Код" style="width:90px;padding:8px;border:1px solid var(--line);border-radius:4px;">
+                  <button type="button" class="btn-secondary" id="verifyEmailBtn">✓</button>
+                </div>` : ''}
+            </div>
+            <div class="field">
+              <label>Телефон ${user.phone_verified ? '<span class="verify-badge yes">підтверджено</span>' : '<span class="verify-badge no">не підтверджено</span>'}</label>
+              <input type="tel" id="acPhone" value="${user.phone || ''}">
+              ${!user.phone_verified ? `
+                <div style="display:flex;gap:8px;margin-top:6px;">
+                  <button type="button" class="btn-secondary" id="sendPhoneCodeBtn" style="flex:1;">Надіслати SMS</button>
+                  <input type="text" id="phoneCodeInput" placeholder="Код" style="width:90px;padding:8px;border:1px solid var(--line);border-radius:4px;">
+                  <button type="button" class="btn-secondary" id="verifyPhoneBtn">✓</button>
+                </div>` : ''}
+            </div>
+            <button type="button" class="btn-primary" id="saveProfileBtn" style="margin-top:8px;">Зберегти профіль</button>
+            <p class="modal-status" id="profileStatus" hidden></p>
+          </div>
+
+          <div class="account-section">
+            <h3>Змінити пароль</h3>
+            <div class="field"><label>Поточний пароль</label><input type="password" id="acCurrentPassword"></div>
+            <div class="field"><label>Новий пароль</label><input type="password" id="acNewPassword"></div>
+            <button type="button" class="btn-primary" id="changePasswordBtn">Змінити пароль</button>
+            <p class="modal-status" id="passwordStatus" hidden></p>
+          </div>
+
+          <div class="account-section">
+            <h3>Мої замовлення</h3>
+            ${ordersHtml}
+          </div>
+
+          <div class="account-section">
+            <h3>Повідомлення адміністратору</h3>
+            <div class="field"><textarea id="acMessage" rows="3" placeholder="Ваше питання чи звернення…"></textarea></div>
+            <button type="button" class="btn-primary" id="sendMessageBtn">Надіслати</button>
+            <p class="modal-status" id="messageStatus" hidden></p>
+          </div>
+
+          ${config.customerBotUrl ? `
+          <div class="account-section">
+            <h3>Сповіщення в Telegram</h3>
+            <a href="${config.customerBotUrl}" target="_blank" class="btn-primary" style="display:inline-block;text-decoration:none;text-align:center;">Приєднатися до бота</a>
+          </div>` : ''}
+
+          <button type="button" class="btn-secondary" id="logoutBtn" style="width:100%;">Вийти з акаунту</button>
+        </div>
+      `;
+
+      document.getElementById('accountBackBtn').addEventListener('click', hideAccountPage);
+      document.getElementById('logoutBtn').addEventListener('click', () => { logout(); hideAccountPage(); });
+
+      document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+        const status = document.getElementById('profileStatus');
+        try {
+          const res = await fetch(`${API_BASE}/api/account`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+            body: JSON.stringify({
+              name: document.getElementById('acName').value,
+              email: document.getElementById('acEmail').value,
+              phone: document.getElementById('acPhone').value,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Помилка');
+          currentUser = data.user;
+          setLoggedInUI();
+          status.textContent = 'Збережено!';
+          status.className = 'modal-status success';
+          status.hidden = false;
+          showAccountPage();
+        } catch (err) {
+          status.textContent = err.message;
+          status.className = 'modal-status error';
+          status.hidden = false;
+        }
+      });
+
+      document.getElementById('changePasswordBtn').addEventListener('click', async () => {
+        const status = document.getElementById('passwordStatus');
+        try {
+          const res = await fetch(`${API_BASE}/api/account/password`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+            body: JSON.stringify({
+              currentPassword: document.getElementById('acCurrentPassword').value,
+              newPassword: document.getElementById('acNewPassword').value,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Помилка');
+          status.textContent = 'Пароль змінено!';
+          status.className = 'modal-status success';
+          status.hidden = false;
+        } catch (err) {
+          status.textContent = err.message;
+          status.className = 'modal-status error';
+          status.hidden = false;
+        }
+      });
+
+      document.getElementById('sendMessageBtn').addEventListener('click', async () => {
+        const status = document.getElementById('messageStatus');
+        const msgInput = document.getElementById('acMessage');
+        try {
+          const res = await fetch(`${API_BASE}/api/account/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+            body: JSON.stringify({ message: msgInput.value }),
+          });
+          if (!res.ok) throw new Error('Помилка надсилання');
+          status.textContent = 'Надіслано!';
+          status.className = 'modal-status success';
+          status.hidden = false;
+          msgInput.value = '';
+        } catch (err) {
+          status.textContent = err.message;
+          status.className = 'modal-status error';
+          status.hidden = false;
+        }
+      });
+
+      const sendEmailBtn = document.getElementById('sendEmailCodeBtn');
+      if (sendEmailBtn) sendEmailBtn.addEventListener('click', async () => {
+        await fetch(`${API_BASE}/api/auth/send-email-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
+        showToast('Код надіслано на email');
+      });
+      const verifyEmailBtn = document.getElementById('verifyEmailBtn');
+      if (verifyEmailBtn) verifyEmailBtn.addEventListener('click', async () => {
+        const code = document.getElementById('emailCodeInput').value;
+        const res = await fetch(`${API_BASE}/api/auth/verify-email`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ code }),
+        });
+        if (res.ok) { showToast('Email підтверджено ✓'); showAccountPage(); }
+        else showToast('Невірний код', 'error');
+      });
+
+      const sendPhoneBtn = document.getElementById('sendPhoneCodeBtn');
+      if (sendPhoneBtn) sendPhoneBtn.addEventListener('click', async () => {
+        await fetch(`${API_BASE}/api/auth/send-phone-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
+        showToast('Код надіслано SMS');
+      });
+      const verifyPhoneBtn = document.getElementById('verifyPhoneBtn');
+      if (verifyPhoneBtn) verifyPhoneBtn.addEventListener('click', async () => {
+        const code = document.getElementById('phoneCodeInput').value;
+        const res = await fetch(`${API_BASE}/api/auth/verify-phone`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ code }),
+        });
+        if (res.ok) { showToast('Телефон підтверджено ✓'); showAccountPage(); }
+        else showToast('Невірний код', 'error');
+      });
+    } catch (err) {
+      accountPageEl.innerHTML = '<p class="state-message">Не вдалося завантажити кабінет.</p>';
+      console.error(err);
+    }
+  }
+
+  function orderStatusLabel(status) {
+    const labels = {
+      new: 'Нове', confirmed: 'Підтверджено', ordered_from_supplier: 'Замовлено у постачальника',
+      shipped: 'Відправлено', done: 'Виконано',
+    };
+    return labels[status] || status;
+  }
+
   grid.addEventListener('click', (e) => {
     const cartBtnEl = e.target.closest('[data-cart-id]');
     if (cartBtnEl) {
@@ -886,7 +1154,7 @@
 
   function openAuth() {
     if (currentUser) {
-      if (confirm(`Вийти з акаунту ${currentUser.name}?`)) logout();
+      showAccountPage();
       return;
     }
     loginForm.reset();
@@ -1034,9 +1302,10 @@
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       updateCartBadge(data.cartCount);
+      showToast('Товар додано до кошика 🛒');
     } catch (err) {
       console.error(err);
-      alert('Не вдалося додати товар у кошик.');
+      showToast('Не вдалося додати товар у кошик.', 'error');
     }
   }
 
@@ -1052,6 +1321,12 @@
     cartTotalRow.hidden = true;
     cartCheckoutForm.hidden = true;
     cartCloseOnly.hidden = true;
+
+    if (currentUser) {
+      document.getElementById('cartCustomerName').value = currentUser.name || '';
+      document.getElementById('cartCustomerPhone').value = currentUser.phone || '';
+      cartDelivery.prefill(currentUser);
+    }
 
     try {
       const res = await fetch(`${API_BASE}/api/cart`, { headers: { Authorization: `Bearer ${authToken}` } });
@@ -1131,6 +1406,22 @@
       cartStatus.className = 'modal-status success';
       cartStatus.hidden = false;
       updateCartBadge(0);
+      showToast('Замовлення оформлено ✓');
+
+      // Remember this address so it's pre-filled next time.
+      const cityRefEl = document.getElementById('cartNpCityRef');
+      fetch(`${API_BASE}/api/account`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          saved_delivery_method: payload.delivery_method,
+          saved_city: payload.customer_city,
+          saved_city_ref: cityRefEl ? cityRefEl.value : '',
+          saved_branch: payload.np_branch,
+          saved_courier_address: payload.courier_address,
+        }),
+      }).catch(() => {});
+
       setTimeout(() => { cartBackdrop.hidden = true; }, 2000);
     } catch (err) {
       cartStatus.textContent = err.message;
@@ -1139,15 +1430,22 @@
     }
   });
 
-  // ---------- Delivery widget (city autocomplete + branch select) ----------
-  // One reusable widget, instantiated once per form (order modal, cart
-  // checkout) via distinct id prefixes so both forms' elements never clash.
-  function setupDeliveryWidget({ radioName, cityInputId, cityRefId, suggestionsId, branchWrapId, branchSelectId, courierWrapId, courierAddressId }) {
+  // ---------- Delivery widget (city autocomplete + branch/postomat select) ----------
+  function setupDeliveryWidget({
+    radioName, cityInputId, cityRefId, suggestionsId,
+    branchWrapId, branchSelectId,
+    postomatWrapId, postomatSelectId, postomatStreetWrapId, postomatStreetId,
+    courierWrapId, courierAddressId,
+  }) {
     const cityInput = document.getElementById(cityInputId);
     const cityRefInput = document.getElementById(cityRefId);
     const suggestions = document.getElementById(suggestionsId);
     const branchWrap = document.getElementById(branchWrapId);
     const branchSelect = document.getElementById(branchSelectId);
+    const postomatWrap = document.getElementById(postomatWrapId);
+    const postomatSelect = document.getElementById(postomatSelectId);
+    const postomatStreetWrap = document.getElementById(postomatStreetWrapId);
+    const postomatStreet = document.getElementById(postomatStreetId);
     const courierWrap = document.getElementById(courierWrapId);
     const courierAddress = document.getElementById(courierAddressId);
     const radios = document.getElementsByName(radioName);
@@ -1161,11 +1459,14 @@
 
     function applyMethodVisibility() {
       const method = currentMethod();
-      const isBranch = method === 'branch';
-      branchWrap.hidden = !isBranch;
-      courierWrap.hidden = isBranch;
-      branchSelect.required = isBranch;
-      courierAddress.required = !isBranch;
+      branchWrap.hidden = method !== 'branch';
+      postomatWrap.hidden = method !== 'postomat';
+      postomatStreetWrap.hidden = method !== 'postomat';
+      courierWrap.hidden = method !== 'courier';
+      branchSelect.required = method === 'branch';
+      courierAddress.required = method === 'courier';
+      // Re-load the right list (branches vs postomats) for the already-chosen city, if any.
+      if (cityRefInput.value && (method === 'branch' || method === 'postomat')) loadWarehouses(cityRefInput.value, method);
     }
 
     for (const r of radios) r.addEventListener('change', applyMethodVisibility);
@@ -1173,7 +1474,8 @@
 
     cityInput.addEventListener('input', () => {
       cityRefInput.value = '';
-      branchSelect.innerHTML = '<option value="">Спершу оберіть місто</option>';
+      branchSelect.innerHTML = '<option value="">Спершу оберіть населений пункт</option>';
+      postomatSelect.innerHTML = '<option value="">Спершу оберіть населений пункт</option>';
       clearTimeout(debounceTimer);
       const q = cityInput.value.trim();
       if (q.length < 2) {
@@ -1184,7 +1486,7 @@
         try {
           const res = await fetch(`${API_BASE}/api/delivery/cities?q=${encodeURIComponent(q)}`);
           if (!res.ok) {
-            suggestions.innerHTML = '<div class="city-suggestion-item">Доставку ще не налаштовано — вкажіть місто вручну</div>';
+            suggestions.innerHTML = '<div class="city-suggestion-item">Доставку ще не налаштовано — вкажіть населений пункт вручну</div>';
             suggestions.hidden = false;
             return;
           }
@@ -1202,7 +1504,8 @@
               cityInput.value = c.name;
               cityRefInput.value = c.ref;
               suggestions.hidden = true;
-              loadWarehouses(c.ref);
+              const method = currentMethod();
+              if (method === 'branch' || method === 'postomat') loadWarehouses(c.ref, method);
             });
             suggestions.appendChild(item);
           }
@@ -1217,19 +1520,25 @@
       if (!suggestions.contains(e.target) && e.target !== cityInput) suggestions.hidden = true;
     });
 
-    async function loadWarehouses(cityRef) {
-      branchSelect.innerHTML = '<option value="">Завантаження…</option>';
+    async function loadWarehouses(cityRef, method) {
+      const targetSelect = method === 'postomat' ? postomatSelect : branchSelect;
+      const emptyLabel = method === 'postomat' ? 'Оберіть поштомат' : 'Оберіть відділення';
+      targetSelect.innerHTML = '<option value="">Завантаження…</option>';
       try {
-        const res = await fetch(`${API_BASE}/api/delivery/warehouses?cityRef=${encodeURIComponent(cityRef)}`);
+        const res = await fetch(`${API_BASE}/api/delivery/warehouses?cityRef=${encodeURIComponent(cityRef)}&type=${method}`);
         if (!res.ok) {
-          branchSelect.innerHTML = '<option value="">Введіть відділення в коментарі</option>';
+          targetSelect.innerHTML = '<option value="">Введіть відділення в коментарі</option>';
           return;
         }
         const warehouses = await res.json();
-        branchSelect.innerHTML = '<option value="">Оберіть відділення</option>' +
+        if (warehouses.length === 0) {
+          targetSelect.innerHTML = `<option value="">${method === 'postomat' ? 'У цьому пункті немає поштоматів' : 'Немає відділень'}</option>`;
+          return;
+        }
+        targetSelect.innerHTML = `<option value="">${emptyLabel}</option>` +
           warehouses.map((w) => `<option value="${w.name.replace(/"/g, '&quot;')}">${w.name}</option>`).join('');
       } catch (err) {
-        branchSelect.innerHTML = '<option value="">Не вдалося завантажити</option>';
+        targetSelect.innerHTML = '<option value="">Не вдалося завантажити</option>';
         console.error(err);
       }
     }
@@ -1237,21 +1546,48 @@
     // Called at submit time to gather everything the widget knows.
     function getData() {
       const method = currentMethod();
+      let npBranch = '';
+      if (method === 'branch') npBranch = branchSelect.value;
+      if (method === 'postomat') {
+        npBranch = postomatSelect.value + (postomatStreet.value ? ` (орієнтир: ${postomatStreet.value})` : '');
+      }
       return {
-        delivery_method: method,
+        delivery_method: method === 'postomat' ? 'branch' : method, // backend stores branch/courier; postomat note travels inside np_branch text
         customer_city: cityInput.value,
-        np_branch: method === 'branch' ? branchSelect.value : '',
+        np_branch: npBranch,
         courier_address: method === 'courier' ? courierAddress.value : '',
       };
     }
 
-    return { getData };
+    // Pre-fill from a saved address (called after login, if the user has one on file).
+    function prefill(saved) {
+      if (!saved || !saved.saved_city) return;
+      cityInput.value = saved.saved_city;
+      cityRefInput.value = saved.saved_city_ref || '';
+      if (saved.saved_delivery_method) {
+        for (const r of radios) r.checked = r.value === saved.saved_delivery_method;
+      }
+      if (saved.saved_courier_address) courierAddress.value = saved.saved_courier_address;
+      applyMethodVisibility();
+      if (cityRefInput.value) {
+        const method = currentMethod();
+        if (method === 'branch' || method === 'postomat') {
+          loadWarehouses(cityRefInput.value, method).then(() => {
+            if (saved.saved_branch) branchSelect.value = saved.saved_branch;
+          });
+        }
+      }
+    }
+
+    return { getData, prefill };
   }
 
   const cartDelivery = setupDeliveryWidget({
     radioName: 'cartDeliveryMethod',
     cityInputId: 'cartNpCityInput', cityRefId: 'cartNpCityRef', suggestionsId: 'cartNpCitySuggestions',
     branchWrapId: 'cartBranchFieldWrap', branchSelectId: 'cartNpBranchSelect',
+    postomatWrapId: 'cartPostomatFieldWrap', postomatSelectId: 'cartNpPostomatSelect',
+    postomatStreetWrapId: 'cartPostomatStreetWrap', postomatStreetId: 'cartPostomatStreet',
     courierWrapId: 'cartCourierFieldWrap', courierAddressId: 'cartCourierAddress',
   });
 
