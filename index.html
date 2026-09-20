@@ -185,7 +185,12 @@
   }
   .card-cart:hover { border-color: var(--forest); }
 
-  .product-detail { max-width: 1000px; }
+  .product-detail {
+    position: fixed; inset: 0; z-index: 50; background: var(--sand-light);
+    overflow-y: auto; padding: 20px;
+  }
+  .product-detail-inner { max-width: 1000px; margin: 0 auto; }
+  .product-detail[hidden] { display: none; }
 
   .breadcrumb {
     font-size: 13px; color: #8B98AD; margin-bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap;
@@ -677,14 +682,10 @@
 
   // ---------- Product detail page ----------
   const productDetailEl = document.getElementById('productDetail');
-  const contentHeaderEl = document.querySelector('.content-header');
 
   async function showProductDetail(id) {
-    grid.hidden = true;
-    stateMessage.hidden = true;
-    loadMoreBtn.hidden = true;
-    contentHeaderEl.hidden = true;
     productDetailEl.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'instant' });
     productDetailEl.innerHTML = '<p class="state-message">Завантажуємо…</p>';
 
     try {
@@ -704,6 +705,7 @@
         : '';
 
       productDetailEl.innerHTML = `
+        <div class="product-detail-inner">
         <div class="breadcrumb">
           <a id="breadcrumbAll">Усі товари</a>
           ${p.section ? `<span>›</span><a id="breadcrumbSection" data-section="${p.section}">${p.section}</a>` : ''}
@@ -711,7 +713,7 @@
           <span>›</span><span class="current">${p.name}</span>
         </div>
 
-        <button class="btn-secondary" id="detailBackBtn" style="margin-bottom:18px;">← Повернутися</button>
+        <button class="btn-secondary" id="detailBackBtn" style="margin-bottom:18px;position:sticky;top:0;z-index:2;">← Повернутися</button>
 
         <div class="detail-layout">
           <div class="gallery">
@@ -744,6 +746,7 @@
         </div>
         <div class="detail-tab-panel" id="tabDescription">${(p.description || 'Опис відсутній.').replace(/</g, '&lt;')}</div>
         ${specsRows ? `<table class="specs-table detail-tab-panel" id="tabSpecs" hidden><tbody>${specsRows}</tbody></table>` : ''}
+        </div>
       `;
 
       // Gallery: click a thumbnail to swap the main image.
@@ -793,9 +796,6 @@
 
   function hideProductDetail() {
     productDetailEl.hidden = true;
-    contentHeaderEl.hidden = false;
-    grid.hidden = false;
-    loadProducts(false);
   }
 
   grid.addEventListener('click', (e) => {
