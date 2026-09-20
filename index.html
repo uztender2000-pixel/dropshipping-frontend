@@ -3,21 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Лапка — товари для тварин</title>
+<title>OllShop — усе для дому, авто, дітей та не тільки</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --forest: #2B3A2E;
-    --forest-dark: #1C2620;
-    --sand: #EFE6D0;
-    --sand-light: #F7F2E4;
-    --rust: #B5562A;
-    --rust-dark: #8F4220;
-    --ink: #26241F;
-    --line: #D8CBA8;
-    --white: #FFFDF8;
+    /* Marketplace palette: deep blue = trust/reliability, orange = action/energy —
+       the standard pairing across major e-commerce brands (per conversion-focused
+       color research), not a niche-boutique aesthetic. */
+    --forest: #1B4B8F;       /* primary blue */
+    --forest-dark: #123563;  /* blue, hover/active */
+    --sand: #EAF0F8;         /* light blue-tinted surface */
+    --sand-light: #F5F8FC;   /* page background */
+    --rust: #FF7A1A;         /* accent orange — CTAs */
+    --rust-dark: #D9600A;    /* orange, hover/active */
+    --ink: #1A1F2B;          /* near-black text */
+    --line: #D7E1EE;         /* borders */
+    --white: #FFFFFF;
   }
 
   * { box-sizing: border-box; }
@@ -26,11 +29,11 @@
     margin: 0;
     background: var(--sand-light);
     color: var(--ink);
-    font-family: 'Karla', sans-serif;
+    font-family: 'Inter', sans-serif;
     line-height: 1.5;
   }
 
-  h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 500; line-height: 1.1; margin: 0; }
+  h1, h2, h3 { font-family: 'Manrope', sans-serif; font-weight: 800; line-height: 1.15; margin: 0; }
   a { color: inherit; }
 
   /* ---------- Header ---------- */
@@ -43,15 +46,39 @@
     max-width: 1280px; margin: 0 auto; padding: 14px 20px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
-  .logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; }
-  .logo span { color: var(--rust); }
+  .logo { display: flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
+  .logo .oll { color: var(--forest); }
+  .logo .shop { color: var(--rust); }
+  .logo svg { flex-shrink: 0; }
+
+  .tagline-bar {
+    background: var(--forest); color: var(--white); text-align: center;
+    font-size: 13px; padding: 7px 16px; font-weight: 500;
+  }
+  .tagline-bar strong { font-weight: 700; }
   .header-note { font-size: 13px; color: var(--forest); display: none; }
   @media (min-width: 640px) { .header-note { display: block; } }
+
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  .icon-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--white); border: 1px solid var(--line); color: var(--ink);
+    padding: 8px 14px; border-radius: 4px; font-family: 'Inter', sans-serif;
+    font-size: 14px; cursor: pointer; position: relative;
+  }
+  .icon-btn:hover { border-color: var(--forest); }
+  .cart-badge {
+    position: absolute; top: -6px; right: -6px; background: var(--rust); color: var(--white);
+    font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 100px;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+  }
+  .cart-badge[hidden] { display: none; }
 
   .sidebar-toggle {
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--forest); color: var(--white); border: none;
-    padding: 8px 14px; border-radius: 4px; font-family: 'Karla', sans-serif;
+    padding: 8px 14px; border-radius: 4px; font-family: 'Inter', sans-serif;
     font-size: 14px; cursor: pointer;
   }
   @media (min-width: 900px) { .sidebar-toggle { display: none; } }
@@ -71,11 +98,11 @@
   }
   .sidebar-title {
     font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
-    color: #857D5F; padding: 10px 10px 6px;
+    color: #6B7A93; padding: 10px 10px 6px;
   }
   .all-products-link {
     display: block; width: 100%; text-align: left; background: none; border: none;
-    padding: 10px; font-family: 'Karla', sans-serif; font-weight: 700; font-size: 14px;
+    padding: 10px; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px;
     color: var(--ink); cursor: pointer; border-radius: 4px; border-bottom: 1px solid var(--line);
     margin-bottom: 4px;
   }
@@ -87,25 +114,25 @@
   .section-toggle {
     width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
     background: none; border: none; padding: 10px; cursor: pointer;
-    font-family: 'Karla', sans-serif; font-weight: 700; font-size: 14px; color: var(--ink);
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px; color: var(--ink);
     border-radius: 4px; text-align: left;
   }
   .section-toggle:hover { background: var(--sand-light); }
   .section-toggle.active { color: var(--rust-dark); }
-  .section-toggle .count { font-weight: 400; color: #857D5F; font-size: 12px; }
-  .section-toggle .chevron { transition: transform 0.15s ease; color: #857D5F; }
+  .section-toggle .count { font-weight: 400; color: #6B7A93; font-size: 12px; }
+  .section-toggle .chevron { transition: transform 0.15s ease; color: #6B7A93; }
   .section-toggle.open .chevron { transform: rotate(90deg); }
 
   .category-list { display: none; padding: 2px 0 6px 10px; }
   .category-list.open { display: block; }
   .category-item button {
     width: 100%; text-align: left; background: none; border: none;
-    padding: 7px 10px; font-family: 'Karla', sans-serif; font-size: 13px;
-    color: #4A4738; cursor: pointer; border-radius: 4px;
+    padding: 7px 10px; font-family: 'Inter', sans-serif; font-size: 13px;
+    color: #3D4759; cursor: pointer; border-radius: 4px;
   }
   .category-item button:hover { background: var(--sand-light); }
   .category-item button.active { background: var(--sand); color: var(--forest); font-weight: 700; }
-  .category-loading { padding: 8px 10px; font-size: 12px; color: #9C9270; }
+  .category-loading { padding: 8px 10px; font-size: 12px; color: #8B98AD; }
 
   @media (max-width: 899px) {
     .sidebar {
@@ -123,10 +150,10 @@
     flex-wrap: wrap; margin-bottom: 16px;
   }
   .content-title { font-size: clamp(20px, 3vw, 28px); }
-  .content-count { font-size: 13px; color: #857D5F; margin-top: 2px; }
+  .content-count { font-size: 13px; color: #6B7A93; margin-top: 2px; }
 
   .sort-select {
-    font-family: 'Karla', sans-serif; font-size: 14px; padding: 9px 12px;
+    font-family: 'Inter', sans-serif; font-size: 14px; padding: 9px 12px;
     border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink);
   }
 
@@ -138,25 +165,31 @@
   }
   .card-image {
     aspect-ratio: 1 / 1; background: var(--sand) center/cover no-repeat;
-    display: flex; align-items: center; justify-content: center; color: #9C9270; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; color: #8B98AD; font-size: 13px;
   }
   .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .card-name { font-size: 15px; font-weight: 500; line-height: 1.3; }
-  .card-vendor { font-size: 12px; color: #857D5F; }
+  .card-vendor { font-size: 12px; color: #6B7A93; }
   .card-stock { font-size: 12px; color: var(--forest); font-weight: 500; }
-  .card-price { margin-top: auto; font-family: 'Fraunces', serif; font-size: 20px; color: var(--rust-dark); }
+  .card-price { margin-top: auto; font-family: 'Manrope', sans-serif; font-size: 20px; color: var(--rust-dark); }
   .card-buy {
     background: var(--forest); color: var(--white); border: none; border-radius: 3px;
-    padding: 10px 14px; font-family: 'Karla', sans-serif; font-size: 14px; font-weight: 700;
+    padding: 10px 14px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
     cursor: pointer; margin-top: 6px;
   }
   .card-buy:hover { background: var(--forest-dark); }
+  .card-cart {
+    background: transparent; color: var(--forest); border: 1px solid var(--line);
+    border-radius: 3px; padding: 9px 14px; font-family: 'Inter', sans-serif; font-size: 13px;
+    cursor: pointer;
+  }
+  .card-cart:hover { border-color: var(--forest); }
 
-  .state-message { text-align: center; padding: 60px 20px; color: #857D5F; }
+  .state-message { text-align: center; padding: 60px 20px; color: #6B7A93; }
 
   .load-more {
     display: block; margin: 32px auto 0; background: transparent; border: 1px solid var(--forest);
-    color: var(--forest); padding: 12px 28px; border-radius: 3px; font-family: 'Karla', sans-serif;
+    color: var(--forest); padding: 12px 28px; border-radius: 3px; font-family: 'Inter', sans-serif;
     font-weight: 700; cursor: pointer;
   }
   .load-more:hover { background: var(--forest); color: var(--white); }
@@ -180,9 +213,9 @@
   .modal .modal-product { color: var(--rust-dark); font-size: 15px; margin-bottom: 18px; }
 
   .field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 13px; color: #4A4738; }
+  .field label { font-size: 13px; color: #3D4759; }
   .field input, .field textarea {
-    font-family: 'Karla', sans-serif; font-size: 15px; padding: 10px 12px;
+    font-family: 'Inter', sans-serif; font-size: 15px; padding: 10px 12px;
     border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink);
   }
   .field input:focus, .field textarea:focus { outline: 2px solid var(--forest); outline-offset: 1px; }
@@ -190,28 +223,39 @@
   .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
   .btn-primary {
     flex: 1; background: var(--rust); color: var(--white); border: none; padding: 13px;
-    border-radius: 4px; font-family: 'Karla', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer;
+    border-radius: 4px; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer;
   }
   .btn-primary:hover { background: var(--rust-dark); }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
   .btn-secondary {
     background: transparent; border: 1px solid var(--line); color: var(--ink);
-    padding: 13px 16px; border-radius: 4px; font-family: 'Karla', sans-serif; cursor: pointer;
+    padding: 13px 16px; border-radius: 4px; font-family: 'Inter', sans-serif; cursor: pointer;
   }
   .modal-status { font-size: 14px; margin-top: 12px; }
   .modal-status.error { color: var(--rust-dark); }
   .modal-status.success { color: var(--forest); }
 
-  footer { text-align: center; padding: 40px 24px 60px; color: #9C9270; font-size: 13px; }
+  footer { text-align: center; padding: 40px 24px 60px; color: #8B98AD; font-size: 13px; }
 </style>
 </head>
 <body>
 
+<div class="tagline-bar">Все — в одному місці. <strong>OllShop</strong> — 40 000+ товарів з доставкою по всій Україні</div>
 <header>
   <div class="header-inner">
-    <div class="logo">Лапка<span>.</span></div>
-    <button class="sidebar-toggle" id="sidebarToggle">☰ Розділи</button>
-    <div class="header-note">📦 Нова пошта • 💳 оплата при отриманні</div>
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 9H20L19 22C18.9 23.1 18 24 16.9 24H9.1C8 24 7.1 23.1 7 22L6 9Z" stroke="#1B4B8F" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9 9V7C9 4.79086 10.7909 3 13 3C15.2091 3 17 4.79086 17 7V9" stroke="#FF7A1A" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="oll">Oll</span><span class="shop">Shop</span>
+    </div>
+    <div class="header-right">
+      <button class="sidebar-toggle" id="sidebarToggle">☰ Розділи</button>
+      <div class="header-note">📦 Нова пошта • 💳 оплата при отриманні</div>
+      <button class="icon-btn" id="loginBtn">👤 Вхід</button>
+      <button class="icon-btn" id="cartBtn">🛒 Кошик<span class="cart-badge" id="cartBadge" hidden>0</span></button>
+    </div>
   </div>
 </header>
 
@@ -244,7 +288,17 @@
   </main>
 </div>
 
-<footer>Лапка — приватний магазин товарів для тварин.</footer>
+<footer>
+  <div style="max-width:640px;margin:0 auto;">
+    <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:16px;color:var(--ink);margin-bottom:8px;">OllShop</div>
+    <p style="margin:0 0 8px;">
+      OllShop — український маркетплейс, заснований у 2026 році. Попри молодість,
+      ми вже пропонуємо понад <strong>40 000 товарів</strong> у категоріях: товари для дому,
+      авто, дітей, одяг та багато іншого.
+    </p>
+    <p style="margin:0;">Доставка Новою поштою по всій Україні. Оплата при отриманні.</p>
+  </div>
+</footer>
 
 <!-- Order modal -->
 <div class="modal-backdrop" id="modalBackdrop" hidden>
@@ -263,6 +317,69 @@
       </div>
       <p class="modal-status" id="modalStatus" hidden></p>
     </form>
+  </div>
+</div>
+
+<!-- Auth modal: login + register in one, switchable -->
+<div class="modal-backdrop" id="authBackdrop" hidden>
+  <div class="modal">
+    <h2 id="authTitle">Вхід</h2>
+    <form id="loginForm">
+      <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" required></div>
+      <div class="field"><label for="loginPassword">Пароль</label><input type="password" id="loginPassword" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="authCancel1">Скасувати</button>
+        <button type="submit" class="btn-primary" id="loginSubmit">Увійти</button>
+      </div>
+      <p class="modal-status" id="loginStatus" hidden></p>
+    </form>
+    <p style="margin-top:14px;font-size:14px;">Немає акаунту? <a href="#" id="showRegister" style="color:var(--rust-dark);font-weight:700;">Зареєструватись</a></p>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="registerBackdrop" hidden>
+  <div class="modal">
+    <h2>Реєстрація</h2>
+    <form id="registerForm">
+      <div class="field"><label for="regName">Ім'я</label><input type="text" id="regName" required></div>
+      <div class="field"><label for="regEmail">Email</label><input type="email" id="regEmail" required></div>
+      <div class="field"><label for="regPhone">Телефон (необов'язково)</label><input type="tel" id="regPhone" placeholder="+380..."></div>
+      <div class="field"><label for="regPassword">Пароль (мінімум 6 символів)</label><input type="password" id="regPassword" required minlength="6"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="authCancel2">Скасувати</button>
+        <button type="submit" class="btn-primary" id="registerSubmit">Зареєструватись</button>
+      </div>
+      <p class="modal-status" id="registerStatus" hidden></p>
+    </form>
+    <p style="margin-top:14px;font-size:14px;">Вже є акаунт? <a href="#" id="showLogin" style="color:var(--rust-dark);font-weight:700;">Увійти</a></p>
+  </div>
+</div>
+
+<!-- Cart modal -->
+<div class="modal-backdrop" id="cartBackdrop" hidden>
+  <div class="modal" style="max-width:480px;">
+    <h2>Кошик</h2>
+    <div id="cartItemsContainer" style="margin-top:14px;"></div>
+    <div id="cartEmptyMessage" class="state-message" hidden style="padding:24px 0;">Кошик порожній</div>
+    <div id="cartTotalRow" style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-weight:700;" hidden>
+      <span>Разом:</span>
+      <span id="cartTotal" style="font-family:'Manrope',serif;font-size:20px;color:var(--rust-dark);"></span>
+    </div>
+
+    <div id="cartCheckoutForm" hidden style="margin-top:16px;">
+      <div class="field"><label for="cartCustomerName">Ім'я та прізвище</label><input type="text" id="cartCustomerName" required></div>
+      <div class="field"><label for="cartCustomerPhone">Телефон</label><input type="tel" id="cartCustomerPhone" placeholder="+380..." required></div>
+      <div class="field"><label for="cartCustomerCity">Місто</label><input type="text" id="cartCustomerCity" required></div>
+      <div class="field"><label for="cartNpBranch">Відділення Нової пошти</label><input type="text" id="cartNpBranch" placeholder="Наприклад, відділення №5"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cartCancel">Закрити</button>
+        <button type="button" class="btn-primary" id="cartCheckoutSubmit">Оформити замовлення</button>
+      </div>
+      <p class="modal-status" id="cartStatus" hidden></p>
+    </div>
+    <div class="modal-actions" id="cartCloseOnly">
+      <button type="button" class="btn-secondary" id="cartCancel2" style="flex:1;">Закрити</button>
+    </div>
   </div>
 </div>
 
@@ -304,6 +421,7 @@
           <div class="card-stock">✓ В наявності</div>
           <div class="card-price">${price}</div>
           <button class="card-buy" data-id="${p.id}" data-name="${p.name.replace(/"/g, '&quot;')}">Замовити</button>
+          <button class="card-cart" data-cart-id="${p.id}">🛒 У кошик</button>
         </div>
       `;
       grid.appendChild(card);
@@ -488,6 +606,11 @@
   const modalSubmit = document.getElementById('modalSubmit');
 
   grid.addEventListener('click', (e) => {
+    const cartBtnEl = e.target.closest('[data-cart-id]');
+    if (cartBtnEl) {
+      addToCart(cartBtnEl.dataset.cartId);
+      return;
+    }
     const btn = e.target.closest('.card-buy');
     if (!btn) return;
     currentOrderProduct = { id: btn.dataset.id, name: btn.dataset.name };
@@ -537,9 +660,282 @@
     }
   });
 
+  // ---------- Auth ----------
+  let authToken = localStorage.getItem('authToken') || null;
+  let currentUser = null;
+
+  const loginBtn = document.getElementById('loginBtn');
+  const authBackdrop = document.getElementById('authBackdrop');
+  const registerBackdrop = document.getElementById('registerBackdrop');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const loginStatus = document.getElementById('loginStatus');
+  const registerStatus = document.getElementById('registerStatus');
+
+  function setLoggedInUI() {
+    loginBtn.textContent = currentUser ? `👤 ${currentUser.name}` : '👤 Вхід';
+  }
+
+  function openAuth() {
+    if (currentUser) {
+      if (confirm(`Вийти з акаунту ${currentUser.name}?`)) logout();
+      return;
+    }
+    loginForm.reset();
+    loginStatus.hidden = true;
+    authBackdrop.hidden = false;
+  }
+
+  function logout() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    setLoggedInUI();
+    updateCartBadge(0);
+  }
+
+  async function restoreSession() {
+    if (!authToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${authToken}` } });
+      if (!res.ok) throw new Error('Session invalid');
+      const data = await res.json();
+      currentUser = data.user;
+      setLoggedInUI();
+      refreshCartBadge();
+    } catch (err) {
+      logout();
+    }
+  }
+
+  loginBtn.addEventListener('click', openAuth);
+  document.getElementById('authCancel1').addEventListener('click', () => { authBackdrop.hidden = true; });
+  document.getElementById('authCancel2').addEventListener('click', () => { registerBackdrop.hidden = true; });
+  authBackdrop.addEventListener('click', (e) => { if (e.target === authBackdrop) authBackdrop.hidden = true; });
+  registerBackdrop.addEventListener('click', (e) => { if (e.target === registerBackdrop) registerBackdrop.hidden = true; });
+
+  document.getElementById('showRegister').addEventListener('click', (e) => {
+    e.preventDefault();
+    authBackdrop.hidden = true;
+    registerForm.reset();
+    registerStatus.hidden = true;
+    registerBackdrop.hidden = false;
+  });
+  document.getElementById('showLogin').addEventListener('click', (e) => {
+    e.preventDefault();
+    registerBackdrop.hidden = true;
+    authBackdrop.hidden = false;
+  });
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginStatus.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('loginEmail').value,
+          password: document.getElementById('loginPassword').value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Помилка входу');
+
+      authToken = data.token;
+      currentUser = data.user;
+      localStorage.setItem('authToken', authToken);
+      setLoggedInUI();
+      refreshCartBadge();
+      authBackdrop.hidden = true;
+    } catch (err) {
+      loginStatus.textContent = err.message;
+      loginStatus.className = 'modal-status error';
+      loginStatus.hidden = false;
+    }
+  });
+
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    registerStatus.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('regName').value,
+          email: document.getElementById('regEmail').value,
+          phone: document.getElementById('regPhone').value,
+          password: document.getElementById('regPassword').value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Помилка реєстрації');
+
+      authToken = data.token;
+      currentUser = data.user;
+      localStorage.setItem('authToken', authToken);
+      setLoggedInUI();
+      refreshCartBadge();
+      registerBackdrop.hidden = true;
+    } catch (err) {
+      registerStatus.textContent = err.message;
+      registerStatus.className = 'modal-status error';
+      registerStatus.hidden = false;
+    }
+  });
+
+  // ---------- Cart ----------
+  const cartBtn = document.getElementById('cartBtn');
+  const cartBadge = document.getElementById('cartBadge');
+  const cartBackdrop = document.getElementById('cartBackdrop');
+  const cartItemsContainer = document.getElementById('cartItemsContainer');
+  const cartEmptyMessage = document.getElementById('cartEmptyMessage');
+  const cartTotalRow = document.getElementById('cartTotalRow');
+  const cartTotal = document.getElementById('cartTotal');
+  const cartCheckoutForm = document.getElementById('cartCheckoutForm');
+  const cartCloseOnly = document.getElementById('cartCloseOnly');
+  const cartStatus = document.getElementById('cartStatus');
+
+  function updateCartBadge(count) {
+    cartBadge.textContent = count;
+    cartBadge.hidden = count === 0;
+  }
+
+  async function refreshCartBadge() {
+    if (!authToken) return updateCartBadge(0);
+    try {
+      const res = await fetch(`${API_BASE}/api/cart`, { headers: { Authorization: `Bearer ${authToken}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      updateCartBadge(data.items.reduce((sum, i) => sum + i.quantity, 0));
+    } catch (err) { console.error(err); }
+  }
+
+  async function addToCart(productId) {
+    if (!authToken) {
+      openAuth();
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/cart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ product_id: productId, quantity: 1 }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      updateCartBadge(data.cartCount);
+    } catch (err) {
+      console.error(err);
+      alert('Не вдалося додати товар у кошик.');
+    }
+  }
+
+  async function openCart() {
+    cartStatus.hidden = true;
+    if (!authToken) {
+      openAuth();
+      return;
+    }
+    cartBackdrop.hidden = false;
+    cartItemsContainer.innerHTML = '<p class="state-message">Завантажуємо…</p>';
+    cartEmptyMessage.hidden = true;
+    cartTotalRow.hidden = true;
+    cartCheckoutForm.hidden = true;
+    cartCloseOnly.hidden = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/cart`, { headers: { Authorization: `Bearer ${authToken}` } });
+      const data = await res.json();
+      updateCartBadge(data.items.reduce((sum, i) => sum + i.quantity, 0));
+
+      if (data.items.length === 0) {
+        cartItemsContainer.innerHTML = '';
+        cartEmptyMessage.hidden = false;
+        cartCloseOnly.hidden = false;
+        return;
+      }
+
+      cartItemsContainer.innerHTML = '';
+      for (const item of data.items) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);';
+        row.innerHTML = `
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:500;">${item.name}</div>
+            <div style="font-size:13px;color:#6B7A93;">${item.retail_price ? money(item.retail_price) : 'Ціна уточнюється'} × ${item.quantity}</div>
+          </div>
+          <button data-remove="${item.product_id}" style="background:none;border:none;color:var(--rust-dark);cursor:pointer;font-size:13px;">Видалити</button>
+        `;
+        cartItemsContainer.appendChild(row);
+      }
+      cartTotal.textContent = money(data.total);
+      cartTotalRow.hidden = false;
+      cartCheckoutForm.hidden = false;
+      cartCloseOnly.hidden = true;
+    } catch (err) {
+      cartItemsContainer.innerHTML = '<p class="state-message">Не вдалося завантажити кошик.</p>';
+      console.error(err);
+    }
+  }
+
+  cartBtn.addEventListener('click', openCart);
+  document.getElementById('cartCancel').addEventListener('click', () => { cartBackdrop.hidden = true; });
+  document.getElementById('cartCancel2').addEventListener('click', () => { cartBackdrop.hidden = true; });
+  cartBackdrop.addEventListener('click', (e) => { if (e.target === cartBackdrop) cartBackdrop.hidden = true; });
+
+  cartItemsContainer.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    try {
+      await fetch(`${API_BASE}/api/cart/${btn.dataset.remove}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      openCart();
+    } catch (err) { console.error(err); }
+  });
+
+  document.getElementById('cartCheckoutSubmit').addEventListener('click', async () => {
+    cartStatus.hidden = true;
+    const payload = {
+      customer_name: document.getElementById('cartCustomerName').value,
+      customer_phone: document.getElementById('cartCustomerPhone').value,
+      customer_city: document.getElementById('cartCustomerCity').value,
+      np_branch: document.getElementById('cartNpBranch').value,
+    };
+    if (!payload.customer_name || !payload.customer_phone || !payload.customer_city) {
+      cartStatus.textContent = "Заповніть ім'я, телефон і місто.";
+      cartStatus.className = 'modal-status error';
+      cartStatus.hidden = false;
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/cart/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Помилка оформлення');
+
+      cartStatus.textContent = 'Дякуємо! Замовлення оформлено.';
+      cartStatus.className = 'modal-status success';
+      cartStatus.hidden = false;
+      updateCartBadge(0);
+      setTimeout(() => { cartBackdrop.hidden = true; }, 2000);
+    } catch (err) {
+      cartStatus.textContent = err.message;
+      cartStatus.className = 'modal-status error';
+      cartStatus.hidden = false;
+    }
+  });
+
   // ---------- Init ----------
   loadSections();
   loadProducts(false);
+  restoreSession();
 </script>
 
 </body>
