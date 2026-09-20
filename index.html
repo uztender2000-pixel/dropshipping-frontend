@@ -185,6 +185,20 @@
   }
   .card-cart:hover { border-color: var(--forest); }
 
+  .product-detail { max-width: 900px; }
+  .detail-layout { display: grid; grid-template-columns: 1fr; gap: 28px; }
+  @media (min-width: 700px) { .detail-layout { grid-template-columns: 360px 1fr; } }
+  .detail-image {
+    aspect-ratio: 1 / 1; background: var(--sand) center/cover no-repeat; border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+  .detail-info { display: flex; flex-direction: column; gap: 8px; }
+  .detail-info h2 { font-size: 24px; }
+  .detail-description {
+    margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);
+    font-size: 14px; line-height: 1.7; color: var(--ink); white-space: pre-line;
+  }
+
   .state-message { text-align: center; padding: 60px 20px; color: #6B7A93; }
 
   .load-more {
@@ -304,6 +318,8 @@
     <div class="grid" id="grid"></div>
     <p class="state-message" id="stateMessage" hidden></p>
     <button class="load-more" id="loadMore" hidden>Показати ще</button>
+
+    <div id="productDetail" class="product-detail" hidden></div>
   </main>
 </div>
 
@@ -318,45 +334,6 @@
     <p style="margin:0;">Доставка Новою поштою по всій Україні. Оплата при отриманні.</p>
   </div>
 </footer>
-
-<!-- Order modal -->
-<div class="modal-backdrop" id="modalBackdrop" hidden>
-  <div class="modal">
-    <h2>Оформити замовлення</h2>
-    <div class="modal-product" id="modalProductName"></div>
-    <form id="orderForm">
-      <div class="field"><label for="customerName">Ім'я та прізвище</label><input type="text" id="customerName" required></div>
-      <div class="field"><label for="customerPhone">Телефон</label><input type="tel" id="customerPhone" placeholder="+380..." required></div>
-      <div class="field">
-        <label>Спосіб доставки</label>
-        <div class="delivery-toggle">
-          <label><input type="radio" name="deliveryMethod" value="branch" checked> У відділення Нової пошти</label>
-          <label><input type="radio" name="deliveryMethod" value="courier"> Кур'єром</label>
-        </div>
-      </div>
-      <div class="field city-autocomplete-wrap">
-        <label for="npCityInput">Місто</label>
-        <input type="text" id="npCityInput" autocomplete="off" required placeholder="Почніть вводити назву міста">
-        <input type="hidden" id="npCityRef">
-        <div class="city-suggestions" id="npCitySuggestions" hidden></div>
-      </div>
-      <div class="field" id="branchFieldWrap">
-        <label for="npBranchSelect">Відділення</label>
-        <select id="npBranchSelect" required><option value="">Спершу оберіть місто</option></select>
-      </div>
-      <div class="field" id="courierFieldWrap" hidden>
-        <label for="courierAddress">Адреса (вулиця, будинок, квартира)</label>
-        <input type="text" id="courierAddress" placeholder="вул. Хрещатик, 1, кв. 5">
-      </div>
-      <div class="field"><label for="comment">Коментар (необов'язково)</label><textarea id="comment" rows="2"></textarea></div>
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" id="modalCancel">Скасувати</button>
-        <button type="submit" class="btn-primary" id="modalSubmit">Замовити</button>
-      </div>
-      <p class="modal-status" id="modalStatus" hidden></p>
-    </form>
-  </div>
-</div>
 
 <!-- Auth modal: login + register in one, switchable -->
 <div class="modal-backdrop" id="authBackdrop" hidden>
@@ -445,7 +422,6 @@
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
   const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', page: 1, limit: 24, loading: false };
-  let currentOrderProduct = null;
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
@@ -477,8 +453,7 @@
           ${p.vendor ? `<div class="card-vendor">${p.vendor}</div>` : ''}
           <div class="card-stock">✓ В наявності</div>
           <div class="card-price">${price}</div>
-          <button class="card-buy" data-id="${p.id}" data-name="${p.name.replace(/"/g, '&quot;')}">Замовити</button>
-          <button class="card-cart" data-cart-id="${p.id}">🛒 У кошик</button>
+          <button class="card-buy" data-detail-id="${p.id}">Детальніше</button>
         </div>
       `;
       grid.appendChild(card);
@@ -655,12 +630,52 @@
   }
   sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
 
-  // ---------- Order modal ----------
-  const modalBackdrop = document.getElementById('modalBackdrop');
-  const modalProductName = document.getElementById('modalProductName');
-  const orderForm = document.getElementById('orderForm');
-  const modalStatus = document.getElementById('modalStatus');
-  const modalSubmit = document.getElementById('modalSubmit');
+  // ---------- Product detail page ----------
+  const productDetailEl = document.getElementById('productDetail');
+  const contentHeaderEl = document.querySelector('.content-header');
+
+  async function showProductDetail(id) {
+    grid.hidden = true;
+    stateMessage.hidden = true;
+    loadMoreBtn.hidden = true;
+    contentHeaderEl.hidden = true;
+    productDetailEl.hidden = false;
+    productDetailEl.innerHTML = '<p class="state-message">Завантажуємо…</p>';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/products/${id}`);
+      if (!res.ok) throw new Error('Not found');
+      const p = await res.json();
+
+      productDetailEl.innerHTML = `
+        <button class="btn-secondary" id="detailBackBtn" style="margin-bottom:18px;">← Повернутися</button>
+        <div class="detail-layout">
+          <div class="detail-image" style="${p.picture_url ? `background-image:url('${p.picture_url}')` : ''}"></div>
+          <div class="detail-info">
+            <h2>${p.name}</h2>
+            ${p.vendor ? `<div class="card-vendor">${p.vendor}</div>` : ''}
+            <div class="card-stock">✓ В наявності</div>
+            <div class="card-price" style="font-size:26px;">${p.retail_price ? money(p.retail_price) : 'Ціна уточнюється'}</div>
+            <button class="card-buy" id="detailAddToCart" data-cart-id="${p.id}" style="margin-top:10px;">🛒 Додати в кошик</button>
+            <div class="detail-description">${(p.description || 'Опис відсутній.').replace(/</g, '&lt;')}</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detailBackBtn').addEventListener('click', hideProductDetail);
+      document.getElementById('detailAddToCart').addEventListener('click', () => addToCart(p.id));
+    } catch (err) {
+      productDetailEl.innerHTML = '<p class="state-message">Не вдалося завантажити товар.</p>';
+      console.error(err);
+    }
+  }
+
+  function hideProductDetail() {
+    productDetailEl.hidden = true;
+    contentHeaderEl.hidden = false;
+    grid.hidden = false;
+    loadProducts(false);
+  }
 
   grid.addEventListener('click', (e) => {
     const cartBtnEl = e.target.closest('[data-cart-id]');
@@ -668,52 +683,8 @@
       addToCart(cartBtnEl.dataset.cartId);
       return;
     }
-    const btn = e.target.closest('.card-buy');
-    if (!btn) return;
-    currentOrderProduct = { id: btn.dataset.id, name: btn.dataset.name };
-    modalProductName.textContent = currentOrderProduct.name;
-    modalStatus.hidden = true;
-    orderForm.reset();
-    modalBackdrop.hidden = false;
-  });
-
-  document.getElementById('modalCancel').addEventListener('click', () => { modalBackdrop.hidden = true; });
-  modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) modalBackdrop.hidden = true; });
-
-  orderForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    modalSubmit.disabled = true;
-    modalStatus.hidden = true;
-
-    const payload = {
-      product_id: currentOrderProduct.id,
-      customer_name: document.getElementById('customerName').value,
-      customer_phone: document.getElementById('customerPhone').value,
-      comment: document.getElementById('comment').value,
-      ...orderDelivery.getData(),
-    };
-
-    try {
-      const res = await fetch(`${API_BASE}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error('Order failed');
-
-      modalStatus.textContent = 'Дякуємо! Замовлення прийнято, ми зв\'яжемось для підтвердження.';
-      modalStatus.className = 'modal-status success';
-      modalStatus.hidden = false;
-      orderForm.reset();
-      setTimeout(() => { modalBackdrop.hidden = true; }, 2200);
-    } catch (err) {
-      modalStatus.textContent = 'Не вдалося оформити замовлення. Спробуйте ще раз або напишіть нам напряму.';
-      modalStatus.className = 'modal-status error';
-      modalStatus.hidden = false;
-      console.error(err);
-    } finally {
-      modalSubmit.disabled = false;
-    }
+    const detailBtn = e.target.closest('[data-detail-id]');
+    if (detailBtn) showProductDetail(detailBtn.dataset.detailId);
   });
 
   // ---------- Auth ----------
@@ -1096,18 +1067,13 @@
     return { getData };
   }
 
-  const orderDelivery = setupDeliveryWidget({
-    radioName: 'deliveryMethod',
-    cityInputId: 'npCityInput', cityRefId: 'npCityRef', suggestionsId: 'npCitySuggestions',
-    branchWrapId: 'branchFieldWrap', branchSelectId: 'npBranchSelect',
-    courierWrapId: 'courierFieldWrap', courierAddressId: 'courierAddress',
-  });
   const cartDelivery = setupDeliveryWidget({
     radioName: 'cartDeliveryMethod',
     cityInputId: 'cartNpCityInput', cityRefId: 'cartNpCityRef', suggestionsId: 'cartNpCitySuggestions',
     branchWrapId: 'cartBranchFieldWrap', branchSelectId: 'cartNpBranchSelect',
     courierWrapId: 'cartCourierFieldWrap', courierAddressId: 'cartCourierAddress',
   });
+
 
   async function loadProductCount() {
     try {
