@@ -376,6 +376,7 @@
     <div class="header-right">
       <button class="sidebar-toggle" id="sidebarToggle">☰ Розділи</button>
       <div class="header-note">📦 Нова пошта • 💳 оплата при отриманні</div>
+      <button class="icon-btn" id="contactBtn">✉️ Написати нам</button>
       <button class="icon-btn" id="loginBtn">👤 Вхід</button>
       <button class="icon-btn" id="cartBtn">🛒 Кошик<span class="cart-badge" id="cartBadge" hidden>0</span></button>
     </div>
@@ -461,6 +462,19 @@
   </div>
 </div>
 
+<!-- Contact admin modal -->
+<div class="modal-backdrop" id="contactBackdrop" hidden>
+  <div class="modal">
+    <h2>Написати нам</h2>
+    <div class="field"><textarea id="contactMessage" rows="4" placeholder="Ваше питання чи звернення…"></textarea></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="contactCancel">Скасувати</button>
+      <button type="button" class="btn-primary" id="contactSubmit">Надіслати</button>
+    </div>
+    <p class="modal-status" id="contactStatus" hidden></p>
+  </div>
+</div>
+
 <!-- Cart modal -->
 <div class="modal-backdrop" id="cartBackdrop" hidden>
   <div class="modal" style="max-width:480px;">
@@ -478,32 +492,37 @@
       <div class="field">
         <label>Спосіб доставки</label>
         <div class="delivery-toggle">
-          <label><input type="radio" name="cartDeliveryMethod" value="branch" checked> У відділення Нової пошти</label>
-          <label><input type="radio" name="cartDeliveryMethod" value="postomat"> У поштомат</label>
-          <label><input type="radio" name="cartDeliveryMethod" value="courier"> Кур'єром</label>
+          <label><input type="radio" name="cartDeliveryMethod" value="branch" checked> У відділенні</label>
+          <label><input type="radio" name="cartDeliveryMethod" value="postomat"> У поштоматі</label>
+          <label><input type="radio" name="cartDeliveryMethod" value="courier"> Кур'єрська доставка</label>
         </div>
       </div>
       <div class="field city-autocomplete-wrap">
         <label for="cartNpCityInput">Населений пункт</label>
-        <input type="text" id="cartNpCityInput" autocomplete="off" required placeholder="Почніть вводити назву міста">
+        <input type="text" id="cartNpCityInput" autocomplete="off" required placeholder="Почніть вводити назву населеного пункту">
         <input type="hidden" id="cartNpCityRef">
         <div class="city-suggestions" id="cartNpCitySuggestions" hidden></div>
       </div>
-      <div class="field" id="cartBranchFieldWrap">
+      <div class="field" id="cartCityHint" style="font-size:13px;color:#8B98AD;">Спочатку оберіть населений пункт ↑</div>
+      <div class="field" id="cartBranchFieldWrap" hidden>
         <label for="cartNpBranchSelect">Відділення</label>
-        <select id="cartNpBranchSelect" required><option value="">Спершу оберіть населений пункт</option></select>
+        <select id="cartNpBranchSelect"><option value="">Оберіть відділення</option></select>
       </div>
       <div class="field" id="cartPostomatFieldWrap" hidden>
         <label for="cartNpPostomatSelect">Поштомат</label>
-        <select id="cartNpPostomatSelect"><option value="">Спершу оберіть населений пункт</option></select>
-      </div>
-      <div class="field" id="cartPostomatStreetWrap" hidden>
-        <label for="cartPostomatStreet">Вулиця (за потреби, для орієнтиру)</label>
-        <input type="text" id="cartPostomatStreet" placeholder="вул. Хрещатик, 1">
+        <select id="cartNpPostomatSelect"><option value="">Оберіть поштомат</option></select>
       </div>
       <div class="field" id="cartCourierFieldWrap" hidden>
-        <label for="cartCourierAddress">Адреса (вулиця, будинок, квартира)</label>
-        <input type="text" id="cartCourierAddress" placeholder="вул. Хрещатик, 1, кв. 5">
+        <label for="cartCourierStreet">Вулиця</label>
+        <input type="text" id="cartCourierStreet" placeholder="вул. Хрещатика">
+      </div>
+      <div class="field" id="cartCourierBuildingWrap" hidden>
+        <label for="cartCourierBuilding">Будинок</label>
+        <input type="text" id="cartCourierBuilding" placeholder="12">
+      </div>
+      <div class="field" id="cartCourierApartmentWrap" hidden>
+        <label for="cartCourierApartment">Квартира (необов'язково)</label>
+        <input type="text" id="cartCourierApartment" placeholder="45">
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="cartCancel">Закрити</button>
@@ -990,13 +1009,6 @@
             ${ordersHtml}
           </div>
 
-          <div class="account-section">
-            <h3>Повідомлення адміністратору</h3>
-            <div class="field"><textarea id="acMessage" rows="3" placeholder="Ваше питання чи звернення…"></textarea></div>
-            <button type="button" class="btn-primary" id="sendMessageBtn">Надіслати</button>
-            <p class="modal-status" id="messageStatus" hidden></p>
-          </div>
-
           ${config.customerBotUrl ? `
           <div class="account-section">
             <h3>Сповіщення в Telegram</h3>
@@ -1053,27 +1065,6 @@
           status.textContent = 'Пароль змінено!';
           status.className = 'modal-status success';
           status.hidden = false;
-        } catch (err) {
-          status.textContent = err.message;
-          status.className = 'modal-status error';
-          status.hidden = false;
-        }
-      });
-
-      document.getElementById('sendMessageBtn').addEventListener('click', async () => {
-        const status = document.getElementById('messageStatus');
-        const msgInput = document.getElementById('acMessage');
-        try {
-          const res = await fetch(`${API_BASE}/api/account/message`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-            body: JSON.stringify({ message: msgInput.value }),
-          });
-          if (!res.ok) throw new Error('Помилка надсилання');
-          status.textContent = 'Надіслано!';
-          status.className = 'modal-status success';
-          status.hidden = false;
-          msgInput.value = '';
         } catch (err) {
           status.textContent = err.message;
           status.className = 'modal-status error';
@@ -1185,6 +1176,44 @@
   }
 
   loginBtn.addEventListener('click', openAuth);
+
+  // ---------- Contact admin (header button, left of login) ----------
+  const contactBackdrop = document.getElementById('contactBackdrop');
+  const contactMessage = document.getElementById('contactMessage');
+  const contactStatus = document.getElementById('contactStatus');
+
+  document.getElementById('contactBtn').addEventListener('click', () => {
+    if (!authToken) {
+      openAuth();
+      return;
+    }
+    contactMessage.value = '';
+    contactStatus.hidden = true;
+    contactBackdrop.hidden = false;
+  });
+  document.getElementById('contactCancel').addEventListener('click', () => { contactBackdrop.hidden = true; });
+  contactBackdrop.addEventListener('click', (e) => { if (e.target === contactBackdrop) contactBackdrop.hidden = true; });
+
+  document.getElementById('contactSubmit').addEventListener('click', async () => {
+    if (!contactMessage.value.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/account/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ message: contactMessage.value }),
+      });
+      if (!res.ok) throw new Error('Помилка надсилання');
+      contactStatus.textContent = 'Надіслано! Ми з вами зв\'яжемось.';
+      contactStatus.className = 'modal-status success';
+      contactStatus.hidden = false;
+      contactMessage.value = '';
+      setTimeout(() => { contactBackdrop.hidden = true; }, 1800);
+    } catch (err) {
+      contactStatus.textContent = err.message;
+      contactStatus.className = 'modal-status error';
+      contactStatus.hidden = false;
+    }
+  });
   document.getElementById('authCancel1').addEventListener('click', () => { authBackdrop.hidden = true; });
   document.getElementById('authCancel2').addEventListener('click', () => { registerBackdrop.hidden = true; });
   authBackdrop.addEventListener('click', (e) => { if (e.target === authBackdrop) authBackdrop.hidden = true; });
@@ -1432,22 +1461,25 @@
 
   // ---------- Delivery widget (city autocomplete + branch/postomat select) ----------
   function setupDeliveryWidget({
-    radioName, cityInputId, cityRefId, suggestionsId,
+    radioName, cityInputId, cityRefId, suggestionsId, cityHintId,
     branchWrapId, branchSelectId,
-    postomatWrapId, postomatSelectId, postomatStreetWrapId, postomatStreetId,
-    courierWrapId, courierAddressId,
+    postomatWrapId, postomatSelectId,
+    courierWrapId, courierStreetId, courierBuildingWrapId, courierBuildingId, courierApartmentWrapId, courierApartmentId,
   }) {
     const cityInput = document.getElementById(cityInputId);
     const cityRefInput = document.getElementById(cityRefId);
     const suggestions = document.getElementById(suggestionsId);
+    const cityHint = document.getElementById(cityHintId);
     const branchWrap = document.getElementById(branchWrapId);
     const branchSelect = document.getElementById(branchSelectId);
     const postomatWrap = document.getElementById(postomatWrapId);
     const postomatSelect = document.getElementById(postomatSelectId);
-    const postomatStreetWrap = document.getElementById(postomatStreetWrapId);
-    const postomatStreet = document.getElementById(postomatStreetId);
     const courierWrap = document.getElementById(courierWrapId);
-    const courierAddress = document.getElementById(courierAddressId);
+    const courierStreet = document.getElementById(courierStreetId);
+    const courierBuildingWrap = document.getElementById(courierBuildingWrapId);
+    const courierBuilding = document.getElementById(courierBuildingId);
+    const courierApartmentWrap = document.getElementById(courierApartmentWrapId);
+    const courierApartment = document.getElementById(courierApartmentId);
     const radios = document.getElementsByName(radioName);
 
     let debounceTimer = null;
@@ -1457,25 +1489,34 @@
       return 'branch';
     }
 
-    function applyMethodVisibility() {
+    // Step 2 only appears once a city is actually chosen (cityRefInput set).
+    // Which step-2 fields show depends on the selected method.
+    function applyVisibility() {
       const method = currentMethod();
-      branchWrap.hidden = method !== 'branch';
-      postomatWrap.hidden = method !== 'postomat';
-      postomatStreetWrap.hidden = method !== 'postomat';
-      courierWrap.hidden = method !== 'courier';
-      branchSelect.required = method === 'branch';
-      courierAddress.required = method === 'courier';
-      // Re-load the right list (branches vs postomats) for the already-chosen city, if any.
-      if (cityRefInput.value && (method === 'branch' || method === 'postomat')) loadWarehouses(cityRefInput.value, method);
+      const hasCity = !!cityRefInput.value;
+
+      cityHint.hidden = hasCity;
+      branchWrap.hidden = !(hasCity && method === 'branch');
+      postomatWrap.hidden = !(hasCity && method === 'postomat');
+      courierWrap.hidden = !(hasCity && method === 'courier');
+      courierBuildingWrap.hidden = !(hasCity && method === 'courier');
+      courierApartmentWrap.hidden = !(hasCity && method === 'courier');
+
+      branchSelect.required = hasCity && method === 'branch';
+      courierStreet.required = hasCity && method === 'courier';
+      courierBuilding.required = hasCity && method === 'courier';
+
+      if (hasCity && (method === 'branch' || method === 'postomat')) loadWarehouses(cityRefInput.value, method);
     }
 
-    for (const r of radios) r.addEventListener('change', applyMethodVisibility);
-    applyMethodVisibility();
+    for (const r of radios) r.addEventListener('change', applyVisibility);
+    applyVisibility();
 
     cityInput.addEventListener('input', () => {
       cityRefInput.value = '';
-      branchSelect.innerHTML = '<option value="">Спершу оберіть населений пункт</option>';
-      postomatSelect.innerHTML = '<option value="">Спершу оберіть населений пункт</option>';
+      branchSelect.innerHTML = '<option value="">Оберіть відділення</option>';
+      postomatSelect.innerHTML = '<option value="">Оберіть поштомат</option>';
+      applyVisibility();
       clearTimeout(debounceTimer);
       const q = cityInput.value.trim();
       if (q.length < 2) {
@@ -1486,7 +1527,7 @@
         try {
           const res = await fetch(`${API_BASE}/api/delivery/cities?q=${encodeURIComponent(q)}`);
           if (!res.ok) {
-            suggestions.innerHTML = '<div class="city-suggestion-item">Доставку ще не налаштовано — вкажіть населений пункт вручну</div>';
+            suggestions.innerHTML = '<div class="city-suggestion-item">Доставку ще не налаштовано — зверніться до підтримки</div>';
             suggestions.hidden = false;
             return;
           }
@@ -1504,8 +1545,7 @@
               cityInput.value = c.name;
               cityRefInput.value = c.ref;
               suggestions.hidden = true;
-              const method = currentMethod();
-              if (method === 'branch' || method === 'postomat') loadWarehouses(c.ref, method);
+              applyVisibility();
             });
             suggestions.appendChild(item);
           }
@@ -1527,7 +1567,7 @@
       try {
         const res = await fetch(`${API_BASE}/api/delivery/warehouses?cityRef=${encodeURIComponent(cityRef)}&type=${method}`);
         if (!res.ok) {
-          targetSelect.innerHTML = '<option value="">Введіть відділення в коментарі</option>';
+          targetSelect.innerHTML = '<option value="">Не вдалося завантажити</option>';
           return;
         }
         const warehouses = await res.json();
@@ -1548,18 +1588,23 @@
       const method = currentMethod();
       let npBranch = '';
       if (method === 'branch') npBranch = branchSelect.value;
-      if (method === 'postomat') {
-        npBranch = postomatSelect.value + (postomatStreet.value ? ` (орієнтир: ${postomatStreet.value})` : '');
+      if (method === 'postomat') npBranch = postomatSelect.value;
+
+      let courierAddressText = '';
+      if (method === 'courier') {
+        courierAddressText = `вул. ${courierStreet.value}, ${courierBuilding.value}`;
+        if (courierApartment.value) courierAddressText += `, кв. ${courierApartment.value}`;
       }
+
       return {
-        delivery_method: method === 'postomat' ? 'branch' : method, // backend stores branch/courier; postomat note travels inside np_branch text
+        delivery_method: method === 'postomat' ? 'branch' : method, // backend stores branch/courier; "поштомат" travels inside np_branch text
         customer_city: cityInput.value,
         np_branch: npBranch,
-        courier_address: method === 'courier' ? courierAddress.value : '',
+        courier_address: courierAddressText,
       };
     }
 
-    // Pre-fill from a saved address (called after login, if the user has one on file).
+    // Pre-fill from a saved address (called when opening the cart, if the user has one on file).
     function prefill(saved) {
       if (!saved || !saved.saved_city) return;
       cityInput.value = saved.saved_city;
@@ -1567,13 +1612,14 @@
       if (saved.saved_delivery_method) {
         for (const r of radios) r.checked = r.value === saved.saved_delivery_method;
       }
-      if (saved.saved_courier_address) courierAddress.value = saved.saved_courier_address;
-      applyMethodVisibility();
+      applyVisibility();
       if (cityRefInput.value) {
         const method = currentMethod();
         if (method === 'branch' || method === 'postomat') {
           loadWarehouses(cityRefInput.value, method).then(() => {
-            if (saved.saved_branch) branchSelect.value = saved.saved_branch;
+            if (saved.saved_branch) {
+              (method === 'postomat' ? postomatSelect : branchSelect).value = saved.saved_branch;
+            }
           });
         }
       }
@@ -1584,11 +1630,12 @@
 
   const cartDelivery = setupDeliveryWidget({
     radioName: 'cartDeliveryMethod',
-    cityInputId: 'cartNpCityInput', cityRefId: 'cartNpCityRef', suggestionsId: 'cartNpCitySuggestions',
+    cityInputId: 'cartNpCityInput', cityRefId: 'cartNpCityRef', suggestionsId: 'cartNpCitySuggestions', cityHintId: 'cartCityHint',
     branchWrapId: 'cartBranchFieldWrap', branchSelectId: 'cartNpBranchSelect',
     postomatWrapId: 'cartPostomatFieldWrap', postomatSelectId: 'cartNpPostomatSelect',
-    postomatStreetWrapId: 'cartPostomatStreetWrap', postomatStreetId: 'cartPostomatStreet',
-    courierWrapId: 'cartCourierFieldWrap', courierAddressId: 'cartCourierAddress',
+    courierWrapId: 'cartCourierFieldWrap', courierStreetId: 'cartCourierStreet',
+    courierBuildingWrapId: 'cartCourierBuildingWrap', courierBuildingId: 'cartCourierBuilding',
+    courierApartmentWrapId: 'cartCourierApartmentWrap', courierApartmentId: 'cartCourierApartment',
   });
 
 
