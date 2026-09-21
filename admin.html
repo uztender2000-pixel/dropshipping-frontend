@@ -22,6 +22,10 @@
     --red: #D9432E;
   }
   * { box-sizing: border-box; }
+  /* Без цього правила атрибут hidden програє будь-якому display з класу
+     (.login-screen { display:flex }) — саме через це вікно зміни пароля
+     не зникало. */
+  [hidden] { display: none !important; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font-family: 'Inter', sans-serif; font-size: 14px;
@@ -137,6 +141,89 @@
   .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
   .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
 
+  /* ---------- Modals on white background ---------- */
+  .modal-box.wide { max-width: 560px; max-height: 92vh; overflow-y: auto; }
+  .modal-box .field label { color: var(--muted); }
+  .modal-box .field input[type="text"], .modal-box .field input[type="email"],
+  .modal-box .field input[type="password"], .modal-box .field input[type="number"],
+  .modal-box .field input[type="url"], .modal-box .field select, .modal-box .field textarea {
+    background: #fff; color: var(--text); border: 1px solid #D7E1EE; padding: 9px 11px;
+    border-radius: 6px; font-size: 13px; width: 100%;
+  }
+  .modal-box .field input:focus, .modal-box .field select:focus, .modal-box .field textarea:focus { border-color: var(--blue); outline: none; }
+  .modal-box .field textarea { min-height: 76px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .modal-box .field input[type="checkbox"] { width: auto; padding: 0; }
+  .modal-box .hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .check-row { display: flex; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 8px; color: var(--text); }
+  .modal-box .form-error { color: var(--red); }
+  .modal-box .form-success { color: var(--green); }
+
+  /* ---------- Toast ---------- */
+  .toast-wrap { position: fixed; right: 20px; bottom: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--ink); color: #fff; padding: 11px 16px; border-radius: 8px; font-size: 13px; max-width: 360px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  .toast.ok { background: #1F7A47; }
+  .toast.err { background: #B93A28; }
+
+  /* ---------- Tabs ---------- */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #E3E8EF; margin-bottom: 20px; }
+  .tab-btn { background: none; border: none; padding: 10px 16px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---------- Suppliers ---------- */
+  .sup-name { font-weight: 700; }
+  .sup-code { font-size: 12px; color: var(--muted); }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 100px; font-weight: 600; display: inline-block; white-space: nowrap; }
+  .badge.on { background: #E3F2E5; color: var(--green); }
+  .badge.off { background: #F0F2F5; color: var(--muted); }
+  .badge.warn { background: #FFF3DE; color: #B87A00; }
+  .badge.fail { background: #FCE8E0; color: var(--red); }
+  .badge.info { background: #E4ECFB; color: var(--blue); }
+  .sync-msg { font-size: 12px; color: var(--muted); margin-top: 3px; max-width: 260px; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sup-fail { margin-top: 4px; }
+
+  /* ---------- SQL console ---------- */
+  .sql-editor {
+    width: 100%; min-height: 170px; resize: vertical; padding: 12px 14px;
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 13px; line-height: 1.5;
+    border: 1px solid #D7E1EE; border-radius: 8px; background: #0F1620; color: #E6EDF7; tab-size: 2;
+  }
+  .sql-editor:focus { outline: none; border-color: var(--blue); }
+  .sql-toolbar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .sql-write-box { margin-top: 12px; padding: 12px 14px; border-radius: 8px; border: 1px solid #E3E8EF; background: #FAFBFD; }
+  .sql-write-box.armed { border-color: #F3C9C0; background: #FFF6F3; }
+  .sql-write-box.flash { animation: flash 0.9s ease 2; }
+  @keyframes flash { 50% { box-shadow: 0 0 0 4px rgba(217,67,46,.3); } }
+  .sql-write-box .pw { margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sql-write-box .pw input { padding: 8px 10px; border: 1px solid #D7E1EE; border-radius: 6px; font-size: 13px; width: 240px; }
+  .sql-write-box .warn-text { font-size: 12px; color: var(--red); }
+  .btn-run { padding: 9px 22px; border-radius: 6px; border: none; background: var(--blue); color: #fff; font-weight: 700; font-size: 13px; }
+  .btn-run:hover { background: #163C73; }
+  .btn-run.danger { background: var(--red); }
+  .btn-run.danger:hover { background: #B93A28; }
+  .btn-run:disabled { opacity: .6; cursor: wait; }
+  .sql-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { background: #EAF0F8; color: var(--blue); border: none; border-radius: 100px; padding: 5px 12px; font-size: 12px; font-weight: 600; }
+  .chip:hover { background: #DCE7F6; }
+  .sql-result-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin: 14px 0 8px; gap: 10px; flex-wrap: wrap; }
+  .sql-table-wrap { overflow: auto; max-height: 460px; border: 1px solid #E3E8EF; border-radius: 8px; }
+  .sql-table-wrap table { font-size: 12px; }
+  .sql-table-wrap th { position: sticky; top: 0; background: #F6F8FB; white-space: nowrap; z-index: 1; }
+  .sql-table-wrap td { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
+  .sql-table-wrap td.null { color: #A5B0C2; font-style: italic; }
+  .sql-msg { padding: 12px 14px; border-radius: 8px; font-size: 13px; margin-top: 14px; }
+  .sql-msg.err { background: #FCE8E0; color: #8E2A1A; white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .sql-msg.ok { background: #E3F2E5; color: #1D6B3E; }
+  .sql-msg.info { background: #E4ECFB; color: var(--blue); }
+  .hist-row { padding: 9px 0; border-bottom: 1px solid #EFF2F6; font-size: 12px; cursor: pointer; }
+  .hist-row:hover { background: #FAFBFD; }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-q { font-family: ui-monospace, Consolas, monospace; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-meta { color: var(--muted); margin-top: 2px; }
+
   @media (max-width: 800px) {
     .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; transform: translateX(-100%); transition: transform 0.2s; }
     .sidebar.open { transform: translateX(0); }
@@ -166,7 +253,7 @@
   </div>
 </div>
 
-<!-- ================= FORCED PASSWORD CHANGE ================= -->
+<!-- ================= FORCED PASSWORD CHANGE (тільки при першому вході) ================= -->
 <div class="login-screen" id="forcePasswordScreen" hidden>
   <div class="login-card">
     <h1>Змініть пароль</h1>
@@ -175,6 +262,7 @@
       <div class="field"><label>Поточний (тимчасовий) пароль</label><input type="password" id="fpCurrent" required></div>
       <div class="field"><label>Новий пароль (мінімум 8 символів)</label><input type="password" id="fpNew" required minlength="8"></div>
       <button type="submit" class="btn">Зберегти й продовжити</button>
+      <button type="button" class="btn secondary" id="fpLogout" style="margin-top:8px;">Вийти</button>
       <div class="form-error" id="fpError" hidden></div>
     </form>
   </div>
@@ -186,6 +274,7 @@
     <div class="brand">OllShop<span>.</span></div>
     <a class="nav-item active" data-view="dashboard">📊 Дашборд</a>
     <a class="nav-item" data-view="orders">📦 Замовлення</a>
+    <a class="nav-item" data-view="suppliers" id="suppliersNavItem">🏭 Постачальники</a>
     <a class="nav-item" data-view="settings" id="settingsNavItem">⚙️ Налаштування</a>
     <div class="sidebar-footer">
       <div class="who" id="whoAmI"></div>
@@ -204,6 +293,13 @@
         <h3>Замовлення за останні 30 днів</h3>
         <div class="chart-wrap"><canvas id="ordersChart"></canvas></div>
       </div>
+      <div class="panel" style="overflow-x:auto;">
+        <h3>Постачальники</h3>
+        <table id="dashSuppliersTable">
+          <thead><tr><th>Постачальник</th><th>Товарів</th><th>Позицій замовлено</th><th>Виручка</th><th>Прибуток</th><th>Остання синхронізація</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
       <div class="panel">
         <h3>Топ-5 товарів за кількістю замовлень</h3>
         <table id="topProductsTable"><tbody></tbody></table>
@@ -220,22 +316,85 @@
         <button data-status="ordered_from_supplier">У постачальника</button>
         <button data-status="shipped">Відправлені</button>
         <button data-status="done">Виконані</button>
+        <button data-status="__failed">⚠ Не пішли постачальнику</button>
       </div>
       <div class="panel" style="padding:0;overflow-x:auto;">
         <table id="ordersTable">
-          <thead><tr><th></th><th>Товар</th><th>Клієнт</th><th>Доставка</th><th>Дата</th><th>Статус</th><th>ТТН</th></tr></thead>
+          <thead><tr><th></th><th>Товар</th><th>Постачальник</th><th>Клієнт</th><th>Доставка</th><th>Дата</th><th>Статус</th><th>ТТН</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </div>
 
+    <!-- ---- Suppliers ---- -->
+    <div class="view" id="view-suppliers">
+      <div class="page-header">
+        <h2>Постачальники</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" id="refreshSuppliersBtn">↻ Оновити</button>
+          <button class="btn-sm primary" id="addSupplierBtn">+ Додати постачальника</button>
+        </div>
+      </div>
+      <div class="panel" style="padding:0;overflow-x:auto;">
+        <table id="suppliersTable">
+          <thead><tr><th>Постачальник</th><th>Товарів</th><th>Націнка</th><th>Замовлення</th><th>Статус</th><th>Синхронізація</th><th>Дії</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:var(--muted);">
+        Вимкнення постачальника одразу ховає весь його каталог із сайту. «Очистити каталог» видаляє його товари
+        (крім тих, що є в історії замовлень — їх лише ховає).
+      </p>
+    </div>
+
     <!-- ---- Settings ---- -->
     <div class="view" id="view-settings">
-      <div class="page-header">
-        <h2>Налаштування — користувачі панелі</h2>
-        <button class="btn-sm primary" id="addUserBtn">+ Додати користувача</button>
+      <div class="page-header"><h2>Налаштування</h2></div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="users">Користувачі панелі</button>
+        <button class="tab-btn" data-tab="sql" id="sqlTabBtn">SQL-запит</button>
       </div>
-      <div class="panel" id="usersPanel"></div>
+
+      <!-- Tab: users -->
+      <div class="tab-panel active" id="tab-users">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+          <button class="btn-sm primary" id="addUserBtn">+ Додати користувача</button>
+        </div>
+        <div class="panel" id="usersPanel"></div>
+      </div>
+
+      <!-- Tab: SQL (лише адміністратор) -->
+      <div class="tab-panel" id="tab-sql">
+        <div class="panel">
+          <h3>SQL-запит до бази даних</h3>
+          <div class="sql-chips" id="sqlChips"></div>
+          <textarea class="sql-editor" id="sqlEditor" spellcheck="false" placeholder="SELECT * FROM products LIMIT 20;"></textarea>
+
+          <div class="sql-write-box" id="sqlWriteBox">
+            <label class="check-row" style="margin:0;">
+              <input type="checkbox" id="sqlAllowWrite">
+              <span><b>Дозволити змінювати дані</b> <span style="color:var(--muted);">(INSERT, UPDATE, DELETE, DROP тощо)</span></span>
+            </label>
+            <div class="pw" id="sqlPwRow" hidden>
+              <input type="password" id="sqlPassword" placeholder="Ваш пароль адміністратора" autocomplete="current-password">
+              <span class="warn-text">Зміни не можна скасувати. Якщо один із запитів впаде — жоден не застосується.</span>
+            </div>
+          </div>
+
+          <div class="sql-toolbar">
+            <button class="btn-run" id="sqlRunBtn">▶ Виконати</button>
+            <span style="font-size:12px;color:var(--muted);" id="sqlHint">Читання виконується одразу · Ctrl+Enter</span>
+          </div>
+
+          <div id="sqlOutput"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Журнал змін <span style="font-weight:400;color:var(--muted);font-size:12px;">(останні 30 спроб змінити дані — клік вставляє запит у редактор)</span></h3>
+          <div id="sqlHistory"><p class="empty-state" style="padding:20px;">Завантаження…</p></div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -255,9 +414,10 @@
     </div>
     <div class="field" id="umPermsWrap">
       <label>Доступ до розділів (для персоналу)</label>
-      <label style="display:flex;gap:6px;align-items:center;font-size:13px;"><input type="checkbox" id="umPermOrders" checked> Замовлення</label>
-      <label style="display:flex;gap:6px;align-items:center;font-size:13px;"><input type="checkbox" id="umPermStats"> Дашборд/статистика</label>
-      <label style="display:flex;gap:6px;align-items:center;font-size:13px;"><input type="checkbox" id="umPermSettings"> Налаштування</label>
+      <label class="check-row"><input type="checkbox" id="umPermOrders" checked> Замовлення</label>
+      <label class="check-row"><input type="checkbox" id="umPermStats"> Дашборд/статистика</label>
+      <label class="check-row"><input type="checkbox" id="umPermSettings"> Налаштування і постачальники</label>
+      <div class="hint">SQL-запити доступні лише ролі «Адміністратор».</div>
     </div>
     <div class="modal-actions">
       <button class="btn-sm" id="userModalCancel" style="flex:1;">Скасувати</button>
@@ -267,6 +427,75 @@
     <div class="form-success" id="userModalSuccess" hidden></div>
   </div>
 </div>
+
+<!-- ================= Add/edit supplier modal ================= -->
+<div class="modal-backdrop" id="supModalBackdrop" hidden>
+  <div class="modal-box wide">
+    <h3 id="supModalTitle">Новий постачальник</h3>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Код (латиницею, унікальний)</label>
+        <input type="text" id="smCode" placeholder="websklad">
+      </div>
+      <div class="field">
+        <label>Назва</label>
+        <input type="text" id="smName" placeholder="WebSklad">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Тип інтеграції (адаптер)</label>
+      <select id="smAdapter"></select>
+      <div class="hint" id="smAdapterHint">yml_feed — звичайний XML/YML-фід із товарами.</div>
+    </div>
+
+    <div class="field">
+      <label>Посилання на фіди (кожне з нового рядка)</label>
+      <textarea id="smFeeds" placeholder="https://example.com/feed.xml"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>API URL (для відправки замовлень)</label>
+        <input type="text" id="smApiUrl" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label>API логін (якщо потрібен)</label>
+        <input type="text" id="smApiLogin" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>API ключ / пароль</label>
+      <input type="password" id="smApiKey" autocomplete="new-password">
+      <div class="hint" id="smApiKeyHint"></div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Націнка, %</label>
+        <input type="number" id="smMarkup" min="0" step="0.1" value="0">
+        <div class="hint">Роздрібна ціна = закупівельна + ця націнка.</div>
+      </div>
+      <div class="field">
+        <label>Порядок у списку</label>
+        <input type="number" id="smSort" step="1" value="0">
+      </div>
+    </div>
+
+    <label class="check-row"><input type="checkbox" id="smActive" checked> Активний (товари показуються на сайті)</label>
+    <label class="check-row"><input type="checkbox" id="smAutoOrder"> Автоматично відправляти йому замовлення</label>
+
+    <div class="modal-actions">
+      <button class="btn-sm" id="supModalCancel" style="flex:1;">Скасувати</button>
+      <button class="btn-sm primary" id="supModalSave" style="flex:1;">Зберегти</button>
+    </div>
+    <div class="form-error" id="supModalError" hidden></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
 
 <script>
   // ЗАМІНИ на адресу свого бекенду.
@@ -281,7 +510,40 @@
     return h;
   }
 
-  function money(n) { return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 }).format(n) + ' грн'; }
+  // Усе, що прийшло ззовні (назви товарів із фідів, імена клієнтів), треба екранувати
+  // перед вставкою в HTML — інакше чужий фід може виконати скрипт у вашій адмінці.
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function money(n) { return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 }).format(n || 0) + ' грн'; }
+  function fmtDate(d) { return d ? new Date(d).toLocaleString('uk-UA', { dateStyle: 'short', timeStyle: 'short' }) : '—'; }
+
+  // Єдина обгортка для запитів до API.
+  async function api(path, { method = 'GET', body } = {}) {
+    const hasBody = body !== undefined;
+    const res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: authHeaders(hasBody),
+      body: hasBody ? JSON.stringify(body) : undefined,
+    });
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (res.status === 401 && adminToken) {
+      // сесія закінчилась — повертаємо на екран входу
+      localStorage.removeItem('adminToken');
+      location.reload();
+    }
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  function toast(text, kind) {
+    const el = document.createElement('div');
+    el.className = `toast ${kind || ''}`;
+    el.textContent = text;
+    document.getElementById('toastWrap').appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
 
   const STATUS_LABELS = {
     new: 'Нове', confirmed: 'Підтверджено', ordered_from_supplier: 'У постачальника',
@@ -292,6 +554,12 @@
   const loginScreen = document.getElementById('loginScreen');
   const forcePasswordScreen = document.getElementById('forcePasswordScreen');
   const appEl = document.getElementById('app');
+
+  // Екран примусової зміни пароля показується ТІЛЬКИ поки mustChangePassword = true.
+  function showForcePasswordScreen() {
+    loginScreen.hidden = true;
+    forcePasswordScreen.hidden = false;
+  }
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -312,12 +580,8 @@
       localStorage.setItem('adminToken', adminToken);
       currentAdmin = data.admin;
 
-      if (currentAdmin.mustChangePassword) {
-        loginScreen.style.display = 'none';
-        forcePasswordScreen.hidden = false;
-      } else {
-        enterApp();
-      }
+      if (currentAdmin.mustChangePassword) showForcePasswordScreen();
+      else enterApp();
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.hidden = false;
@@ -338,6 +602,11 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Помилка');
+
+      // Пароль змінено — вікно більше не потрібне і не повернеться.
+      currentAdmin.mustChangePassword = false;
+      document.getElementById('fpCurrent').value = '';
+      document.getElementById('fpNew').value = '';
       forcePasswordScreen.hidden = true;
       enterApp();
     } catch (err) {
@@ -346,10 +615,12 @@
     }
   });
 
-  document.getElementById('logoutBtn').addEventListener('click', () => {
+  function logout() {
     localStorage.removeItem('adminToken');
     location.reload();
-  });
+  }
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('fpLogout').addEventListener('click', logout);
 
   async function tryRestoreSession() {
     if (!adminToken) return;
@@ -358,11 +629,7 @@
       if (!res.ok) throw new Error();
       const data = await res.json();
       currentAdmin = data.admin;
-      if (currentAdmin.mustChangePassword) {
-        loginScreen.style.display = 'none';
-        forcePasswordScreen.hidden = false;
-        return;
-      }
+      if (currentAdmin.mustChangePassword) { showForcePasswordScreen(); return; }
       enterApp();
     } catch (err) {
       localStorage.removeItem('adminToken');
@@ -370,24 +637,26 @@
   }
 
   // ---------- App shell ----------
+  let isOwner = false;
+
   function enterApp() {
-    loginScreen.style.display = 'none';
+    loginScreen.hidden = true;
     forcePasswordScreen.hidden = true;
     appEl.classList.add('active');
 
-    document.getElementById('whoAmI').textContent = `${currentAdmin.name} · ${currentAdmin.role === 'admin' ? 'Адміністратор' : 'Персонал'}`;
+    isOwner = currentAdmin.role === 'admin';
+    document.getElementById('whoAmI').textContent = `${currentAdmin.name} · ${isOwner ? 'Адміністратор' : 'Персонал'}`;
 
-    const canSettings = currentAdmin.role === 'admin' || currentAdmin.permissions?.settings;
-    const canStats = currentAdmin.role === 'admin' || currentAdmin.permissions?.stats;
+    const canSettings = isOwner || currentAdmin.permissions?.settings;
+    const canStats = isOwner || currentAdmin.permissions?.stats;
     document.getElementById('settingsNavItem').style.display = canSettings ? '' : 'none';
+    document.getElementById('suppliersNavItem').style.display = canSettings ? '' : 'none';
     document.querySelector('[data-view="dashboard"]').style.display = canStats ? '' : 'none';
+    // Вкладка SQL — лише для ролі «Адміністратор».
+    document.getElementById('sqlTabBtn').style.display = isOwner ? '' : 'none';
 
-    // Land on the first view this admin can actually see.
-    if (canStats) switchView('dashboard');
-    else switchView('orders');
-
-    loadDashboard();
-    loadOrders('');
+    // switchView сам підвантажує дані розділу
+    switchView(canStats ? 'dashboard' : 'orders');
   }
 
   function switchView(name) {
@@ -396,7 +665,10 @@
     document.getElementById(`view-${name}`).classList.add('active');
     document.querySelector(`[data-view="${name}"]`).classList.add('active');
     document.getElementById('sidebar').classList.remove('open');
-    if (name === 'settings') loadUsers();
+    if (name === 'settings') switchTab(currentTab);
+    if (name === 'suppliers') loadSuppliers();
+    if (name === 'dashboard') loadDashboard();
+    if (name === 'orders') loadOrders(currentOrderFilter); // щоразу свіжий список
   }
 
   document.querySelectorAll('.nav-item[data-view]').forEach((item) => {
@@ -411,36 +683,61 @@
 
   async function loadDashboard() {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/stats`, { headers: authHeaders() });
-      if (!res.ok) return;
-      const data = await res.json();
+      const { ok, data } = await api('/api/admin/stats');
+      if (!ok) return;
       const t = data.totals;
 
       document.getElementById('statGrid').innerHTML = `
-        <div class="stat-card"><div class="label">Замовлень усього</div><div class="value">${t.total_orders}</div></div>
-        <div class="stat-card"><div class="label">Замовлень сьогодні</div><div class="value">${t.orders_today}</div></div>
-        <div class="stat-card"><div class="label">Орієнтовний дохід</div><div class="value">${money(t.total_revenue)}</div></div>
-        <div class="stat-card"><div class="label">Клієнтів</div><div class="value">${t.total_users}</div></div>
-        <div class="stat-card"><div class="label">Товарів на сайті</div><div class="value">${t.total_products}</div></div>
+        <div class="stat-card"><div class="label">Замовлень усього</div><div class="value">${esc(t.total_orders)}</div></div>
+        <div class="stat-card"><div class="label">Замовлень сьогодні</div><div class="value">${esc(t.orders_today)}</div></div>
+        <div class="stat-card"><div class="label">Виручка</div><div class="value">${money(t.total_revenue)}</div></div>
+        <div class="stat-card"><div class="label">Прибуток</div><div class="value" style="color:var(--green);">${money(t.total_profit)}</div></div>
+        <div class="stat-card"><div class="label">Клієнтів</div><div class="value">${esc(t.total_users)}</div></div>
+        <div class="stat-card"><div class="label">Товарів на сайті</div><div class="value">${esc(t.total_products)}</div></div>
+        <div class="stat-card"><div class="label">Постачальників активних</div><div class="value">${esc(t.active_suppliers)}</div></div>
+        ${Number(t.failed_submissions) > 0 ? `<div class="stat-card" style="border-color:#F3C9C0;"><div class="label" style="color:var(--red);">Не пішли постачальнику</div><div class="value" style="color:var(--red);">${esc(t.failed_submissions)}</div></div>` : ''}
       `;
 
       const days = data.last30Days.map((d) => d.day.slice(5));
       const counts = data.last30Days.map((d) => d.count);
-      const ctx = document.getElementById('ordersChart').getContext('2d');
-      if (ordersChartInstance) ordersChartInstance.destroy();
-      ordersChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: days, datasets: [{ label: 'Замовлення', data: counts, backgroundColor: '#1B4B8F', borderRadius: 4 }] },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-        },
-      });
+      if (typeof Chart !== 'undefined') {
+        const ctx = document.getElementById('ordersChart').getContext('2d');
+        if (ordersChartInstance) ordersChartInstance.destroy();
+        ordersChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: days, datasets: [{ label: 'Замовлення', data: counts, backgroundColor: '#1B4B8F', borderRadius: 4 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+          },
+        });
+      }
+
+      // Постачальники: продажі + стан синхронізації в одній таблиці
+      const sales = new Map((data.bySupplier || []).map((s) => [s.id, s]));
+      const dashBody = document.querySelector('#dashSuppliersTable tbody');
+      dashBody.innerHTML = (data.suppliers || []).length
+        ? data.suppliers.map((s) => {
+            const sale = sales.get(s.id) || {};
+            const syncBadge = s.last_sync_status === 'ok' ? '<span class="badge on">ок</span>'
+              : s.last_sync_status === 'error' ? '<span class="badge fail">помилка</span>'
+              : '<span class="badge off">ще не було</span>';
+            return `<tr>
+              <td><b>${esc(s.name)}</b> ${s.active ? '' : '<span class="badge off">вимкнено</span>'}</td>
+              <td>${esc(s.available_products)}</td>
+              <td>${esc(sale.order_count || 0)}</td>
+              <td>${money(sale.revenue)}</td>
+              <td>${money(sale.profit)}</td>
+              <td>${syncBadge} <span style="font-size:12px;color:var(--muted);">${esc(fmtDate(s.last_sync_at))}</span></td>
+            </tr>`;
+          }).join('')
+        : '<tr><td colspan="6" class="empty-state">Постачальників ще немає</td></tr>';
 
       const topTbody = document.querySelector('#topProductsTable tbody');
-      topTbody.innerHTML = data.topProducts.length
-        ? data.topProducts.map((p) => `<tr><td>${p.name}</td><td style="text-align:right;color:#6B7A93;">${p.order_count} замовлень</td></tr>`).join('')
+      const top5 = data.topProducts.slice(0, 5);
+      topTbody.innerHTML = top5.length
+        ? top5.map((p) => `<tr><td>${esc(p.name)}${p.supplier_name ? ` <span style="color:#8B98AD;font-size:12px;">· ${esc(p.supplier_name)}</span>` : ''}</td><td style="text-align:right;color:#6B7A93;">${esc(p.order_count)} замовлень</td></tr>`).join('')
         : '<tr><td class="empty-state">Замовлень ще немає</td></tr>';
     } catch (err) {
       console.error(err);
@@ -448,56 +745,80 @@
   }
 
   // ---------- Orders ----------
+  let currentOrderFilter = '';
+
+  function supplierCell(o) {
+    if (!o.supplier_name) return '<span style="color:#8B98AD;">—</span>';
+    let extra = '';
+    if (o.supplier_status === 'failed') {
+      extra = `<div class="sup-fail"><span class="badge fail" title="${esc(o.supplier_error || '')}">не відправлено</span>
+        ${o.group_id && o.supplier_id ? `<button class="btn-sm" style="margin-left:4px;" data-retry-group="${esc(o.group_id)}" data-retry-supplier="${esc(o.supplier_id)}">Повторити</button>` : ''}</div>`;
+    } else if (o.supplier_submitted) {
+      extra = `<div class="sup-fail"><span class="badge on">відправлено</span>${o.supplier_order_id ? ` <span style="font-size:11px;color:var(--muted);">№${esc(o.supplier_order_id)}</span>` : ''}</div>`;
+    } else if (o.auto_order === false) {
+      extra = '<div class="sup-fail"><span class="badge off">вручну</span></div>';
+    }
+    return `<b>${esc(o.supplier_name)}</b>${extra}`;
+  }
+
   async function loadOrders(status) {
+    currentOrderFilter = status;
     const tbody = document.querySelector('#ordersTable tbody');
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Завантаження…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Завантаження…</td></tr>';
     try {
-      const params = status ? `?status=${status}` : '';
-      const res = await fetch(`${API_BASE}/api/admin/orders${params}`, { headers: authHeaders() });
-      if (!res.ok) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Немає доступу або помилка завантаження</td></tr>'; return; }
-      const orders = await res.json();
+      const params = status === '__failed' ? '?failed=true' : (status ? `?status=${encodeURIComponent(status)}` : '');
+      const { ok, data: orders } = await api(`/api/admin/orders${params}`);
+      if (!ok) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Немає доступу або помилка завантаження</td></tr>'; return; }
 
       if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Замовлень немає</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Замовлень немає</td></tr>';
         return;
       }
 
       tbody.innerHTML = orders.map((o) => `
         <tr>
-          <td><div class="order-thumb-sm" style="${o.picture_url ? `background-image:url('${o.picture_url}')` : ''}"></div></td>
-          <td>${o.product_name}${o.quantity > 1 ? ` ×${o.quantity}` : ''}</td>
-          <td>${o.customer_name}<br><span style="color:#8B98AD;font-size:12px;">${o.customer_phone}</span></td>
-          <td style="font-size:12px;">${o.delivery_method === 'courier' ? `Кур'єр: ${o.courier_address || '-'}` : (o.np_branch || '-')}<br><span style="color:#8B98AD;">${o.customer_city || ''}</span></td>
-          <td style="font-size:12px;color:#8B98AD;">${new Date(o.created_at).toLocaleDateString('uk-UA')}</td>
+          <td><div class="order-thumb-sm" data-bg="${esc(o.picture_url || '')}"></div></td>
+          <td>${esc(o.product_name)}${o.quantity > 1 ? ` ×${esc(o.quantity)}` : ''}</td>
+          <td>${supplierCell(o)}</td>
+          <td>${esc(o.customer_name)}<br><span style="color:#8B98AD;font-size:12px;">${esc(o.customer_phone)}</span></td>
+          <td style="font-size:12px;">${o.delivery_method === 'courier' ? `Кур'єр: ${esc(o.courier_address || '-')}` : esc(o.np_branch || '-')}<br><span style="color:#8B98AD;">${esc(o.customer_city || '')}</span></td>
+          <td style="font-size:12px;color:#8B98AD;">${esc(new Date(o.created_at).toLocaleDateString('uk-UA'))}</td>
           <td>
-            <select class="status-select" data-order-id="${o.id}">
+            <select class="status-select" data-order-id="${esc(o.id)}">
               ${Object.entries(STATUS_LABELS).map(([k, v]) => `<option value="${k}" ${o.status === k ? 'selected' : ''}>${v}</option>`).join('')}
             </select>
           </td>
-          <td><input type="text" class="ttn-input" data-order-id="${o.id}" value="${o.ttn || ''}" placeholder="№ ТТН" style="width:110px;padding:5px 7px;border:1px solid #D7E1EE;border-radius:4px;font-size:12px;"></td>
+          <td><input type="text" class="ttn-input" data-order-id="${esc(o.id)}" value="${esc(o.ttn || '')}" placeholder="№ ТТН" style="width:110px;padding:5px 7px;border:1px solid #D7E1EE;border-radius:4px;font-size:12px;"></td>
         </tr>
       `).join('');
 
+      tbody.querySelectorAll('.order-thumb-sm').forEach((el) => {
+        if (el.dataset.bg) el.style.backgroundImage = `url(${JSON.stringify(el.dataset.bg)})`;
+      });
       tbody.querySelectorAll('.status-select').forEach((sel) => {
         sel.addEventListener('change', () => updateOrder(sel.dataset.orderId, { status: sel.value }));
       });
       tbody.querySelectorAll('.ttn-input').forEach((inp) => {
         inp.addEventListener('change', () => updateOrder(inp.dataset.orderId, { ttn: inp.value }));
       });
+      tbody.querySelectorAll('[data-retry-group]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          const { ok, data } = await api(`/api/admin/orders/groups/${btn.dataset.retryGroup}/retry/${btn.dataset.retrySupplier}`, { method: 'POST' });
+          if (ok && data.submitted) toast('Замовлення відправлено постачальнику', 'ok');
+          else toast(`Не вдалося: ${data?.error || data?.reason || 'помилка'}`, 'err');
+          loadOrders(currentOrderFilter);
+        });
+      });
     } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Помилка завантаження</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Помилка завантаження</td></tr>';
       console.error(err);
     }
   }
 
   async function updateOrder(id, patch) {
-    try {
-      await fetch(`${API_BASE}/api/admin/orders/${id}`, {
-        method: 'PATCH', headers: authHeaders(true), body: JSON.stringify(patch),
-      });
-    } catch (err) {
-      console.error(err);
-    }
+    const { ok } = await api(`/api/admin/orders/${id}`, { method: 'PATCH', body: patch });
+    if (!ok) toast('Не вдалося зберегти зміни', 'err');
   }
 
   document.getElementById('orderFilters').addEventListener('click', (e) => {
@@ -508,40 +829,257 @@
     loadOrders(btn.dataset.status);
   });
 
+  // ---------- Suppliers ----------
+  let suppliersCache = [];
+  let adaptersCache = null;
+  let editingSupplierId = null;
+
+  async function loadAdapters() {
+    if (adaptersCache) return adaptersCache;
+    const { ok, data } = await api('/api/admin/suppliers/adapters');
+    adaptersCache = ok && Array.isArray(data) && data.length ? data : [{ key: 'yml_feed', capabilities: {} }];
+    return adaptersCache;
+  }
+
+  async function loadSuppliers() {
+    const tbody = document.querySelector('#suppliersTable tbody');
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Завантаження…</td></tr>';
+    const { ok, data } = await api('/api/admin/suppliers');
+    if (!ok) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Немає доступу або помилка завантаження</td></tr>'; return; }
+    suppliersCache = data;
+
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Постачальників ще немає. Натисніть «Додати постачальника».</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map((s) => {
+      const syncBadge = s.last_sync_status === 'ok' ? '<span class="badge on">ок</span>'
+        : s.last_sync_status === 'error' ? '<span class="badge fail">помилка</span>'
+        : '<span class="badge off">ще не було</span>';
+      return `
+      <tr data-id="${esc(s.id)}">
+        <td>
+          <div class="sup-name">${esc(s.name)}</div>
+          <div class="sup-code">${esc(s.code)} · <span class="badge info">${esc(s.adapter)}</span></div>
+        </td>
+        <td>${esc(s.available_count)} <span style="color:var(--muted);">/ ${esc(s.product_count)}</span></td>
+        <td>${esc(Number(s.markup_percent))}%</td>
+        <td>${s.auto_order ? '<span class="badge on">автоматично</span>' : '<span class="badge warn">вручну</span>'}</td>
+        <td>${s.active ? '<span class="badge on">активний</span>' : '<span class="badge off">вимкнено</span>'}</td>
+        <td>
+          ${syncBadge} <span style="font-size:12px;color:var(--muted);">${esc(fmtDate(s.last_sync_at))}</span>
+          ${s.last_sync_message ? `<div class="sync-msg">${esc(s.last_sync_message)}</div>` : ''}
+        </td>
+        <td>
+          <div class="actions">
+            <button class="btn-sm primary" data-act="sync">Синхронізувати</button>
+            <button class="btn-sm" data-act="edit">Редагувати</button>
+            <button class="btn-sm" data-act="toggle">${s.active ? 'Вимкнути' : 'Увімкнути'}</button>
+            <button class="btn-sm" data-act="reprice">Перерахувати ціни</button>
+            <button class="btn-sm danger" data-act="purge">Очистити каталог</button>
+            <button class="btn-sm danger" data-act="delete">Видалити</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Після запуску синхронізації сервер відповідає одразу, а сам імпорт іде у фоні.
+  // Опитуємо список, поки не зміниться час останньої синхронізації.
+  function watchSync(id, prevAt) {
+    let tries = 0;
+    const timer = setInterval(async () => {
+      tries++;
+      const { ok, data } = await api('/api/admin/suppliers');
+      if (ok) {
+        suppliersCache = data;
+        const s = data.find((x) => String(x.id) === String(id));
+        if (s && s.last_sync_at !== prevAt) {
+          clearInterval(timer);
+          if (document.getElementById('view-suppliers').classList.contains('active')) loadSuppliers();
+          toast(s.last_sync_status === 'ok' ? `${s.name}: ${s.last_sync_message}` : `${s.name}: ${s.last_sync_message}`, s.last_sync_status === 'ok' ? 'ok' : 'err');
+          return;
+        }
+      }
+      if (tries >= 45) clearInterval(timer); // ~3 хвилини
+    }, 4000);
+  }
+
+  document.querySelector('#suppliersTable tbody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = btn.closest('tr').dataset.id;
+    const s = suppliersCache.find((x) => String(x.id) === String(id));
+    if (!s) return;
+    const act = btn.dataset.act;
+
+    if (act === 'edit') return openSupplierModal(s);
+
+    if (act === 'sync') {
+      btn.disabled = true;
+      const prev = s.last_sync_at;
+      const { ok, data } = await api(`/api/admin/suppliers/${id}/sync`, { method: 'POST' });
+      btn.disabled = false;
+      if (!ok) return toast(data?.error || 'Не вдалося запустити синхронізацію', 'err');
+      toast(data.message || 'Синхронізацію запущено', 'ok');
+      watchSync(id, prev);
+      return;
+    }
+
+    if (act === 'toggle') {
+      const { ok } = await api(`/api/admin/suppliers/${id}`, { method: 'PATCH', body: { active: !s.active } });
+      if (!ok) return toast('Не вдалося змінити статус', 'err');
+      toast(s.active ? `${s.name} вимкнено — його товари сховано з сайту` : `${s.name} увімкнено`, 'ok');
+      return loadSuppliers();
+    }
+
+    if (act === 'reprice') {
+      if (!confirm(`Перерахувати роздрібні ціни всіх товарів «${s.name}» за націнкою ${Number(s.markup_percent)}%?\nЦіни, виставлені вручну, не зміняться.`)) return;
+      const { ok, data } = await api(`/api/admin/suppliers/${id}/reprice`, { method: 'POST' });
+      return ok ? toast(`Оновлено цін: ${data.updated}`, 'ok') : toast(data?.error || 'Помилка', 'err');
+    }
+
+    if (act === 'purge') {
+      if (!confirm(`Видалити ВСІ товари постачальника «${s.name}» (${s.product_count} шт.)?\n\nТовари, які є в історії замовлень, лише буде приховано.\nСам постачальник залишиться.`)) return;
+      const { ok, data } = await api(`/api/admin/suppliers/${id}/purge`, { method: 'POST' });
+      if (!ok) return toast(data?.error || 'Помилка', 'err');
+      toast(`Видалено товарів: ${data.deleted}. Приховано (є в замовленнях): ${data.keptBecauseOfOrders}`, 'ok');
+      return loadSuppliers();
+    }
+
+    if (act === 'delete') {
+      if (!confirm(`Видалити постачальника «${s.name}» разом з усіма його товарами?`)) return;
+      const { ok, data } = await api(`/api/admin/suppliers/${id}`, { method: 'DELETE' });
+      if (!ok) return toast(data?.error || 'Помилка', 'err');
+      toast('Постачальника видалено', 'ok');
+      return loadSuppliers();
+    }
+  });
+
+  document.getElementById('refreshSuppliersBtn').addEventListener('click', loadSuppliers);
+
+  // ----- supplier modal -----
+  const supModalBackdrop = document.getElementById('supModalBackdrop');
+
+  async function openSupplierModal(s) {
+    editingSupplierId = s ? s.id : null;
+    const adapters = await loadAdapters();
+    const sel = document.getElementById('smAdapter');
+    sel.innerHTML = adapters.map((a) => `<option value="${esc(a.key)}">${esc(a.key)}</option>`).join('');
+
+    document.getElementById('supModalTitle').textContent = s ? `Редагувати: ${s.name}` : 'Новий постачальник';
+    const code = document.getElementById('smCode');
+    code.value = s ? s.code : '';
+    code.disabled = !!s; // код — це ідентифікатор, після створення його не змінюємо
+    document.getElementById('smName').value = s ? s.name : '';
+    sel.value = s ? s.adapter : (adapters[0]?.key || 'yml_feed');
+    document.getElementById('smFeeds').value = s ? (s.feed_urls || []).join('\n') : '';
+    document.getElementById('smApiUrl').value = s ? (s.api_url || '') : '';
+    document.getElementById('smApiLogin').value = s ? (s.api_login || '') : '';
+    document.getElementById('smApiKey').value = '';
+    document.getElementById('smApiKeyHint').textContent = s && s.has_api_key
+      ? 'Ключ збережено. Залиште поле порожнім, щоб не змінювати.'
+      : '';
+    document.getElementById('smMarkup').value = s ? Number(s.markup_percent) : 0;
+    document.getElementById('smSort').value = s ? s.sort_order : 0;
+    document.getElementById('smActive').checked = s ? !!s.active : true;
+    document.getElementById('smAutoOrder').checked = s ? !!s.auto_order : false;
+    document.getElementById('supModalError').hidden = true;
+    supModalBackdrop.hidden = false;
+  }
+
+  document.getElementById('addSupplierBtn').addEventListener('click', () => openSupplierModal(null));
+  document.getElementById('supModalCancel').addEventListener('click', () => { supModalBackdrop.hidden = true; });
+
+  document.getElementById('supModalSave').addEventListener('click', async () => {
+    const errorEl = document.getElementById('supModalError');
+    errorEl.hidden = true;
+
+    const code = document.getElementById('smCode').value.trim();
+    const name = document.getElementById('smName').value.trim();
+    if (!editingSupplierId && !/^[a-z0-9_]+$/.test(code)) {
+      errorEl.textContent = 'Код — лише малі латинські літери, цифри та підкреслення (наприклад: websklad)';
+      errorEl.hidden = false; return;
+    }
+    if (!name) { errorEl.textContent = 'Вкажіть назву'; errorEl.hidden = false; return; }
+
+    const body = {
+      name,
+      adapter: document.getElementById('smAdapter').value,
+      feed_urls: document.getElementById('smFeeds').value.split('\n').map((x) => x.trim()).filter(Boolean),
+      api_url: document.getElementById('smApiUrl').value.trim(),
+      api_login: document.getElementById('smApiLogin').value.trim(),
+      markup_percent: parseFloat(document.getElementById('smMarkup').value) || 0,
+      sort_order: parseInt(document.getElementById('smSort').value, 10) || 0,
+      active: document.getElementById('smActive').checked,
+      auto_order: document.getElementById('smAutoOrder').checked,
+    };
+    const key = document.getElementById('smApiKey').value;
+    if (key) body.api_key = key; // порожнє поле = не чіпати збережений ключ
+
+    const saveBtn = document.getElementById('supModalSave');
+    saveBtn.disabled = true;
+    let result;
+    if (editingSupplierId) {
+      result = await api(`/api/admin/suppliers/${editingSupplierId}`, { method: 'PATCH', body });
+    } else {
+      result = await api('/api/admin/suppliers', { method: 'POST', body: { ...body, code } });
+    }
+    saveBtn.disabled = false;
+
+    if (!result.ok) {
+      errorEl.textContent = result.data?.error || 'Не вдалося зберегти';
+      errorEl.hidden = false; return;
+    }
+    supModalBackdrop.hidden = true;
+    toast(editingSupplierId ? 'Збережено' : 'Постачальника додано. Натисніть «Синхронізувати», щоб завантажити товари.', 'ok');
+    loadSuppliers();
+  });
+
+  // ---------- Settings tabs ----------
+  let currentTab = 'users';
+
+  function switchTab(name) {
+    if (name === 'sql' && !isOwner) name = 'users';
+    currentTab = name;
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === `tab-${name}`));
+    if (name === 'users') loadUsers();
+    if (name === 'sql') { loadSqlHistory(); }
+  }
+  document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
   // ---------- Settings: users ----------
   async function loadUsers() {
     const panel = document.getElementById('usersPanel');
     panel.innerHTML = '<p class="empty-state">Завантаження…</p>';
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, { headers: authHeaders() });
-      if (!res.ok) { panel.innerHTML = '<p class="empty-state">Немає доступу</p>'; return; }
-      const users = await res.json();
+      const { ok, data: users } = await api('/api/admin/users');
+      if (!ok) { panel.innerHTML = '<p class="empty-state">Немає доступу</p>'; return; }
 
       panel.innerHTML = users.map((u) => `
         <div class="user-row">
           <div class="info">
-            <div class="name">${u.name} ${u.role === 'admin' ? '<span class="role-tag admin">Адміністратор</span>' : '<span class="role-tag">Персонал</span>'} ${!u.active ? '<span class="perm-tag">неактивний</span>' : ''}</div>
-            <div class="email">${u.email}</div>
-            ${u.role !== 'admin' ? `<div style="margin-top:4px;">${Object.entries(u.permissions || {}).filter(([,v]) => v).map(([k]) => `<span class="perm-tag">${k}</span>`).join('')}</div>` : ''}
+            <div class="name">${esc(u.name)} ${u.role === 'admin' ? '<span class="role-tag admin">Адміністратор</span>' : '<span class="role-tag">Персонал</span>'} ${!u.active ? '<span class="perm-tag">неактивний</span>' : ''}</div>
+            <div class="email">${esc(u.email)}</div>
+            ${u.role !== 'admin' ? `<div style="margin-top:4px;">${Object.entries(u.permissions || {}).filter(([, v]) => v).map(([k]) => `<span class="perm-tag">${esc(k)}</span>`).join('')}</div>` : ''}
           </div>
-          <button class="btn-sm" data-reset="${u.id}">Скинути пароль</button>
-          <button class="btn-sm ${u.active ? 'danger' : ''}" data-toggle="${u.id}" data-active="${u.active}">${u.active ? 'Деактивувати' : 'Активувати'}</button>
+          <button class="btn-sm" data-reset="${esc(u.id)}">Скинути пароль</button>
+          <button class="btn-sm ${u.active ? 'danger' : ''}" data-toggle="${esc(u.id)}" data-active="${u.active}">${u.active ? 'Деактивувати' : 'Активувати'}</button>
         </div>
       `).join('');
 
       panel.querySelectorAll('[data-reset]').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          const res = await fetch(`${API_BASE}/api/admin/users/${btn.dataset.reset}/reset-password`, { method: 'POST', headers: authHeaders() });
-          const data = await res.json();
+          const { data } = await api(`/api/admin/users/${btn.dataset.reset}/reset-password`, { method: 'POST' });
           alert(data.emailSent ? 'Новий пароль надіслано на email.' : `Новий тимчасовий пароль: ${data.tempPassword}\n(email не налаштовано — передай пароль особисто)`);
         });
       });
       panel.querySelectorAll('[data-toggle]').forEach((btn) => {
         btn.addEventListener('click', async () => {
           const nowActive = btn.dataset.active === 'true';
-          await fetch(`${API_BASE}/api/admin/users/${btn.dataset.toggle}`, {
-            method: 'PATCH', headers: authHeaders(true), body: JSON.stringify({ active: !nowActive }),
-          });
+          await api(`/api/admin/users/${btn.dataset.toggle}`, { method: 'PATCH', body: { active: !nowActive } });
           loadUsers();
         });
       });
@@ -556,6 +1094,7 @@
     document.getElementById('umName').value = '';
     document.getElementById('umEmail').value = '';
     document.getElementById('umRole').value = 'staff';
+    document.getElementById('umPermsWrap').style.display = '';
     document.getElementById('umPermOrders').checked = true;
     document.getElementById('umPermStats').checked = false;
     document.getElementById('umPermSettings').checked = false;
@@ -570,9 +1109,9 @@
     const successEl = document.getElementById('userModalSuccess');
     errorEl.hidden = true; successEl.hidden = true;
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, {
-        method: 'POST', headers: authHeaders(true),
-        body: JSON.stringify({
+      const { ok, data } = await api('/api/admin/users', {
+        method: 'POST',
+        body: {
           name: document.getElementById('umName').value,
           email: document.getElementById('umEmail').value,
           role: document.getElementById('umRole').value,
@@ -581,10 +1120,9 @@
             stats: document.getElementById('umPermStats').checked,
             settings: document.getElementById('umPermSettings').checked,
           },
-        }),
+        },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Помилка');
+      if (!ok) throw new Error(data?.error || 'Помилка');
 
       successEl.textContent = data.emailSent
         ? 'Користувача створено, тимчасовий пароль надіслано на email.'
@@ -600,6 +1138,190 @@
 
   document.getElementById('umRole').addEventListener('change', (e) => {
     document.getElementById('umPermsWrap').style.display = e.target.value === 'admin' ? 'none' : '';
+  });
+
+  // ---------- Settings: SQL console ----------
+  const sqlEditor = document.getElementById('sqlEditor');
+  const sqlAllowWrite = document.getElementById('sqlAllowWrite');
+  const sqlPwRow = document.getElementById('sqlPwRow');
+  const sqlPassword = document.getElementById('sqlPassword');
+  const sqlWriteBox = document.getElementById('sqlWriteBox');
+  const sqlRunBtn = document.getElementById('sqlRunBtn');
+  const sqlOutput = document.getElementById('sqlOutput');
+  const sqlHint = document.getElementById('sqlHint');
+
+  const SQL_EXAMPLES = [
+    ['Товари по постачальниках', `SELECT s.name AS постачальник, COUNT(*) AS усього,\n       COUNT(*) FILTER (WHERE p.available) AS в_наявності\nFROM products p JOIN suppliers s ON s.id = p.supplier_id\nGROUP BY s.name ORDER BY усього DESC;`],
+    ['Останні замовлення', `SELECT id, created_at, customer_name, status, supplier_status, supplier_error\nFROM orders ORDER BY id DESC LIMIT 50;`],
+    ['Розмір таблиць', `SELECT relname AS таблиця, n_live_tup AS рядків,\n       pg_size_pretty(pg_total_relation_size(relid)) AS розмір\nFROM pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC;`],
+    ['Товари без картинки', `SELECT id, name, supplier_id FROM products\nWHERE available AND (picture_url IS NULL OR picture_url = '') LIMIT 100;`],
+    ['Список таблиць', `SELECT table_name FROM information_schema.tables\nWHERE table_schema = 'public' ORDER BY table_name;`],
+  ];
+  document.getElementById('sqlChips').innerHTML = SQL_EXAMPLES.map((_, i) => `<button class="chip" data-i="${i}">${esc(SQL_EXAMPLES[i][0])}</button>`).join('');
+  document.getElementById('sqlChips').addEventListener('click', (e) => {
+    const b = e.target.closest('.chip');
+    if (b) { sqlEditor.value = SQL_EXAMPLES[b.dataset.i][1]; sqlEditor.focus(); }
+  });
+
+  function syncWriteUi() {
+    const armed = sqlAllowWrite.checked;
+    sqlPwRow.hidden = !armed;
+    sqlWriteBox.classList.toggle('armed', armed);
+    sqlRunBtn.classList.toggle('danger', armed);
+    sqlRunBtn.textContent = armed ? '⚠ Виконати зміни' : '▶ Виконати';
+    sqlHint.textContent = armed ? 'Режим зміни даних: потрібен пароль адміністратора' : 'Читання виконується одразу · Ctrl+Enter';
+    if (armed) sqlPassword.focus();
+  }
+  sqlAllowWrite.addEventListener('change', syncWriteUi);
+
+  function cellText(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  }
+
+  function renderResultTable(r) {
+    const wrap = document.createElement('div');
+    wrap.className = 'sql-table-wrap';
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    r.columns.forEach((c) => { const th = document.createElement('th'); th.textContent = c; hr.appendChild(th); });
+    thead.appendChild(hr); table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    r.rows.forEach((row) => {
+      const tr = document.createElement('tr');
+      r.columns.forEach((c) => {
+        const td = document.createElement('td');
+        const t = cellText(row[c]);
+        if (t === null) { td.className = 'null'; td.textContent = 'NULL'; }
+        else { td.textContent = t; td.title = t.length > 60 ? t : ''; }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody); wrap.appendChild(table);
+    return wrap;
+  }
+
+  function showSqlMessage(kind, text) {
+    sqlOutput.innerHTML = '';
+    const d = document.createElement('div');
+    d.className = `sql-msg ${kind}`;
+    d.textContent = text;
+    sqlOutput.appendChild(d);
+  }
+
+  function renderSqlResults(data) {
+    sqlOutput.innerHTML = '';
+    data.results.forEach((r, i) => {
+      const head = document.createElement('div');
+      head.className = 'sql-result-head';
+      const left = document.createElement('span');
+      const many = data.results.length > 1 ? `Запит ${i + 1}: ` : '';
+      left.textContent = r.columns.length
+        ? `${many}${r.totalRows} рядків${r.truncated ? ` (показано перші ${r.rows.length} — додайте LIMIT)` : ''}`
+        : `${many}${r.command || 'OK'} — змінено рядків: ${r.rowCount}`;
+      const right = document.createElement('span');
+      right.textContent = i === 0 ? `${data.ms} мс` : '';
+      head.appendChild(left); head.appendChild(right);
+      sqlOutput.appendChild(head);
+
+      if (r.columns.length) sqlOutput.appendChild(renderResultTable(r));
+      else {
+        const m = document.createElement('div');
+        m.className = 'sql-msg ok';
+        m.textContent = data.mode === 'write' ? `Виконано і збережено. ${r.command} · рядків: ${r.rowCount}` : `${r.command || 'OK'}`;
+        sqlOutput.appendChild(m);
+      }
+    });
+  }
+
+  async function runSql() {
+    const query = sqlEditor.value.trim();
+    if (!query) return showSqlMessage('info', 'Введіть SQL-запит.');
+    const write = sqlAllowWrite.checked;
+    if (write && !sqlPassword.value) {
+      sqlPassword.focus();
+      return showSqlMessage('err', 'Для зміни даних введіть пароль адміністратора.');
+    }
+
+    sqlRunBtn.disabled = true;
+    const label = sqlRunBtn.textContent;
+    sqlRunBtn.textContent = 'Виконується…';
+    try {
+      const { ok, status, data } = await api('/api/admin/sql', {
+        method: 'POST',
+        body: write ? { query, allowWrite: true, password: sqlPassword.value } : { query },
+      });
+
+      if (ok) {
+        renderSqlResults(data);
+        if (write) {
+          // після успішної зміни знову вмикаємо безпечний режим
+          sqlAllowWrite.checked = false; sqlPassword.value = ''; syncWriteUi();
+          loadSqlHistory();
+        }
+        return;
+      }
+
+      if (data?.code === 'write_required') {
+        showSqlMessage('info', data.error);
+        sqlWriteBox.classList.remove('flash'); void sqlWriteBox.offsetWidth; sqlWriteBox.classList.add('flash');
+        sqlWriteBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (data?.code === 'bad_password') {
+        sqlPassword.value = ''; sqlPassword.focus();
+        showSqlMessage('err', 'Невірний пароль. Дані не змінено.');
+        loadSqlHistory();
+      } else {
+        let msg = data?.error || `Помилка ${status}`;
+        if (data?.rolledBack) msg += '\n\nУсі зміни скасовано — нічого не застосовано.';
+        showSqlMessage('err', msg);
+        if (write) loadSqlHistory();
+      }
+    } catch (err) {
+      showSqlMessage('err', 'Не вдалося звʼязатися з сервером');
+    } finally {
+      sqlRunBtn.disabled = false;
+      syncWriteUi();
+    }
+  }
+
+  sqlRunBtn.addEventListener('click', runSql);
+  sqlEditor.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runSql(); }
+    if (e.key === 'Tab') { // Tab вставляє відступ, а не виходить з поля
+      e.preventDefault();
+      const s = sqlEditor.selectionStart;
+      sqlEditor.setRangeText('  ', s, sqlEditor.selectionEnd, 'end');
+    }
+  });
+  sqlPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runSql(); } });
+
+  let historyCache = [];
+  async function loadSqlHistory() {
+    const box = document.getElementById('sqlHistory');
+    const { ok, data } = await api('/api/admin/sql/history');
+    if (!ok) { box.innerHTML = '<p class="empty-state" style="padding:20px;">Не вдалося завантажити журнал</p>'; return; }
+    historyCache = data;
+    if (!data.length) { box.innerHTML = '<p class="empty-state" style="padding:20px;">Змін ще не було</p>'; return; }
+    box.innerHTML = data.map((h, i) => {
+      const badge = h.outcome === 'ok' ? '<span class="badge on">виконано</span>'
+        : h.outcome === 'bad_password' ? '<span class="badge warn">невірний пароль</span>'
+        : '<span class="badge fail">помилка</span>';
+      const oneLine = String(h.query).replace(/\s+/g, ' ').trim();
+      return `<div class="hist-row" data-i="${i}">
+        <div class="hist-q">${esc(oneLine)}</div>
+        <div class="hist-meta">${badge} ${esc(fmtDate(h.created_at))} · ${esc(h.admin_email || '')}${h.detail ? ` · ${esc(h.detail)}` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('sqlHistory').addEventListener('click', (e) => {
+    const row = e.target.closest('.hist-row');
+    if (!row) return;
+    sqlEditor.value = historyCache[row.dataset.i].query;
+    sqlEditor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    sqlEditor.focus();
   });
 
   // ---------- Init ----------
