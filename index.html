@@ -393,7 +393,7 @@
   <main class="content">
     <div class="content-header">
       <div>
-        <h2 class="content-title" id="contentTitle">Товари-бестселери🔥</h2>
+        <h2 class="content-title" id="contentTitle">Усі товари</h2>
         <div class="content-count" id="contentCount"></div>
       </div>
       <select class="sort-select" id="sortSelect">
@@ -539,9 +539,8 @@
 <script>
   // ЗАМІНИ на адресу свого бекенду на Render.
   const API_BASE = 'https://allshop-stjp.onrender.com';
-  const DEFAULT_SECTION = 'Товари-бестселери🔥';
 
-  const state = { section: DEFAULT_SECTION, categoryId: '', categoryName: '', sort: 'newest', query: '', page: 1, limit: 24, loading: false };
+  const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', query: '', page: 1, limit: 24, loading: false };
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
@@ -757,17 +756,6 @@
 
         sectionsList.appendChild(item);
 
-        // The page loads with the bestsellers section already selected
-        // (see Init below) — reflect that in the sidebar without
-        // re-fetching products, which the initial loadProducts() call
-        // already handles.
-        if (s.section === DEFAULT_SECTION) {
-          toggleBtn.classList.add('active', 'open');
-          catList.classList.add('open');
-          allProductsLink.classList.remove('active');
-          loaded = true;
-          loadCategoriesInto(catList, s.section);
-        }
       }
     } catch (err) {
       console.error(err);
@@ -1653,6 +1641,7 @@
   }
 
   // ---------- Init ----------
+  allProductsLink.classList.add('active');
   loadProductCount();
   loadSections();
   loadProducts(false);
