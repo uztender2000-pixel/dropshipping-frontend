@@ -224,6 +224,17 @@
   .hist-q { font-family: ui-monospace, Consolas, monospace; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hist-meta { color: var(--muted); margin-top: 2px; }
 
+  /* ---------- Logs ---------- */
+  .log-row { padding: 12px 16px; border-bottom: 1px solid #EFF2F6; cursor: pointer; }
+  .log-row:hover { background: #FAFBFD; }
+  .log-row:last-child { border-bottom: none; }
+  .log-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .log-msg { font-size: 13px; color: var(--text); flex: 1; min-width: 200px; }
+  .log-time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .log-detail { margin-top: 8px; padding: 10px 12px; background: #0F1620; color: #E6EDF7; border-radius: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; display: none; }
+  .log-row.open .log-detail { display: block; }
+  .log-source-tag { font-size: 11px; padding: 2px 8px; border-radius: 100px; background: #E4ECFB; color: var(--blue); font-weight: 600; }
+
   @media (max-width: 800px) {
     .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; transform: translateX(-100%); transition: transform 0.2s; }
     .sidebar.open { transform: translateX(0); }
@@ -275,6 +286,7 @@
     <a class="nav-item active" data-view="dashboard">📊 Дашборд</a>
     <a class="nav-item" data-view="orders">📦 Замовлення</a>
     <a class="nav-item" data-view="suppliers" id="suppliersNavItem">🏭 Постачальники</a>
+    <a class="nav-item" data-view="logs" id="logsNavItem">🪵 Логи</a>
     <a class="nav-item" data-view="settings" id="settingsNavItem">⚙️ Налаштування</a>
     <div class="sidebar-footer">
       <div class="who" id="whoAmI"></div>
@@ -348,6 +360,30 @@
     </div>
 
     <!-- ---- Settings ---- -->
+    <!-- ---- Logs ---- -->
+    <div class="view" id="view-logs">
+      <div class="page-header">
+        <h2>Логи</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" id="refreshLogsBtn">↻ Оновити</button>
+          <button class="btn-sm danger" id="clearLogsBtn">Очистити журнал</button>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="logsSummaryGrid" style="margin-bottom:20px;"></div>
+
+      <div class="filter-row" id="logFilters">
+        <button data-source="" class="active">Усі</button>
+        <button data-source="sync">Синхронізація</button>
+        <button data-source="order">Замовлення</button>
+        <button data-source="webhook">Вебхуки</button>
+      </div>
+
+      <div class="panel" style="padding:0;">
+        <div id="logsList"></div>
+      </div>
+    </div>
+
     <div class="view" id="view-settings">
       <div class="page-header"><h2>Налаштування</h2></div>
 
@@ -651,6 +687,7 @@
     const canStats = isOwner || currentAdmin.permissions?.stats;
     document.getElementById('settingsNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('suppliersNavItem').style.display = canSettings ? '' : 'none';
+    document.getElementById('logsNavItem').style.display = canSettings ? '' : 'none';
     document.querySelector('[data-view="dashboard"]').style.display = canStats ? '' : 'none';
     // Вкладка SQL — лише для ролі «Адміністратор».
     document.getElementById('sqlTabBtn').style.display = isOwner ? '' : 'none';
@@ -667,6 +704,7 @@
     document.getElementById('sidebar').classList.remove('open');
     if (name === 'settings') switchTab(currentTab);
     if (name === 'suppliers') loadSuppliers();
+    if (name === 'logs') loadLogs(currentLogFilter);
     if (name === 'dashboard') loadDashboard();
     if (name === 'orders') loadOrders(currentOrderFilter); // щоразу свіжий список
   }
@@ -1035,6 +1073,78 @@
     supModalBackdrop.hidden = true;
     toast(editingSupplierId ? 'Збережено' : 'Постачальника додано. Натисніть «Синхронізувати», щоб завантажити товари.', 'ok');
     loadSuppliers();
+  });
+
+  // ---------- Logs ----------
+  let currentLogFilter = '';
+  let logsCache = [];
+
+  const LOG_SOURCE_LABELS = { sync: 'Синхронізація', order: 'Замовлення', webhook: 'Вебхук' };
+
+  async function loadLogsSummary() {
+    const grid = document.getElementById('logsSummaryGrid');
+    const { ok, data } = await api('/api/admin/logs/summary');
+    if (!ok) { grid.innerHTML = ''; return; }
+    if (!data.length) {
+      grid.innerHTML = '<div class="stat-card"><div class="label">За останні 24 години</div><div class="value" style="color:var(--green);">Проблем немає</div></div>';
+      return;
+    }
+    grid.innerHTML = data.map((s) => `
+      <div class="stat-card" style="border-color:#F3C9C0;">
+        <div class="label">${esc(LOG_SOURCE_LABELS[s.source] || s.source)} · 24 год</div>
+        <div class="value" style="color:var(--red);">${esc(s.count)}</div>
+      </div>
+    `).join('');
+  }
+
+  async function loadLogs(source) {
+    currentLogFilter = source;
+    const box = document.getElementById('logsList');
+    box.innerHTML = '<p class="empty-state" style="padding:20px;">Завантаження…</p>';
+    loadLogsSummary();
+
+    const params = source ? `?source=${encodeURIComponent(source)}` : '';
+    const { ok, data } = await api(`/api/admin/logs${params}`);
+    if (!ok) { box.innerHTML = '<p class="empty-state" style="padding:20px;">Немає доступу або помилка завантаження</p>'; return; }
+    logsCache = data;
+
+    if (!data.length) {
+      box.innerHTML = '<p class="empty-state" style="padding:20px;">Записів немає — усе працює без помилок.</p>';
+      return;
+    }
+
+    box.innerHTML = data.map((l, i) => `
+      <div class="log-row" data-i="${i}">
+        <div class="log-head">
+          <span class="badge ${l.level === 'error' ? 'fail' : 'warn'}">${l.level === 'error' ? 'помилка' : 'попередження'}</span>
+          <span class="log-source-tag">${esc(LOG_SOURCE_LABELS[l.source] || l.source)}</span>
+          ${l.supplier_name ? `<span style="font-size:12px;color:var(--muted);">${esc(l.supplier_name)}</span>` : ''}
+          <span class="log-msg">${esc(l.message)}</span>
+          <span class="log-time">${esc(fmtDate(l.created_at))}</span>
+        </div>
+        ${l.detail ? `<div class="log-detail">${esc(l.detail)}</div>` : ''}
+      </div>
+    `).join('');
+
+    box.querySelectorAll('.log-row').forEach((row) => {
+      row.addEventListener('click', () => row.classList.toggle('open'));
+    });
+  }
+
+  document.getElementById('refreshLogsBtn').addEventListener('click', () => loadLogs(currentLogFilter));
+  document.getElementById('logFilters').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#logFilters button').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadLogs(btn.dataset.source);
+  });
+  document.getElementById('clearLogsBtn').addEventListener('click', async () => {
+    if (!confirm('Видалити всі записи журналу? Це не можна скасувати.')) return;
+    const { ok, data } = await api('/api/admin/logs', { method: 'DELETE' });
+    if (!ok) return toast('Не вдалося очистити журнал', 'err');
+    toast(`Видалено записів: ${data.deleted}`, 'ok');
+    loadLogs(currentLogFilter);
   });
 
   // ---------- Settings tabs ----------
