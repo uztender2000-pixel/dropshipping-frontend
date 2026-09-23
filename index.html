@@ -540,6 +540,12 @@
   // ЗАМІНИ на адресу свого бекенду на Render.
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
+  // Must match UNCATEGORIZED in routes/products.js exactly — this is how
+  // the backend marks "products with no section" as a filterable bucket
+  // instead of a value that can collide with a real category name.
+  const UNCATEGORIZED_SECTION = '__uncategorized__';
+  const sectionLabel = (section) => (section === UNCATEGORIZED_SECTION ? 'Без категорії' : section);
+
   const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', query: '', page: 1, limit: 24, loading: false };
 
   const grid = document.getElementById('grid');
@@ -723,9 +729,10 @@
       for (const s of sections) {
         const item = document.createElement('div');
         item.className = 'section-item';
+        const label = sectionLabel(s.section);
         item.innerHTML = `
           <button class="section-toggle" data-section="${s.section}">
-            <span>${s.section} <span class="count">(${s.count})</span></span>
+            <span>${label} <span class="count">(${s.count})</span></span>
             <span class="chevron">›</span>
           </button>
           <div class="category-list"></div>
@@ -738,7 +745,7 @@
           const isOpen = catList.classList.contains('open');
           // Clicking a section both filters to that whole section AND
           // expands/collapses its subcategory list underneath.
-          selectSection(s.section, s.section);
+          selectSection(s.section, label);
 
           // Accordion: close every other open section first.
           sectionsList.querySelectorAll('.category-list.open').forEach((el) => el.classList.remove('open'));
