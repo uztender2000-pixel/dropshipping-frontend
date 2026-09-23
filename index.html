@@ -353,6 +353,62 @@
   .city-suggestion-item .area { color: #8B98AD; font-size: 12px; }
 
   footer { text-align: center; padding: 40px 24px 60px; color: #8B98AD; font-size: 13px; }
+
+  /* ---------- Back button (was invisible as a plain btn-secondary) ---------- */
+  .btn-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--forest); color: var(--white); border: none;
+    padding: 10px 18px; border-radius: 4px; font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .btn-back:hover { background: var(--forest-dark); }
+
+  /* ---------- Content header: sort + per-page count ---------- */
+  .content-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .limit-select {
+    font-family: 'Inter', sans-serif; font-size: 14px; padding: 9px 12px;
+    border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink);
+  }
+
+  .field-hint { font-size: 12px; color: #8B98AD; margin-top: -2px; }
+
+  /* ---------- Homepage "picked for you" banner ---------- */
+  .homepage-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--sand); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 16px; font-size: 14px; flex-wrap: wrap;
+  }
+  .homepage-banner button {
+    background: transparent; border: 1px solid var(--forest); color: var(--forest);
+    padding: 8px 14px; border-radius: 4px; font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap;
+  }
+  .homepage-banner button:hover { background: var(--forest); color: var(--white); }
+
+  /* ---------- Responsive polish across breakpoints ---------- */
+  .header-right { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
+
+  @media (max-width: 480px) {
+    .header-inner { padding: 10px 12px; }
+    .logo { font-size: 18px; }
+    .icon-btn, .sidebar-toggle { padding: 7px 10px; font-size: 13px; }
+    .tagline-bar { font-size: 12px; padding: 6px 10px; }
+    .layout { padding: 12px; gap: 12px; }
+    .modal { padding: 22px 16px 18px; }
+    .content-header { gap: 8px; }
+  }
+
+  @media (min-width: 900px) and (max-width: 1100px) {
+    .sidebar { width: 240px; }
+  }
+
+  /* Very large / ultra-wide screens: keep line-length sane, grid still reflows. */
+  @media (min-width: 1600px) {
+    .header-inner, .layout { max-width: 1440px; }
+  }
+
+  /* Prevent horizontal scroll on narrow viewports from any wide inline element. */
+  html, body { max-width: 100%; overflow-x: hidden; }
 </style>
 </head>
 <body>
@@ -379,6 +435,7 @@
       <button class="icon-btn" id="contactBtn">✉️ Написати нам</button>
       <button class="icon-btn" id="loginBtn">👤 Вхід</button>
       <button class="icon-btn" id="cartBtn">🛒 Кошик<span class="cart-badge" id="cartBadge" hidden>0</span></button>
+      <button class="icon-btn" id="headerLogoutBtn" hidden>🚪 Вийти з акаунту</button>
     </div>
   </div>
 </header>
@@ -396,14 +453,30 @@
         <h2 class="content-title" id="contentTitle">Усі товари</h2>
         <div class="content-count" id="contentCount"></div>
       </div>
-      <select class="sort-select" id="sortSelect">
-        <option value="newest">Спершу нові</option>
-        <option value="popular">Спершу популярні</option>
-        <option value="price_asc">Ціна: дешевші спершу</option>
-        <option value="price_desc">Ціна: дорожчі спершу</option>
-        <option value="name_asc">За назвою (А–Я)</option>
-        <option value="name_desc">За назвою (Я–А)</option>
-      </select>
+      <div class="content-controls">
+        <select class="sort-select" id="sortSelect">
+          <option value="newest">Спершу нові</option>
+          <option value="popular">Спершу популярні</option>
+          <option value="price_asc">Ціна: дешевші спершу</option>
+          <option value="price_desc">Ціна: дорожчі спершу</option>
+          <option value="name_asc">За назвою (А–Я)</option>
+          <option value="name_desc">За назвою (Я–А)</option>
+        </select>
+        <select class="limit-select" id="limitSelect" title="Товарів на сторінці">
+          <option value="10">10 на сторінці</option>
+          <option value="20">20 на сторінці</option>
+          <option value="50" selected>50 на сторінці</option>
+          <option value="100">100 на сторінці</option>
+          <option value="200">200 на сторінці</option>
+          <option value="500">500 на сторінці</option>
+          <option value="1000">1000 на сторінці</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="homepage-banner" id="homepageBanner" hidden>
+      <span>Ми показали 10 випадкових товарів із каталогу.</span>
+      <button type="button" id="homepageShowAllBtn">Показати всі товари</button>
     </div>
 
     <div class="grid" id="grid"></div>
@@ -439,8 +512,43 @@
         <button type="submit" class="btn-primary" id="loginSubmit">Увійти</button>
       </div>
       <p class="modal-status" id="loginStatus" hidden></p>
+      <button type="button" class="btn-secondary" id="showForgotPassword" hidden style="width:100%;margin-top:10px;">Скинути пароль</button>
     </form>
     <p style="margin-top:14px;font-size:14px;">Немає акаунту? <a href="#" id="showRegister" style="color:var(--rust-dark);font-weight:700;">Зареєструватись</a></p>
+  </div>
+</div>
+
+<!-- Forgot password: step 1 — enter email, request a code -->
+<div class="modal-backdrop" id="forgotBackdrop" hidden>
+  <div class="modal">
+    <h2>Скидання пароля</h2>
+    <p style="font-size:14px;color:#6B7A93;margin-bottom:14px;">Вкажіть email — ми надішлемо код для скидання пароля.</p>
+    <form id="forgotForm">
+      <div class="field"><label for="forgotEmail">Email</label><input type="email" id="forgotEmail" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="forgotCancel">Скасувати</button>
+        <button type="submit" class="btn-primary" id="forgotSubmit">Надіслати код</button>
+      </div>
+      <p class="modal-status" id="forgotStatus" hidden></p>
+    </form>
+  </div>
+</div>
+
+<!-- Forgot password: step 2 — enter the code and a new password -->
+<div class="modal-backdrop" id="resetBackdrop" hidden>
+  <div class="modal">
+    <h2>Новий пароль</h2>
+    <p style="font-size:14px;color:#6B7A93;margin-bottom:14px;">Ми надіслали код на <b id="resetEmailLabel"></b>. Введіть його разом із новим паролем.</p>
+    <form id="resetForm">
+      <div class="field"><label for="resetCode">Код з email</label><input type="text" id="resetCode" required></div>
+      <div class="field"><label for="resetNewPassword">Новий пароль (мінімум 6 символів)</label><input type="password" id="resetNewPassword" required minlength="6"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="resetCancel">Скасувати</button>
+        <button type="submit" class="btn-primary" id="resetSubmit">Змінити пароль</button>
+      </div>
+      <p class="modal-status" id="resetStatus" hidden></p>
+      <button type="button" class="btn-secondary" id="resetResendCode" style="width:100%;margin-top:10px;">Надіслати код ще раз</button>
+    </form>
   </div>
 </div>
 
@@ -450,7 +558,11 @@
     <form id="registerForm">
       <div class="field"><label for="regName">Ім'я</label><input type="text" id="regName" required></div>
       <div class="field"><label for="regEmail">Email</label><input type="email" id="regEmail" required></div>
-      <div class="field"><label for="regPhone">Телефон (необов'язково)</label><input type="tel" id="regPhone" placeholder="+380..."></div>
+      <div class="field">
+        <label for="regPhone">Телефон</label>
+        <input type="tel" id="regPhone" placeholder="+380..." required>
+        <div class="field-hint">Телефон обов'язковий. Підтвердження кодом через SMS поки що недоступне — ми додамо цю можливість пізніше.</div>
+      </div>
       <div class="field"><label for="regPassword">Пароль (мінімум 6 символів)</label><input type="password" id="regPassword" required minlength="6"></div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="authCancel2">Скасувати</button>
@@ -546,7 +658,7 @@
   const UNCATEGORIZED_SECTION = '__uncategorized__';
   const sectionLabel = (section) => (section === UNCATEGORIZED_SECTION ? 'Без категорії' : section);
 
-  const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', query: '', page: 1, limit: 24, loading: false };
+  const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', query: '', page: 1, limit: 50, loading: false, homepage: true };
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
@@ -556,6 +668,8 @@
   const contentTitle = document.getElementById('contentTitle');
   const contentCount = document.getElementById('contentCount');
   const sortSelect = document.getElementById('sortSelect');
+  const limitSelect = document.getElementById('limitSelect');
+  const homepageBanner = document.getElementById('homepageBanner');
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
 
@@ -620,10 +734,18 @@
     }
 
     try {
-      const params = new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
-      if (state.section) params.set('section', state.section);
-      if (state.categoryId) params.set('category_id', state.categoryId);
-      if (state.query) params.set('q', state.query);
+      // Homepage ("Рекомендуємо") view: 10 random products from the whole
+      // catalogue, no pagination — as soon as the visitor sorts, filters,
+      // searches or clicks "Показати всі товари" we drop out of this mode
+      // (see exitHomepage()) and behave like a normal listing.
+      const params = state.homepage
+        ? new URLSearchParams({ page: 1, limit: 10, sort: 'random' })
+        : new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
+      if (!state.homepage) {
+        if (state.section) params.set('section', state.section);
+        if (state.categoryId) params.set('category_id', state.categoryId);
+        if (state.query) params.set('q', state.query);
+      }
 
       const res = await fetch(`${API_BASE}/api/products?${params}`);
       if (!res.ok) throw new Error('Request failed');
@@ -637,10 +759,11 @@
         contentCount.textContent = '';
       } else {
         renderProducts(data.products, append);
-        contentCount.textContent = `${data.pagination.total} товар(ів)`;
+        contentCount.textContent = state.homepage ? '' : `${data.pagination.total} товар(ів)`;
       }
 
-      const hasMore = data.pagination.page < data.pagination.totalPages;
+      homepageBanner.hidden = !state.homepage;
+      const hasMore = !state.homepage && data.pagination.page < data.pagination.totalPages;
       loadMoreBtn.hidden = !hasMore;
     } catch (err) {
       grid.innerHTML = '';
@@ -650,6 +773,16 @@
     } finally {
       state.loading = false;
     }
+  }
+
+  // Leaves the random "10 for you" homepage view and switches to a normal,
+  // paginated listing (used the moment the visitor sorts, filters, changes
+  // the per-page count, searches, or asks to see everything).
+  function exitHomepage() {
+    if (!state.homepage) return false;
+    state.homepage = false;
+    homepageBanner.hidden = true;
+    return true;
   }
 
   function setActiveSectionButton(sectionName) {
@@ -666,6 +799,7 @@
   }
 
   async function selectSection(sectionName, sectionLabel) {
+    state.homepage = false;
     state.section = sectionName;
     state.categoryId = '';
     state.categoryName = '';
@@ -680,6 +814,7 @@
   }
 
   function selectCategory(categoryId, categoryName, sectionName) {
+    state.homepage = false;
     state.section = sectionName;
     state.categoryId = categoryId;
     state.categoryName = categoryName;
@@ -779,6 +914,7 @@
     const q = searchInput.value.trim();
     if (!q) return;
 
+    state.homepage = false;
     state.query = q;
     state.section = '';
     state.categoryId = '';
@@ -791,9 +927,21 @@
   });
 
   sortSelect.addEventListener('change', () => {
+    exitHomepage();
     state.sort = sortSelect.value;
     state.page = 1;
     loadProducts(false);
+  });
+
+  limitSelect.addEventListener('change', () => {
+    exitHomepage();
+    state.limit = parseInt(limitSelect.value, 10) || 50;
+    state.page = 1;
+    loadProducts(false);
+  });
+
+  document.getElementById('homepageShowAllBtn').addEventListener('click', () => {
+    selectSection('', '');
   });
 
   loadMoreBtn.addEventListener('click', () => {
@@ -839,7 +987,7 @@
           <span>›</span><span class="current">${p.name}</span>
         </div>
 
-        <button class="btn-secondary" id="detailBackBtn" style="margin-bottom:18px;position:sticky;top:0;z-index:2;">← Повернутися</button>
+        <button class="btn-back" id="detailBackBtn" style="margin-bottom:18px;position:sticky;top:0;z-index:2;">← Повернутися</button>
 
         <div class="detail-layout">
           <div class="gallery">
@@ -961,7 +1109,7 @@
 
       accountPageEl.innerHTML = `
         <div class="product-detail-inner">
-          <button class="btn-secondary" id="accountBackBtn" style="margin-bottom:18px;position:sticky;top:0;">← Повернутися</button>
+          <button class="btn-back" id="accountBackBtn" style="margin-bottom:18px;position:sticky;top:0;">← Повернутися</button>
           <h2 style="margin-bottom:20px;">Особистий кабінет</h2>
 
           <div class="account-section">
@@ -1127,15 +1275,18 @@
   let currentUser = null;
 
   const loginBtn = document.getElementById('loginBtn');
+  const headerLogoutBtn = document.getElementById('headerLogoutBtn');
   const authBackdrop = document.getElementById('authBackdrop');
   const registerBackdrop = document.getElementById('registerBackdrop');
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
   const loginStatus = document.getElementById('loginStatus');
   const registerStatus = document.getElementById('registerStatus');
+  const showForgotPasswordBtn = document.getElementById('showForgotPassword');
 
   function setLoggedInUI() {
     loginBtn.textContent = currentUser ? `👤 ${currentUser.name}` : '👤 Вхід';
+    headerLogoutBtn.hidden = !currentUser;
   }
 
   function openAuth() {
@@ -1145,6 +1296,7 @@
     }
     loginForm.reset();
     loginStatus.hidden = true;
+    showForgotPasswordBtn.hidden = true;
     authBackdrop.hidden = false;
   }
 
@@ -1171,6 +1323,11 @@
   }
 
   loginBtn.addEventListener('click', openAuth);
+  headerLogoutBtn.addEventListener('click', () => {
+    logout();
+    hideAccountPage();
+    showToast('Ви вийшли з акаунту');
+  });
 
   // ---------- Contact admin (header button, left of login) ----------
   const contactBackdrop = document.getElementById('contactBackdrop');
@@ -1227,9 +1384,108 @@
     authBackdrop.hidden = false;
   });
 
+  // ---------- Forgot / reset password ----------
+  const forgotBackdrop = document.getElementById('forgotBackdrop');
+  const forgotForm = document.getElementById('forgotForm');
+  const forgotStatus = document.getElementById('forgotStatus');
+  const resetBackdrop = document.getElementById('resetBackdrop');
+  const resetForm = document.getElementById('resetForm');
+  const resetStatus = document.getElementById('resetStatus');
+  const resetEmailLabel = document.getElementById('resetEmailLabel');
+  let resetEmailInProgress = '';
+
+  async function requestResetCode(email) {
+    const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Не вдалося надіслати код');
+    }
+  }
+
+  showForgotPasswordBtn.addEventListener('click', () => {
+    authBackdrop.hidden = true;
+    forgotForm.reset();
+    forgotStatus.hidden = true;
+    document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value || '';
+    forgotBackdrop.hidden = false;
+  });
+
+  document.getElementById('forgotCancel').addEventListener('click', () => { forgotBackdrop.hidden = true; });
+  forgotBackdrop.addEventListener('click', (e) => { if (e.target === forgotBackdrop) forgotBackdrop.hidden = true; });
+
+  forgotForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    forgotStatus.hidden = true;
+    const email = document.getElementById('forgotEmail').value.trim();
+    try {
+      await requestResetCode(email);
+      resetEmailInProgress = email;
+      resetEmailLabel.textContent = email;
+      forgotBackdrop.hidden = true;
+      resetForm.reset();
+      resetStatus.hidden = true;
+      resetBackdrop.hidden = false;
+    } catch (err) {
+      forgotStatus.textContent = err.message;
+      forgotStatus.className = 'modal-status error';
+      forgotStatus.hidden = false;
+    }
+  });
+
+  document.getElementById('resetCancel').addEventListener('click', () => { resetBackdrop.hidden = true; });
+  resetBackdrop.addEventListener('click', (e) => { if (e.target === resetBackdrop) resetBackdrop.hidden = true; });
+
+  document.getElementById('resetResendCode').addEventListener('click', async () => {
+    try {
+      await requestResetCode(resetEmailInProgress);
+      showToast('Код надіслано повторно');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  resetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    resetStatus.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: resetEmailInProgress,
+          code: document.getElementById('resetCode').value.trim(),
+          newPassword: document.getElementById('resetNewPassword').value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Не вдалося змінити пароль');
+
+      resetStatus.textContent = 'Пароль змінено! Тепер увійдіть з новим паролем.';
+      resetStatus.className = 'modal-status success';
+      resetStatus.hidden = false;
+      setTimeout(() => {
+        resetBackdrop.hidden = true;
+        document.getElementById('loginEmail').value = resetEmailInProgress;
+        document.getElementById('loginPassword').value = '';
+        loginStatus.hidden = true;
+        showForgotPasswordBtn.hidden = true;
+        authBackdrop.hidden = false;
+      }, 1600);
+    } catch (err) {
+      resetStatus.textContent = err.message;
+      resetStatus.className = 'modal-status error';
+      resetStatus.hidden = false;
+    }
+  });
+
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginStatus.hidden = true;
+    showForgotPasswordBtn.hidden = true;
     try {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
@@ -1240,7 +1496,10 @@
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Помилка входу');
+      if (!res.ok) {
+        if (res.status === 401) showForgotPasswordBtn.hidden = false;
+        throw new Error(data.error || 'Помилка входу');
+      }
 
       authToken = data.token;
       currentUser = data.user;
@@ -1649,9 +1908,10 @@
 
   // ---------- Init ----------
   allProductsLink.classList.add('active');
+  contentTitle.textContent = 'Рекомендуємо';
   loadProductCount();
   loadSections();
-  loadProducts(false);
+  loadProducts(false); // homepage mode: 10 random products (state.homepage starts true)
   restoreSession();
 </script>
 
