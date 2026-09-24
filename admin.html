@@ -508,6 +508,12 @@
       <div class="hint" id="smApiKeyHint"></div>
     </div>
 
+    <div class="field">
+      <label>Додаткові налаштування (config, у форматі JSON)</label>
+      <textarea id="smConfig" placeholder='{"companyId": 54080}' style="font-family:monospace;font-size:13px;"></textarea>
+      <div class="hint">Для деяких адаптерів тут задаються специфічні параметри — наприклад, у Hubber це <code>companyId</code> (ID компанії, обов'язково, якщо ваш акаунт Hubber прив'язаний до кількох компаній). Залиште порожнім, якщо не потрібно.</div>
+    </div>
+
     <div class="field-row">
       <div class="field">
         <label>Націнка, %</label>
@@ -1019,6 +1025,9 @@
     document.getElementById('smApiKeyHint').textContent = s && s.has_api_key
       ? 'Ключ збережено. Залиште поле порожнім, щоб не змінювати.'
       : '';
+    document.getElementById('smConfig').value = s && s.config && Object.keys(s.config).length
+      ? JSON.stringify(s.config, null, 2)
+      : '';
     document.getElementById('smMarkup').value = s ? Number(s.markup_percent) : 0;
     document.getElementById('smSort').value = s ? s.sort_order : 0;
     document.getElementById('smActive').checked = s ? !!s.active : true;
@@ -1042,6 +1051,19 @@
     }
     if (!name) { errorEl.textContent = 'Вкажіть назву'; errorEl.hidden = false; return; }
 
+    const configRaw = document.getElementById('smConfig').value.trim();
+    let configParsed; // undefined = leave untouched on edit; {} on create if left blank
+    if (configRaw) {
+      try {
+        configParsed = JSON.parse(configRaw);
+      } catch (err) {
+        errorEl.textContent = `Config — некоректний JSON: ${err.message}`;
+        errorEl.hidden = false; return;
+      }
+    } else if (!editingSupplierId) {
+      configParsed = {};
+    }
+
     const body = {
       name,
       adapter: document.getElementById('smAdapter').value,
@@ -1053,6 +1075,7 @@
       active: document.getElementById('smActive').checked,
       auto_order: document.getElementById('smAutoOrder').checked,
     };
+    if (configParsed !== undefined) body.config = configParsed; // omitted = keep existing config on edit
     const key = document.getElementById('smApiKey').value;
     if (key) body.api_key = key; // порожнє поле = не чіпати збережений ключ
 
