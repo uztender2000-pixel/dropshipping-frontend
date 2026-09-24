@@ -864,7 +864,7 @@
       for (const s of sections) {
         const item = document.createElement('div');
         item.className = 'section-item';
-        const label = sectionLabel(s.section);
+        const label = s.label || sectionLabel(s.section);
         item.innerHTML = `
           <button class="section-toggle" data-section="${s.section}">
             <span>${label} <span class="count">(${s.count})</span></span>
