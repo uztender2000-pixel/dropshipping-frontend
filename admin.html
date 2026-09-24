@@ -965,7 +965,9 @@
     tbody.innerHTML = data.map((s) => {
       const syncBadge = s.last_sync_status === 'ok' ? '<span class="badge on">ок</span>'
         : s.last_sync_status === 'error' ? '<span class="badge fail">помилка</span>'
+        : s.last_sync_status === 'running' ? '<span class="badge warn">синхронізація…</span>'
         : '<span class="badge off">ще не було</span>';
+      const syncBtnLabel = s.last_sync_status === 'running' ? 'Синхронізація…' : 'Синхронізувати';
       return `
       <tr data-id="${esc(s.id)}">
         <td>
@@ -982,7 +984,7 @@
         </td>
         <td>
           <div class="actions">
-            <button class="btn-sm primary" data-act="sync">Синхронізувати</button>
+            <button class="btn-sm primary" data-act="sync" ${s.last_sync_status === 'running' ? 'disabled' : ''}>${syncBtnLabel}</button>
             ${s.adapter === 'hubber' ? '<button class="btn-sm" data-act="hubber-debug">Тест авторизації</button>' : ''}
             <button class="btn-sm" data-act="edit">Редагувати</button>
             <button class="btn-sm" data-act="toggle">${s.active ? 'Вимкнути' : 'Увімкнути'}</button>
@@ -993,27 +995,46 @@
         </td>
       </tr>`;
     }).join('');
+
+    // Якщо синхронізація вже триває (наприклад, адмін перейшов на іншу
+    // вкладку й повернувся) — одразу відновлюємо опитування прогресу,
+    // а не чекаємо, поки він сам натисне кнопку ще раз.
+    data.filter((s) => s.last_sync_status === 'running').forEach((s) => {
+      const btn = tbody.querySelector(`tr[data-id="${s.id}"] button[data-act="sync"]`);
+      if (btn) watchSync(s.id, btn);
+    });
   }
 
-  // Після запуску синхронізації сервер відповідає одразу, а сам імпорт іде у фоні.
-  // Опитуємо список, поки не зміниться час останньої синхронізації.
-  function watchSync(id, prevAt) {
+  // Після запуску синхронізації сервер відповідає одразу, а сам імпорт іде
+  // у фоні — тому опитуємо легкий /sync-status (окремий рядок, не весь
+  // список постачальників) і показуємо прогрес прямо на кнопці.
+  function watchSync(id, btn) {
     let tries = 0;
+    const originalLabel = 'Синхронізувати';
     const timer = setInterval(async () => {
       tries++;
-      const { ok, data } = await api('/api/admin/suppliers');
+      const { ok, data } = await api(`/api/admin/suppliers/${id}/sync-status`);
       if (ok) {
-        suppliersCache = data;
-        const s = data.find((x) => String(x.id) === String(id));
-        if (s && s.last_sync_at !== prevAt) {
-          clearInterval(timer);
-          if (document.getElementById('view-suppliers').classList.contains('active')) loadSuppliers();
-          toast(s.last_sync_status === 'ok' ? `${s.name}: ${s.last_sync_message}` : `${s.name}: ${s.last_sync_message}`, s.last_sync_status === 'ok' ? 'ok' : 'err');
-          return;
+        if (data.status === 'running') {
+          btn.textContent = data.total
+            ? `Синхронізація… ${data.percent}% (${data.current}/${data.total})`
+            : `Синхронізація… ${data.current} товар(ів)`;
+          return; // ще працює — чекаємо далі
         }
+        // status flipped to 'ok' / 'error' — done
+        clearInterval(timer);
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+        if (document.getElementById('view-suppliers').classList.contains('active')) loadSuppliers();
+        toast(`${data.status === 'ok' ? '✅' : '❌'} ${data.message || ''}`, data.status === 'ok' ? 'ok' : 'err');
+        return;
       }
-      if (tries >= 45) clearInterval(timer); // ~3 хвилини
-    }, 4000);
+      if (tries >= 1200) { // ~30 хвилин — запобіжник на випадок, якщо статус завис
+        clearInterval(timer);
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    }, 1500);
   }
 
   document.querySelector('#suppliersTable tbody').addEventListener('click', async (e) => {
@@ -1028,12 +1049,14 @@
 
     if (act === 'sync') {
       btn.disabled = true;
-      const prev = s.last_sync_at;
+      btn.textContent = 'Запуск…';
       const { ok, data } = await api(`/api/admin/suppliers/${id}/sync`, { method: 'POST' });
-      btn.disabled = false;
-      if (!ok) return toast(data?.error || 'Не вдалося запустити синхронізацію', 'err');
-      toast(data.message || 'Синхронізацію запущено', 'ok');
-      watchSync(id, prev);
+      if (!ok) {
+        btn.disabled = false;
+        btn.textContent = 'Синхронізувати';
+        return toast(data?.error || 'Не вдалося запустити синхронізацію', 'err');
+      }
+      watchSync(id, btn); // лишає кнопку заблокованою й оновлює її текст, поки триває синк
       return;
     }
 
