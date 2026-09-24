@@ -918,6 +918,7 @@
         <td>
           <div class="actions">
             <button class="btn-sm primary" data-act="sync">Синхронізувати</button>
+            ${s.adapter === 'hubber' ? '<button class="btn-sm" data-act="hubber-debug">Тест авторизації</button>' : ''}
             <button class="btn-sm" data-act="edit">Редагувати</button>
             <button class="btn-sm" data-act="toggle">${s.active ? 'Вимкнути' : 'Увімкнути'}</button>
             <button class="btn-sm" data-act="reprice">Перерахувати ціни</button>
@@ -968,6 +969,24 @@
       if (!ok) return toast(data?.error || 'Не вдалося запустити синхронізацію', 'err');
       toast(data.message || 'Синхронізацію запущено', 'ok');
       watchSync(id, prev);
+      return;
+    }
+
+    if (act === 'hubber-debug') {
+      btn.disabled = true;
+      const { ok, data } = await api(`/api/admin/suppliers/${id}/hubber-debug`, { method: 'POST' });
+      btn.disabled = false;
+      if (!ok) return toast(data?.error || 'Не вдалося виконати тест', 'err');
+
+      const lines = [
+        `Базова адреса: ${data.baseUrl}`,
+        `company_id: ${data.companyId ?? '(не задано)'}`,
+        `Логін: довжина ${data.login.length}, вигляд «${data.login.preview}»${data.login.hadWhitespace ? '  ⚠️ є пробіли на початку/в кінці!' : ''}${data.login.containsColon ? '  ⚠️ містить «:»' : ''}`,
+        `Пароль: довжина ${data.password.length}, вигляд «${data.password.preview}»${data.password.hadWhitespace ? '  ⚠️ є пробіли на початку/в кінці!' : ''}${data.password.containsColon ? '  ⚠️ містить «:»' : ''}`,
+        '',
+        data.ok ? '✅ Hubber відповів: авторизація успішна' : `❌ Hubber відповів (код ${data.status ?? '—'}): ${data.message}`,
+      ];
+      alert(lines.join('\n'));
       return;
     }
 
