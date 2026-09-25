@@ -11,15 +11,18 @@
   :root {
     /* Marketplace palette: deep blue = trust/reliability, orange = action/energy —
        the standard pairing across major e-commerce brands (per conversion-focused
-       color research), not a niche-boutique aesthetic. */
-    --forest: #1B4B8F;       /* primary blue */
+       color research), not a niche-boutique aesthetic.
+       Kept identical to the admin panel's own tokens (admin.html's --blue/--orange/
+       --bg/--muted) so the storefront and the admin panel read as one product. */
+    --forest: #1B4B8F;       /* primary blue  == admin.html --blue */
     --forest-dark: #123563;  /* blue, hover/active */
     --sand: #EAF0F8;         /* light blue-tinted surface */
-    --sand-light: #F5F8FC;   /* page background */
-    --rust: #FF7A1A;         /* accent orange — CTAs */
+    --sand-light: #F3F5F8;   /* page background == admin.html --bg */
+    --rust: #FF7A1A;         /* accent orange — CTAs  == admin.html --orange */
     --rust-dark: #D9600A;    /* orange, hover/active */
-    --ink: #1A1F2B;          /* near-black text */
-    --line: #D7E1EE;         /* borders */
+    --ink: #1A1F2B;          /* near-black text  == admin.html --text */
+    --muted: #6B7A93;        /* secondary text  == admin.html --muted */
+    --line: #D7E1EE;         /* borders  == admin.html's card border (#D7E1EE) */
     --white: #FFFFFF;
   }
 
@@ -43,7 +46,7 @@
     border-bottom: 1px solid var(--line);
   }
   .header-inner {
-    max-width: 1280px; margin: 0 auto; padding: 14px 20px;
+    max-width: 1920px; margin: 0 auto; padding: 14px 8px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   }
   .logo { display: flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
@@ -56,12 +59,11 @@
     font-size: 13px; padding: 7px 16px; font-weight: 500;
   }
   .tagline-bar strong { font-weight: 700; }
-  .header-note { font-size: 13px; color: var(--forest); display: none; }
-  @media (min-width: 640px) { .header-note { display: block; } }
+  .header-note { display: none; } /* text removed per request; rule kept only so nothing else references an undefined class */
 
   .header-right { display: flex; align-items: center; gap: 10px; }
 
-  .header-search { flex: 1; max-width: 480px; min-width: 0; }
+  .header-search { flex: 1; max-width: 680px; min-width: 0; }
   .header-search form { display: flex; }
   .header-search input {
     flex: 1; min-width: 0; font-family: 'Inter', sans-serif; font-size: 14px;
@@ -100,7 +102,7 @@
 
   /* ---------- Layout ---------- */
   .layout {
-    max-width: 1280px; margin: 0 auto; padding: 20px;
+    max-width: 1920px; margin: 0 auto; padding: 20px 8px;
     display: flex; align-items: flex-start; gap: 24px;
   }
 
@@ -113,7 +115,7 @@
   }
   .sidebar-title {
     font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
-    color: #6B7A93; padding: 10px 10px 6px;
+    color: var(--muted); padding: 10px 10px 6px;
   }
   .all-products-link {
     display: block; width: 100%; text-align: left; background: none; border: none;
@@ -134,8 +136,8 @@
   }
   .section-toggle:hover { background: var(--sand-light); }
   .section-toggle.active { color: var(--rust-dark); }
-  .section-toggle .count { font-weight: 400; color: #6B7A93; font-size: 12px; }
-  .section-toggle .chevron { transition: transform 0.15s ease; color: #6B7A93; }
+  .section-toggle .count { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .section-toggle .chevron { transition: transform 0.15s ease; color: var(--muted); }
   .section-toggle.open .chevron { transform: rotate(90deg); }
 
   .category-list { display: none; padding: 2px 0 6px 10px; }
@@ -147,7 +149,7 @@
   }
   .category-item button:hover { background: var(--sand-light); }
   .category-item button.active { background: var(--sand); color: var(--forest); font-weight: 700; }
-  .category-loading { padding: 8px 10px; font-size: 12px; color: #8B98AD; }
+  .category-loading { padding: 8px 10px; font-size: 12px; color: var(--muted); }
 
   @media (max-width: 899px) {
     .sidebar {
@@ -165,14 +167,14 @@
     flex-wrap: wrap; margin-bottom: 16px;
   }
   .content-title { font-size: clamp(20px, 3vw, 28px); }
-  .content-count { font-size: 13px; color: #6B7A93; margin-top: 2px; }
+  .content-count { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
   .sort-select {
     font-family: 'Inter', sans-serif; font-size: 14px; padding: 9px 12px;
     border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink);
   }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(225px, 1fr)); gap: 16px; }
 
   .card {
     background: var(--white); border: 1px solid var(--line); border-radius: 4px;
@@ -180,11 +182,11 @@
   }
   .card-image {
     aspect-ratio: 1 / 1; background: var(--sand) center/cover no-repeat;
-    display: flex; align-items: center; justify-content: center; color: #8B98AD; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px;
   }
   .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .card-name { font-size: 15px; font-weight: 500; line-height: 1.3; }
-  .card-vendor { font-size: 12px; color: #6B7A93; }
+  .card-vendor { font-size: 12px; color: var(--muted); }
   .card-stock { font-size: 12px; color: var(--forest); font-weight: 500; }
   .card-price { margin-top: auto; font-family: 'Manrope', sans-serif; font-size: 20px; color: var(--rust-dark); }
   .card-buy {
@@ -208,9 +210,9 @@
   .product-detail[hidden] { display: none; }
 
   .breadcrumb {
-    font-size: 13px; color: #8B98AD; margin-bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap;
+    font-size: 13px; color: var(--muted); margin-bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap;
   }
-  .breadcrumb a { color: #8B98AD; cursor: pointer; text-decoration: none; }
+  .breadcrumb a { color: var(--muted); cursor: pointer; text-decoration: none; }
   .breadcrumb a:hover { color: var(--forest); text-decoration: underline; }
   .breadcrumb .current { color: var(--ink); }
 
@@ -236,7 +238,7 @@
 
   .detail-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .detail-info h2 { font-size: 22px; margin-bottom: 4px; }
-  .detail-meta { font-size: 13px; color: #8B98AD; display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+  .detail-meta { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
   .detail-meta b { color: var(--ink); font-weight: 500; }
 
   .qty-row { display: flex; align-items: center; gap: 14px; margin: 14px 0; }
@@ -253,16 +255,24 @@
   .detail-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
   .detail-tab {
     background: none; border: none; padding: 10px 16px; font-family: 'Inter', sans-serif; font-size: 14px;
-    font-weight: 600; color: #8B98AD; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
   }
   .detail-tab.active { color: var(--forest); border-bottom-color: var(--forest); }
   .detail-tab-panel { font-size: 14px; line-height: 1.7; color: var(--ink); white-space: pre-line; }
   .detail-tab-panel[hidden] { display: none; }
+  #tabDescription {
+    white-space: normal; /* real HTML now (see sanitizeDescriptionHtml), not escaped plain text */
+  }
+  #tabDescription p { margin: 0 0 12px; }
+  #tabDescription p:last-child { margin-bottom: 0; }
+  #tabDescription ul, #tabDescription ol { margin: 0 0 12px; padding-left: 22px; }
+  #tabDescription li { margin-bottom: 6px; }
+  #tabDescription strong, #tabDescription b { color: var(--ink); font-weight: 700; }
 
   .specs-table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .specs-table tr { border-bottom: 1px solid var(--line); }
   .specs-table td { padding: 9px 4px; vertical-align: top; }
-  .specs-table td:first-child { color: #8B98AD; width: 45%; }
+  .specs-table td:first-child { color: var(--muted); width: 45%; }
 
   .account-section {
     background: var(--white); border: 1px solid var(--line); border-radius: 6px;
@@ -283,7 +293,7 @@
   }
 
 
-  .state-message { text-align: center; padding: 60px 20px; color: #6B7A93; }
+  .state-message { text-align: center; padding: 60px 20px; color: var(--muted); }
 
   .load-more {
     display: block; margin: 32px auto 0; background: transparent; border: 1px solid var(--forest);
@@ -350,9 +360,9 @@
     padding: 9px 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--sand-light);
   }
   .city-suggestion-item:hover { background: var(--sand); }
-  .city-suggestion-item .area { color: #8B98AD; font-size: 12px; }
+  .city-suggestion-item .area { color: var(--muted); font-size: 12px; }
 
-  footer { text-align: center; padding: 40px 24px 60px; color: #8B98AD; font-size: 13px; }
+  footer { text-align: center; padding: 40px 24px 60px; color: var(--muted); font-size: 13px; }
 
   /* ---------- Back button (was invisible as a plain btn-secondary) ---------- */
   .btn-back {
@@ -370,7 +380,7 @@
     border: 1px solid var(--line); border-radius: 4px; background: var(--white); color: var(--ink);
   }
 
-  .field-hint { font-size: 12px; color: #8B98AD; margin-top: -2px; }
+  .field-hint { font-size: 12px; color: var(--muted); margin-top: -2px; }
 
   /* ---------- Homepage "picked for you" banner ---------- */
   .homepage-banner {
@@ -402,11 +412,6 @@
     .sidebar { width: 240px; }
   }
 
-  /* Very large / ultra-wide screens: keep line-length sane, grid still reflows. */
-  @media (min-width: 1600px) {
-    .header-inner, .layout { max-width: 1440px; }
-  }
-
   /* Prevent horizontal scroll on narrow viewports from any wide inline element. */
   html, body { max-width: 100%; overflow-x: hidden; }
 </style>
@@ -431,7 +436,6 @@
     </div>
     <div class="header-right">
       <button class="sidebar-toggle" id="sidebarToggle">☰ Розділи</button>
-      <div class="header-note">📦 Нова пошта • 💳 оплата при отриманні</div>
       <button class="icon-btn" id="contactBtn">✉️ Написати нам</button>
       <button class="icon-btn" id="loginBtn">👤 Вхід</button>
       <button class="icon-btn" id="cartBtn">🛒 Кошик<span class="cart-badge" id="cartBadge" hidden>0</span></button>
@@ -522,7 +526,7 @@
 <div class="modal-backdrop" id="forgotBackdrop" hidden>
   <div class="modal">
     <h2>Скидання пароля</h2>
-    <p style="font-size:14px;color:#6B7A93;margin-bottom:14px;">Вкажіть email — ми надішлемо код для скидання пароля.</p>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">Вкажіть email — ми надішлемо код для скидання пароля.</p>
     <form id="forgotForm">
       <div class="field"><label for="forgotEmail">Email</label><input type="email" id="forgotEmail" required></div>
       <div class="modal-actions">
@@ -538,7 +542,7 @@
 <div class="modal-backdrop" id="resetBackdrop" hidden>
   <div class="modal">
     <h2>Новий пароль</h2>
-    <p style="font-size:14px;color:#6B7A93;margin-bottom:14px;">Ми надіслали код на <b id="resetEmailLabel"></b>. Введіть його разом із новим паролем.</p>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">Ми надіслали код на <b id="resetEmailLabel"></b>. Введіть його разом із новим паролем.</p>
     <form id="resetForm">
       <div class="field"><label for="resetCode">Код з email</label><input type="text" id="resetCode" required></div>
       <div class="field"><label for="resetNewPassword">Новий пароль (мінімум 6 символів)</label><input type="password" id="resetNewPassword" required minlength="6"></div>
@@ -615,7 +619,7 @@
         <input type="hidden" id="cartNpCityRef">
         <div class="city-suggestions" id="cartNpCitySuggestions" hidden></div>
       </div>
-      <div class="field" id="cartCityHint" style="font-size:13px;color:#8B98AD;">Спочатку оберіть населений пункт ↑</div>
+      <div class="field" id="cartCityHint" style="font-size:13px;color:var(--muted);">Спочатку оберіть населений пункт ↑</div>
       <div class="field" id="cartBranchFieldWrap" hidden>
         <label for="cartNpBranchSelect">Відділення</label>
         <select id="cartNpBranchSelect"><option value="">Оберіть відділення</option></select>
@@ -675,6 +679,62 @@
 
   function money(n) {
     return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 }).format(n) + ' грн';
+  }
+
+  // Suppliers' descriptions usually arrive as HTML copy-pasted from Word
+  // (via their own admin panel's rich-text editor), which brings along a
+  // pile of junk: inline style="color:...;font-family:..." on every tag
+  // that fights our own page styling, "MsoNormal" classes, empty <p></p>
+  // padding paragraphs, and headings (<h4>) that — instead of holding a
+  // short line of text — wrap an entire block of paragraphs and lists,
+  // which is invalid HTML and renders however each browser feels like
+  // guessing. This turns that into something that just inherits our
+  // page's own typography and doesn't have any structural surprises left.
+  // Runs in the browser at render time — it never touches the database,
+  // so nothing about the stored data changes, and a future fix to how a
+  // description is written server-side keeps working exactly the same.
+  function sanitizeDescriptionHtml(rawHtml) {
+    if (!rawHtml) return '';
+
+    const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
+
+    // Never let a description execute anything or reach outside its box.
+    doc.querySelectorAll('script, style, iframe, object, embed, link, meta').forEach((el) => el.remove());
+
+    // Strip every attribute except href on links — this is what removes
+    // the copy-pasted color/font-family/line-height overrides and Word's
+    // "MsoNormal" classes, so the text just uses our page's own CSS.
+    doc.querySelectorAll('*').forEach((el) => {
+      [...el.attributes].forEach((attr) => {
+        if (el.tagName === 'A' && attr.name === 'href') return;
+        el.removeAttribute(attr.name);
+      });
+    });
+
+    // A heading that wraps block-level content (paragraphs, lists, divs)
+    // isn't really a heading — it's a Word-paste artifact where the whole
+    // description got dropped inside one <h4>. Unwrap it (keep the
+    // children, drop the heading tag) so it renders as normal body text
+    // instead of one giant bold oversized block. A heading that only
+    // holds inline text/bold stays a heading, since that IS a real title.
+    doc.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
+      const hasBlockChild = [...h.children].some((c) =>
+        ['P', 'UL', 'OL', 'DIV', 'TABLE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(c.tagName)
+      );
+      if (hasBlockChild) h.replaceWith(...h.childNodes);
+    });
+
+    // Word pads list items with a trailing empty <p></p> — drop any
+    // paragraph that has no visible text and no image in it.
+    doc.querySelectorAll('p').forEach((p) => {
+      if (!p.textContent.trim() && !p.querySelector('img')) p.remove();
+    });
+
+    // A <span> only ever existed to carry the inline styling we just
+    // stripped — unwrap it so it doesn't leave empty wrapper tags behind.
+    doc.querySelectorAll('span').forEach((s) => s.replaceWith(...s.childNodes));
+
+    return doc.body.innerHTML.trim();
   }
 
   // ---------- Toast notifications ----------
@@ -975,7 +1035,9 @@
       `).join('') : '';
 
       const specsRows = p.params && Object.keys(p.params).length
-        ? Object.entries(p.params).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')
+        ? Object.entries(p.params)
+            .filter(([k, v]) => k && v != null && String(v).trim() && !String(v).includes('[object Object]'))
+            .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')
         : '';
 
       productDetailEl.innerHTML = `
@@ -1018,7 +1080,7 @@
           <button class="detail-tab active" data-tab="description">Опис</button>
           ${specsRows ? `<button class="detail-tab" data-tab="specs">Характеристики</button>` : ''}
         </div>
-        <div class="detail-tab-panel" id="tabDescription">${(p.description || 'Опис відсутній.').replace(/</g, '&lt;')}</div>
+        <div class="detail-tab-panel" id="tabDescription">${p.description ? sanitizeDescriptionHtml(p.description) : 'Опис відсутній.'}</div>
         ${specsRows ? `<table class="specs-table detail-tab-panel" id="tabSpecs" hidden><tbody>${specsRows}</tbody></table>` : ''}
         </div>
       `;
@@ -1100,12 +1162,12 @@
               <div class="order-thumb" style="${o.picture_url ? `background-image:url('${o.picture_url}')` : ''}"></div>
               <div style="flex:1;">
                 <div style="font-size:14px;">${o.product_name}</div>
-                <div style="font-size:12px;color:#8B98AD;">№${o.id} · ${new Date(o.created_at).toLocaleDateString('uk-UA')}</div>
+                <div style="font-size:12px;color:var(--muted);">№${o.id} · ${new Date(o.created_at).toLocaleDateString('uk-UA')}</div>
               </div>
               <span class="order-status">${orderStatusLabel(o.status)}</span>
             </div>
           `).join('')
-        : '<p style="color:#8B98AD;font-size:14px;">Замовлень ще немає.</p>';
+        : '<p style="color:var(--muted);font-size:14px;">Замовлень ще немає.</p>';
 
       accountPageEl.innerHTML = `
         <div class="product-detail-inner">
@@ -1630,7 +1692,7 @@
         row.innerHTML = `
           <div style="flex:1;">
             <div style="font-size:14px;font-weight:500;">${item.name}</div>
-            <div style="font-size:13px;color:#6B7A93;">${item.retail_price ? money(item.retail_price) : 'Ціна уточнюється'} × ${item.quantity}</div>
+            <div style="font-size:13px;color:var(--muted);">${item.retail_price ? money(item.retail_price) : 'Ціна уточнюється'} × ${item.quantity}</div>
           </div>
           <button data-remove="${item.product_id}" style="background:none;border:none;color:var(--rust-dark);cursor:pointer;font-size:13px;">Видалити</button>
         `;
