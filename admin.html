@@ -371,12 +371,89 @@
         </div>
       </div>
 
+      <div class="field" style="max-width:420px;">
+        <label>Постачальник (з ручним відбором)</label>
+        <select id="pfSupplier"></select>
+      </div>
+
+      <div class="tabs" id="productsModeTabs" style="margin:10px 0 16px;">
+        <button class="tab-btn" data-mode="live" id="productsModeLiveBtn">🔎 Огляд каталогу (наживо, без завантаження на сервер)</button>
+        <button class="tab-btn" data-mode="db" id="productsModeDbBtn">📦 Уже додані товари (з бази)</button>
+      </div>
+
+      <!-- ================= LIVE mode: proxies straight to the supplier's
+           API, page by page — nothing is written to our database until
+           an admin explicitly imports a product. ================= -->
+      <div id="productsLiveMode">
+        <p class="hint" style="margin:0 0 10px;">
+          Це живий запит до Hubber — товари показуються прямо з їхнього каталогу і <b>не зберігаються на нашому сервері</b>,
+          поки ви явно не натиснете «Імпортувати обрані».
+        </p>
+        <div class="panel">
+          <div class="field-row">
+            <div class="field"><label>Назва товару</label><input type="text" id="lfName" placeholder="Пошук за назвою…"></div>
+            <div class="field"><label>Артикул (точний збіг)</label><input type="text" id="lfVendorCode"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>ID товару в Hubber</label><input type="text" id="lfId"></div>
+            <div class="field"><label>Реальний постачальник у Hubber (company_id)</label><input type="text" id="lfCompanyId" placeholder="напр. 123"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Ціна від</label><input type="number" id="lfPriceFrom" min="0" step="0.01"></div>
+            <div class="field"><label>Ціна до</label><input type="number" id="lfPriceTo" min="0" step="0.01"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Наявність</label>
+              <select id="lfAvailability"><option value="">Будь-яка</option><option value="1">У наявності</option><option value="0">Немає в наявності</option></select>
+            </div>
+            <div class="field"><label>Статус модерації</label>
+              <select id="lfStatus"><option value="">Будь-який</option><option value="4">4 — Промодерований</option><option value="7">7</option></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Редаговано від</label><input type="date" id="lfEditedFrom"></div>
+            <div class="field"><label>Редаговано до</label><input type="date" id="lfEditedTo"></div>
+          </div>
+          <label class="check-row"><input type="checkbox" id="lfMarkTop"> Лише позначені «Топ»</label>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="btn-sm primary" id="lfApplyBtn">Застосувати фільтр</button>
+            <button class="btn-sm" id="lfResetBtn">Скинути</button>
+          </div>
+        </div>
+
+        <div class="panel" id="liveBulkBar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span id="liveSelectedCount" style="font-weight:700;"></span>
+          <button class="btn-sm primary" id="liveImportBtn">✅ Імпортувати обрані на сайт</button>
+        </div>
+
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table id="liveTable">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="liveSelectAll"></th>
+                <th></th>
+                <th>Товар</th>
+                <th>Ціна</th>
+                <th>Наявність</th>
+                <th>Категорія постачальника</th>
+                <th>Hubber</th>
+                <th>Стан</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;align-items:center;margin-top:14px;">
+          <button class="btn-sm" id="liveBackBtn" disabled>← Попередня сторінка</button>
+          <button class="btn-sm" id="liveMoreBtn">Наступна сторінка →</button>
+        </div>
+      </div>
+
+      <!-- ================= DB mode: manage what's already imported
+           (bulk include/exclude, assign categories). Same as before. ===== -->
+      <div id="productsDbMode" hidden>
       <div class="panel">
         <div class="field-row" style="align-items:end;">
-          <div class="field">
-            <label>Постачальник (з ручним відбором)</label>
-            <select id="pfSupplier"></select>
-          </div>
           <div class="field">
             <label>Показувати</label>
             <select id="pfIncluded">
@@ -460,6 +537,7 @@
         </table>
       </div>
       <div id="productsPagination" style="display:flex;justify-content:center;gap:8px;align-items:center;margin-top:14px;"></div>
+      </div>
     </div>
 
 
@@ -1125,7 +1203,9 @@
         : s.last_sync_status === 'error' ? '<span class="badge fail">помилка</span>'
         : s.last_sync_status === 'running' ? '<span class="badge warn">синхронізація…</span>'
         : '<span class="badge off">ще не було</span>';
-      const syncBtnLabel = s.last_sync_status === 'running' ? 'Синхронізація…' : 'Синхронізувати';
+      const syncBtnLabel = s.last_sync_status === 'running'
+        ? 'Синхронізація…'
+        : (s.manual_selection ? 'Оновити ціни/наявність' : 'Синхронізувати');
       return `
       <tr data-id="${esc(s.id)}">
         <td>
@@ -1142,7 +1222,7 @@
         </td>
         <td>
           <div class="actions">
-            <button class="btn-sm primary" data-act="sync" ${s.last_sync_status === 'running' ? 'disabled' : ''}>${syncBtnLabel}</button>
+            <button class="btn-sm primary" data-act="sync" ${s.last_sync_status === 'running' ? 'disabled' : ''} ${s.manual_selection ? 'title="Оновлює лише вже додані товари — новий каталог сюди не підвантажується"' : ''}>${syncBtnLabel}</button>
             ${s.manual_selection ? '<button class="btn-sm" data-act="products">Товари</button>' : ''}
             ${s.adapter === 'hubber' ? '<button class="btn-sm" data-act="hubber-debug">Тест авторизації</button>' : ''}
             <button class="btn-sm" data-act="edit">Редагувати</button>
@@ -1480,6 +1560,27 @@
     };
   }
 
+  let productsMode = 'live';
+
+  function currentSupplier() {
+    const id = document.getElementById('pfSupplier').value;
+    return manualSuppliersCache.find((s) => String(s.id) === String(id));
+  }
+
+  function switchProductsMode(mode) {
+    const sup = currentSupplier();
+    if (mode === 'live' && !(sup && sup.live_browse)) mode = 'db';
+    productsMode = mode;
+    document.getElementById('productsModeLiveBtn').classList.toggle('active', mode === 'live');
+    document.getElementById('productsModeDbBtn').classList.toggle('active', mode === 'db');
+    document.getElementById('productsLiveMode').hidden = mode !== 'live';
+    document.getElementById('productsDbMode').hidden = mode !== 'db';
+    document.getElementById('productsModeLiveBtn').style.display = (sup && sup.live_browse) ? '' : 'none';
+    if (mode === 'live') resetLiveBrowse(); else loadProducts();
+  }
+  document.getElementById('productsModeLiveBtn').addEventListener('click', () => switchProductsMode('live'));
+  document.getElementById('productsModeDbBtn').addEventListener('click', () => switchProductsMode('db'));
+
   async function initProductsView() {
     await loadManualSuppliers();
     await loadShopCategoryFilterOptions();
@@ -1489,8 +1590,145 @@
     await loadProductFilterOptions();
     productsPage = 1;
     productsSelected.clear();
-    loadProducts();
+    switchProductsMode(currentSupplier()?.live_browse ? 'live' : 'db');
   }
+
+  // ----- Live catalogue browse (no server-side storage) -----
+  let liveItems = [];
+  let liveSelected = new Map(); // supplierProductId -> full item object
+  let liveCursorStack = [];     // cursors of previous pages, for "← Попередня"
+  let liveCursor = undefined;   // cursor that produced the CURRENT page
+  let liveNextCursor = null;
+
+  function currentLiveFilter() {
+    return {
+      name: document.getElementById('lfName').value.trim(),
+      vendor_code: document.getElementById('lfVendorCode').value.trim(),
+      id: document.getElementById('lfId').value.trim(),
+      company_id: document.getElementById('lfCompanyId').value.trim(),
+      price_from: document.getElementById('lfPriceFrom').value,
+      price_to: document.getElementById('lfPriceTo').value,
+      availability: document.getElementById('lfAvailability').value,
+      status: document.getElementById('lfStatus').value,
+      edited_from: document.getElementById('lfEditedFrom').value,
+      edited_to: document.getElementById('lfEditedTo').value,
+      mark_top: document.getElementById('lfMarkTop').checked ? 'true' : '',
+    };
+  }
+
+  function resetLiveBrowse() {
+    liveCursorStack = [];
+    liveCursor = undefined;
+    liveNextCursor = null;
+    liveSelected.clear();
+    loadLivePage(undefined, false);
+  }
+
+  async function loadLivePage(cursor, pushCurrentToStack = true) {
+    const supplierId = document.getElementById('pfSupplier').value;
+    const tbody = document.querySelector('#liveTable tbody');
+    if (!supplierId) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Оберіть постачальника</td></tr>'; return; }
+
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Завантаження з Hubber…</td></tr>';
+    if (pushCurrentToStack) liveCursorStack.push(liveCursor);
+
+    const params = new URLSearchParams(currentLiveFilter());
+    params.set('supplier_id', supplierId);
+    if (cursor) params.set('cursor', cursor);
+
+    const { ok, data } = await api(`/api/admin/products/browse?${params.toString()}`);
+    if (!ok) {
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${esc(data?.error || 'Помилка завантаження з Hubber')}</td></tr>`;
+      return;
+    }
+
+    liveItems = data.items;
+    liveCursor = cursor;
+    liveNextCursor = data.nextCursor;
+    renderLiveTable();
+    document.getElementById('liveBackBtn').disabled = liveCursorStack.length <= 1;
+    document.getElementById('liveMoreBtn').disabled = !data.hasMore;
+  }
+
+  function renderLiveTable() {
+    const tbody = document.querySelector('#liveTable tbody');
+    if (!liveItems.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Нічого не знайдено за цим фільтром</td></tr>';
+      return;
+    }
+    tbody.innerHTML = liveItems.map((p) => {
+      const id = String(p.supplierProductId);
+      return `
+      <tr data-id="${esc(id)}">
+        <td><input type="checkbox" class="live-check" ${liveSelected.has(id) ? 'checked' : ''} ${p.included ? 'disabled' : ''}></td>
+        <td>${p.pictureUrl ? `<div class="order-thumb-sm" style="background-image:url('${esc(p.pictureUrl)}')"></div>` : ''}</td>
+        <td>
+          <div style="font-weight:600;">${esc(p.name)}</div>
+          <div style="font-size:12px;color:var(--muted);">${esc(p.vendorCode || '—')} · id ${esc(p.supplierProductId)}${p.vendor ? ' · ' + esc(p.vendor) : ''}</div>
+        </td>
+        <td>${money(p.price)}</td>
+        <td>${p.available ? '<span class="badge on">є</span>' : '<span class="badge off">нема</span>'}${Number.isFinite(p.stock) ? `<div style="font-size:11px;color:var(--muted);">${esc(p.stock)} шт.</div>` : ''}</td>
+        <td style="font-size:12px;">${esc(p.categoryName || p.section || '—')}</td>
+        <td>${hubberBadges({ raw_meta: p.meta })}</td>
+        <td>${p.included ? '<span class="badge on">на сайті</span>' : (p.alreadyImported ? '<span class="badge off">імпортовано, вимкнено</span>' : '<span style="color:var(--muted);font-size:12px;">не імпортовано</span>')}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('liveSelectAll').checked = liveItems.length > 0 && liveItems.every((p) => p.included || liveSelected.has(String(p.supplierProductId)));
+    updateLiveBulkBar();
+  }
+
+  function updateLiveBulkBar() {
+    const bar = document.getElementById('liveBulkBar');
+    bar.style.display = liveSelected.size ? 'flex' : 'none';
+    document.getElementById('liveSelectedCount').textContent = `Обрано для імпорту: ${liveSelected.size}`;
+  }
+
+  document.getElementById('lfApplyBtn').addEventListener('click', () => resetLiveBrowse());
+  document.getElementById('lfResetBtn').addEventListener('click', () => {
+    ['lfName', 'lfVendorCode', 'lfId', 'lfCompanyId', 'lfPriceFrom', 'lfPriceTo', 'lfEditedFrom', 'lfEditedTo'].forEach((id) => { document.getElementById(id).value = ''; });
+    document.getElementById('lfAvailability').value = '';
+    document.getElementById('lfStatus').value = '';
+    document.getElementById('lfMarkTop').checked = false;
+    resetLiveBrowse();
+  });
+  document.getElementById('liveMoreBtn').addEventListener('click', () => { if (liveNextCursor) loadLivePage(liveNextCursor, true); });
+  document.getElementById('liveBackBtn').addEventListener('click', () => {
+    if (liveCursorStack.length <= 1) return;
+    liveCursorStack.pop(); // drop current page's own entry
+    const prev = liveCursorStack.pop();
+    loadLivePage(prev, false);
+  });
+
+  document.querySelector('#liveTable tbody').addEventListener('click', (e) => {
+    const check = e.target.closest('.live-check');
+    if (!check) return;
+    const tr = e.target.closest('tr[data-id]');
+    const id = tr.dataset.id;
+    const item = liveItems.find((p) => String(p.supplierProductId) === id);
+    if (check.checked) liveSelected.set(id, item); else liveSelected.delete(id);
+    updateLiveBulkBar();
+  });
+
+  document.getElementById('liveSelectAll').addEventListener('change', (e) => {
+    liveItems.forEach((p) => {
+      if (p.included) return; // already on sale — nothing to import
+      const id = String(p.supplierProductId);
+      if (e.target.checked) liveSelected.set(id, p); else liveSelected.delete(id);
+    });
+    renderLiveTable();
+  });
+
+  document.getElementById('liveImportBtn').addEventListener('click', async () => {
+    if (!liveSelected.size) return;
+    const supplier_id = document.getElementById('pfSupplier').value;
+    const items = [...liveSelected.values()];
+    const { ok, data } = await api('/api/admin/products/import-selected', { method: 'POST', body: { supplier_id, items } });
+    if (!ok) return toast(data?.error || 'Помилка імпорту', 'err');
+    toast(`Імпортовано товарів: ${data.imported}`, 'ok');
+    liveSelected.clear();
+    await loadManualSuppliers();
+    loadLivePage(liveCursor, false); // refresh current page's "вже додано" badges
+  });
 
   function hubberBadges(p) {
     const m = p.raw_meta || {};
@@ -1597,9 +1835,13 @@
   document.getElementById('pfSupplier').addEventListener('change', () => {
     productsSelected.clear();
     productsPage = 1;
-    loadProductFilterOptions().then(loadProducts);
+    loadProductFilterOptions().then(() => {
+      switchProductsMode(currentSupplier()?.live_browse ? 'live' : 'db');
+    });
   });
-  document.getElementById('refreshProductsBtn').addEventListener('click', loadProducts);
+  document.getElementById('refreshProductsBtn').addEventListener('click', () => {
+    if (productsMode === 'live') resetLiveBrowse(); else loadProducts();
+  });
 
   document.querySelector('#productsTable tbody').addEventListener('click', async (e) => {
     const check = e.target.closest('.prow-check');
