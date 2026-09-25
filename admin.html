@@ -286,6 +286,7 @@
     <a class="nav-item active" data-view="dashboard">📊 Дашборд</a>
     <a class="nav-item" data-view="orders">📦 Замовлення</a>
     <a class="nav-item" data-view="suppliers" id="suppliersNavItem">🏭 Постачальники</a>
+    <a class="nav-item" data-view="products" id="productsNavItem">🧩 Товари (відбір)</a>
     <a class="nav-item" data-view="sections" id="sectionsNavItem">🌐 Переклади розділів</a>
     <a class="nav-item" data-view="logs" id="logsNavItem">🪵 Логи</a>
     <a class="nav-item" data-view="settings" id="settingsNavItem">⚙️ Налаштування</a>
@@ -359,6 +360,108 @@
         (крім тих, що є в історії замовлень — їх лише ховає).
       </p>
     </div>
+
+    <!-- ---- Products (manual selection + categories) ---- -->
+    <div class="view" id="view-products">
+      <div class="page-header">
+        <h2>Товари постачальника</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" id="manageCategoriesBtn">🗂 Керувати категоріями</button>
+          <button class="btn-sm" id="refreshProductsBtn">↻ Оновити</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="field-row" style="align-items:end;">
+          <div class="field">
+            <label>Постачальник (з ручним відбором)</label>
+            <select id="pfSupplier"></select>
+          </div>
+          <div class="field">
+            <label>Показувати</label>
+            <select id="pfIncluded">
+              <option value="all">Усі товари</option>
+              <option value="true">Уже додані на сайт</option>
+              <option value="false" selected>Ще не додані (потребують рішення)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field"><label>Назва товару</label><input type="text" id="pfName" placeholder="Пошук за назвою…"></div>
+          <div class="field"><label>Артикул</label><input type="text" id="pfVendorCode" placeholder="vendor_code…"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>ID товару у постачальника</label><input type="text" id="pfSupplierProductId"></div>
+          <div class="field"><label>Бренд</label><select id="pfVendor"><option value="">Усі бренди</option></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Категорія постачальника</label><select id="pfCategory"><option value="">Усі категорії</option></select></div>
+          <div class="field"><label>Наявність</label>
+            <select id="pfAvailability">
+              <option value="all">Будь-яка</option>
+              <option value="in_stock">У наявності</option>
+              <option value="out_of_stock">Немає в наявності</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Ціна від (грн, закупівля)</label><input type="number" id="pfPriceFrom" min="0" step="0.01"></div>
+          <div class="field"><label>Ціна до (грн, закупівля)</label><input type="number" id="pfPriceTo" min="0" step="0.01"></div>
+        </div>
+        <div class="field-row" id="pfHubberRow" hidden>
+          <div class="field"><label>Статус модерації (Hubber)</label><select id="pfStatus"><option value="">Будь-який</option></select></div>
+          <div class="field"><label>Реальний постачальник у Hubber</label><select id="pfHubberSupplier"><option value="">Усі</option></select></div>
+        </div>
+        <div class="field-row" id="pfHubberRow2" hidden>
+          <div class="field"><label>Позначка «Топ» у Hubber</label>
+            <select id="pfIsTop"><option value="">Байдуже</option><option value="true">Тільки топ</option><option value="false">Без топу</option></select>
+          </div>
+          <div class="field"><label>Наша категорія на сайті</label><select id="pfShopCategory"><option value="">Будь-яка</option><option value="unassigned">Ще без категорії</option></select></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field"><label>Характеристика (назва)</label><input type="text" id="pfAttrName" placeholder="напр. Колір"></div>
+          <div class="field"><label>Характеристика (значення містить)</label><input type="text" id="pfAttrValue" placeholder="напр. чорний"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="btn-sm primary" id="pfApplyBtn">Застосувати фільтр</button>
+          <button class="btn-sm" id="pfResetBtn">Скинути</button>
+        </div>
+      </div>
+
+      <div class="panel" id="productsBulkBar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span id="productsSelectedCount" style="font-weight:700;"></span>
+        <button class="btn-sm primary" id="bulkIncludeBtn">✅ Додати на сайт (обрані)</button>
+        <button class="btn-sm" id="bulkExcludeBtn">🚫 Прибрати з сайту (обрані)</button>
+        <button class="btn-sm" id="bulkCategoriesBtn">🗂 Призначити категорію (обрані)</button>
+        <span style="flex:1;"></span>
+        <button class="btn-sm primary" id="bulkIncludeAllFilteredBtn">✅ Додати ВСІ за фільтром (<span id="bulkFilteredCount">0</span>)</button>
+        <button class="btn-sm" id="bulkExcludeAllFilteredBtn">🚫 Прибрати ВСІ за фільтром</button>
+      </div>
+
+      <div class="panel" style="padding:0;overflow-x:auto;">
+        <table id="productsTable">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="productsSelectAll"></th>
+              <th></th>
+              <th>Товар</th>
+              <th>Ціна</th>
+              <th>Наявність</th>
+              <th>Категорія постачальника</th>
+              <th>Hubber</th>
+              <th>Наші категорії</th>
+              <th>Дії</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="productsPagination" style="display:flex;justify-content:center;gap:8px;align-items:center;margin-top:14px;"></div>
+    </div>
+
 
     <!-- ---- Section translations ---- -->
     <div class="view" id="view-sections">
@@ -549,12 +652,65 @@
 
     <label class="check-row"><input type="checkbox" id="smActive" checked> Активний (товари показуються на сайті)</label>
     <label class="check-row"><input type="checkbox" id="smAutoOrder"> Автоматично відправляти йому замовлення</label>
+    <label class="check-row"><input type="checkbox" id="smManualSelection"> Ручний відбір товарів (нові товари НЕ показуються на сайті, поки їх не додасть адмін у розділі «Товари»)</label>
 
     <div class="modal-actions">
       <button class="btn-sm" id="supModalCancel" style="flex:1;">Скасувати</button>
       <button class="btn-sm primary" id="supModalSave" style="flex:1;">Зберегти</button>
     </div>
     <div class="form-error" id="supModalError" hidden></div>
+  </div>
+</div>
+
+<!-- ================= Assign categories to selected products ================= -->
+<div class="modal-backdrop" id="assignCatModalBackdrop" hidden>
+  <div class="modal-box wide">
+    <h3>Призначити категорію обраним товарам (<span id="assignCatCount">0</span>)</h3>
+    <div class="field">
+      <label>Дія</label>
+      <select id="assignCatMode">
+        <option value="add">Додати до вже призначених</option>
+        <option value="set">Замінити на обрані (зняти решту)</option>
+        <option value="remove">Прибрати обрані категорії</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Категорії/підкатегорії</label>
+      <div id="assignCatTree" style="max-height:280px;overflow-y:auto;border:1px solid #D7E1EE;border-radius:6px;padding:10px;"></div>
+      <div class="hint" id="assignCatEmptyHint" hidden>Категорій ще немає — натисніть «Керувати категоріями», щоб створити першу.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" id="assignCatCancel" style="flex:1;">Скасувати</button>
+      <button class="btn-sm primary" id="assignCatSave" style="flex:1;">Застосувати</button>
+    </div>
+    <div class="form-error" id="assignCatError" hidden></div>
+  </div>
+</div>
+
+<!-- ================= Category tree management ================= -->
+<div class="modal-backdrop" id="catManageModalBackdrop" hidden>
+  <div class="modal-box wide">
+    <h3>Керування категоріями сайту</h3>
+    <p class="hint">Це власне дерево категорій сайту — не залежить від категорій постачальника. Товари прив'язуються до підкатегорій окремо, у розділі «Товари».</p>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Назва нової категорії</label>
+        <input type="text" id="catNewName" placeholder="напр. Навушники">
+      </div>
+      <div class="field">
+        <label>Батьківська категорія</label>
+        <select id="catNewParent"><option value="">— Категорія верхнього рівня —</option></select>
+      </div>
+    </div>
+    <button class="btn-sm primary" id="catAddBtn">+ Додати</button>
+
+    <div style="margin-top:16px;" id="catManageTree"></div>
+    <div class="form-error" id="catManageError" hidden></div>
+
+    <div class="modal-actions">
+      <button class="btn-sm" id="catManageClose" style="flex:1;">Закрити</button>
+    </div>
   </div>
 </div>
 
@@ -714,6 +870,7 @@
     const canStats = isOwner || currentAdmin.permissions?.stats;
     document.getElementById('settingsNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('suppliersNavItem').style.display = canSettings ? '' : 'none';
+    document.getElementById('productsNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('sectionsNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('logsNavItem').style.display = canSettings ? '' : 'none';
     document.querySelector('[data-view="dashboard"]').style.display = canStats ? '' : 'none';
@@ -732,6 +889,7 @@
     document.getElementById('sidebar').classList.remove('open');
     if (name === 'settings') switchTab(currentTab);
     if (name === 'suppliers') loadSuppliers();
+    if (name === 'products') initProductsView();
     if (name === 'sections') loadSectionTranslations();
     if (name === 'logs') loadLogs(currentLogFilter);
     if (name === 'dashboard') loadDashboard();
@@ -972,9 +1130,9 @@
       <tr data-id="${esc(s.id)}">
         <td>
           <div class="sup-name">${esc(s.name)}</div>
-          <div class="sup-code">${esc(s.code)} · <span class="badge info">${esc(s.adapter)}</span></div>
+          <div class="sup-code">${esc(s.code)} · <span class="badge info">${esc(s.adapter)}</span>${s.manual_selection ? ' <span class="badge warn">ручний відбір</span>' : ''}</div>
         </td>
-        <td>${esc(s.available_count)} <span style="color:var(--muted);">/ ${esc(s.product_count)}</span></td>
+        <td>${s.manual_selection ? `${esc(s.included_count)} відібрано` : esc(s.available_count)} <span style="color:var(--muted);">/ ${esc(s.product_count)}</span></td>
         <td>${esc(Number(s.markup_percent))}%</td>
         <td>${s.auto_order ? '<span class="badge on">автоматично</span>' : '<span class="badge warn">вручну</span>'}</td>
         <td>${s.active ? '<span class="badge on">активний</span>' : '<span class="badge off">вимкнено</span>'}</td>
@@ -985,6 +1143,7 @@
         <td>
           <div class="actions">
             <button class="btn-sm primary" data-act="sync" ${s.last_sync_status === 'running' ? 'disabled' : ''}>${syncBtnLabel}</button>
+            ${s.manual_selection ? '<button class="btn-sm" data-act="products">Товари</button>' : ''}
             ${s.adapter === 'hubber' ? '<button class="btn-sm" data-act="hubber-debug">Тест авторизації</button>' : ''}
             <button class="btn-sm" data-act="edit">Редагувати</button>
             <button class="btn-sm" data-act="toggle">${s.active ? 'Вимкнути' : 'Увімкнути'}</button>
@@ -1046,6 +1205,12 @@
     const act = btn.dataset.act;
 
     if (act === 'edit') return openSupplierModal(s);
+
+    if (act === 'products') {
+      switchView('products');
+      selectProductsSupplier(id);
+      return;
+    }
 
     if (act === 'sync') {
       btn.disabled = true;
@@ -1139,6 +1304,7 @@
     document.getElementById('smSort').value = s ? s.sort_order : 0;
     document.getElementById('smActive').checked = s ? !!s.active : true;
     document.getElementById('smAutoOrder').checked = s ? !!s.auto_order : false;
+    document.getElementById('smManualSelection').checked = s ? !!s.manual_selection : false;
     document.getElementById('supModalError').hidden = true;
     supModalBackdrop.hidden = false;
   }
@@ -1181,6 +1347,7 @@
       sort_order: parseInt(document.getElementById('smSort').value, 10) || 0,
       active: document.getElementById('smActive').checked,
       auto_order: document.getElementById('smAutoOrder').checked,
+      manual_selection: document.getElementById('smManualSelection').checked,
     };
     if (configParsed !== undefined) body.config = configParsed; // omitted = keep existing config on edit
     const key = document.getElementById('smApiKey').value;
@@ -1203,6 +1370,444 @@
     supModalBackdrop.hidden = true;
     toast(editingSupplierId ? 'Збережено' : 'Постачальника додано. Натисніть «Синхронізувати», щоб завантажити товари.', 'ok');
     loadSuppliers();
+  });
+
+  // ---------- Products (manual selection + categories) ----------
+  let manualSuppliersCache = [];
+  let categoriesCache = [];
+  let productsFilterOptions = { brands: [], categories: [], statuses: [], hubberSuppliers: [] };
+  let productsCache = [];
+  let productsPage = 1;
+  let productsTotal = 0;
+  let productsSelected = new Set();
+  let assignCatTargetIds = [];
+
+  function buildCategoryTree(flat) {
+    const byId = new Map(flat.map((c) => [c.id, { ...c, children: [] }]));
+    const roots = [];
+    for (const c of byId.values()) {
+      if (c.parent_id && byId.has(c.parent_id)) byId.get(c.parent_id).children.push(c);
+      else roots.push(c);
+    }
+    const sortRec = (list) => { list.sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name, 'uk')); list.forEach((c) => sortRec(c.children)); };
+    sortRec(roots);
+    return roots;
+  }
+
+  function flattenTreeForOptions(tree, depth = 0, out = []) {
+    for (const c of tree) {
+      out.push({ id: c.id, label: `${'— '.repeat(depth)}${c.name}` });
+      flattenTreeForOptions(c.children, depth + 1, out);
+    }
+    return out;
+  }
+
+  async function loadCategoriesCache() {
+    const { ok, data } = await api('/api/admin/categories');
+    categoriesCache = ok ? data : [];
+    return categoriesCache;
+  }
+
+  async function loadManualSuppliers() {
+    const { ok, data } = await api('/api/admin/suppliers');
+    manualSuppliersCache = ok ? data.filter((s) => s.manual_selection) : [];
+    const sel = document.getElementById('pfSupplier');
+    if (!manualSuppliersCache.length) {
+      sel.innerHTML = '<option value="">— немає постачальників з ручним відбором —</option>';
+      return;
+    }
+    const prev = sel.value;
+    sel.innerHTML = manualSuppliersCache.map((s) => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.included_count)}/${esc(s.product_count)})</option>`).join('');
+    if (prev && manualSuppliersCache.some((s) => String(s.id) === prev)) sel.value = prev;
+  }
+
+  function selectProductsSupplier(id) {
+    document.getElementById('pfSupplier').value = String(id);
+    productsPage = 1;
+    productsSelected.clear();
+    loadProductFilterOptions().then(() => loadProducts());
+  }
+
+  async function loadProductFilterOptions() {
+    const supplierId = document.getElementById('pfSupplier').value;
+    const supplier = manualSuppliersCache.find((s) => String(s.id) === String(supplierId));
+    const isHubber = supplier && supplier.adapter === 'hubber';
+    document.getElementById('pfHubberRow').hidden = !isHubber;
+    document.getElementById('pfHubberRow2').hidden = !isHubber;
+    if (!supplierId) return;
+
+    const { ok, data } = await api(`/api/admin/products/filter-options?supplier_id=${encodeURIComponent(supplierId)}`);
+    if (!ok) return;
+    productsFilterOptions = data;
+
+    document.getElementById('pfVendor').innerHTML = '<option value="">Усі бренди</option>' +
+      data.brands.map((b) => `<option value="${esc(b.value)}">${esc(b.value)} (${esc(b.count)})</option>`).join('');
+    document.getElementById('pfCategory').innerHTML = '<option value="">Усі категорії</option>' +
+      data.categories.map((c) => `<option value="${esc(c.id)}">${esc(c.name || c.id)} (${esc(c.count)})</option>`).join('');
+    document.getElementById('pfStatus').innerHTML = '<option value="">Будь-який</option>' +
+      data.statuses.map((s) => `<option value="${esc(s.id)}">${esc(s.name || s.id)} (${esc(s.count)})</option>`).join('');
+    document.getElementById('pfHubberSupplier').innerHTML = '<option value="">Усі</option>' +
+      data.hubberSuppliers.map((h) => `<option value="${esc(h.id)}">${esc(h.name || h.id)}${h.rating ? ' · ' + Number(h.rating).toFixed(1) + '★' : ''} (${esc(h.count)})</option>`).join('');
+  }
+
+  async function loadShopCategoryFilterOptions() {
+    await loadCategoriesCache();
+    const tree = buildCategoryTree(categoriesCache);
+    const flat = flattenTreeForOptions(tree);
+    const sel = document.getElementById('pfShopCategory');
+    sel.innerHTML = '<option value="">Будь-яка</option><option value="unassigned">Ще без категорії</option>' +
+      flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+  }
+
+  function currentProductFilter() {
+    return {
+      supplier_id: document.getElementById('pfSupplier').value,
+      included: document.getElementById('pfIncluded').value,
+      q: document.getElementById('pfName').value.trim(),
+      vendor_code: document.getElementById('pfVendorCode').value.trim(),
+      supplier_product_id: document.getElementById('pfSupplierProductId').value.trim(),
+      vendor: document.getElementById('pfVendor').value,
+      category_id: document.getElementById('pfCategory').value,
+      availability: document.getElementById('pfAvailability').value,
+      price_from: document.getElementById('pfPriceFrom').value,
+      price_to: document.getElementById('pfPriceTo').value,
+      status_id: document.getElementById('pfStatus').value,
+      hubber_supplier_id: document.getElementById('pfHubberSupplier').value,
+      is_top: document.getElementById('pfIsTop').value,
+      shop_category_id: document.getElementById('pfShopCategory').value,
+      attr_name: document.getElementById('pfAttrName').value.trim(),
+      attr_value: document.getElementById('pfAttrValue').value.trim(),
+    };
+  }
+
+  async function initProductsView() {
+    await loadManualSuppliers();
+    await loadShopCategoryFilterOptions();
+    if (!document.getElementById('pfSupplier').value && manualSuppliersCache.length) {
+      document.getElementById('pfSupplier').value = manualSuppliersCache[0].id;
+    }
+    await loadProductFilterOptions();
+    productsPage = 1;
+    productsSelected.clear();
+    loadProducts();
+  }
+
+  function hubberBadges(p) {
+    const m = p.raw_meta || {};
+    if (!m || Object.keys(m).length === 0) return '';
+    const parts = [];
+    if (m.isTop) parts.push('<span class="badge warn">топ</span>');
+    if (m.status) parts.push(`<span class="badge info">${esc(m.status)}</span>`);
+    if (m.hubberSupplierName) {
+      parts.push(`<span class="badge off">${esc(m.hubberSupplierName)}${m.hubberSupplierRating ? ' · ' + Number(m.hubberSupplierRating).toFixed(1) + '★' : ''}</span>`);
+    }
+    if (m.editedAt) parts.push(`<div style="font-size:11px;color:var(--muted);margin-top:3px;">ред.: ${esc(fmtDate(m.editedAt))}</div>`);
+    return parts.join(' ');
+  }
+
+  function renderProductsTable() {
+    const tbody = document.querySelector('#productsTable tbody');
+    if (!productsCache.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Нічого не знайдено за цим фільтром</td></tr>';
+      return;
+    }
+    tbody.innerHTML = productsCache.map((p) => {
+      const cats = (p.shop_categories || []).map((c) => `<span class="badge info">${esc(c.name)}</span>`).join(' ') || '<span style="color:var(--muted);font-size:12px;">—</span>';
+      return `
+      <tr data-id="${esc(p.id)}">
+        <td><input type="checkbox" class="prow-check" ${productsSelected.has(String(p.id)) ? 'checked' : ''}></td>
+        <td>${p.picture_url ? `<div class="order-thumb-sm" style="background-image:url('${esc(p.picture_url)}')"></div>` : ''}</td>
+        <td>
+          <div style="font-weight:600;">${esc(p.name)}</div>
+          <div style="font-size:12px;color:var(--muted);">${esc(p.vendor_code || '—')} · id ${esc(p.supplier_product_id)}${p.vendor ? ' · ' + esc(p.vendor) : ''}</div>
+        </td>
+        <td>${money(p.price)}${p.retail_price ? `<div style="font-size:12px;color:var(--muted);">роздр. ${money(p.retail_price)}</div>` : ''}</td>
+        <td>${p.available ? '<span class="badge on">є</span>' : '<span class="badge off">нема</span>'}${Number.isFinite(p.stock) ? `<div style="font-size:11px;color:var(--muted);">${esc(p.stock)} шт.</div>` : ''}</td>
+        <td style="font-size:12px;">${esc(p.category_name || p.section || '—')}</td>
+        <td>${hubberBadges(p)}</td>
+        <td>${cats}</td>
+        <td>
+          <div class="actions">
+            <button class="btn-sm ${p.included ? '' : 'primary'}" data-act="${p.included ? 'exclude' : 'include'}">${p.included ? 'Прибрати' : 'Додати'}</button>
+            <button class="btn-sm" data-act="cats">Категорії</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    document.getElementById('productsSelectAll').checked = productsCache.length > 0 && productsCache.every((p) => productsSelected.has(String(p.id)));
+    updateProductsBulkBar();
+  }
+
+  function updateProductsBulkBar() {
+    const bar = document.getElementById('productsBulkBar');
+    bar.style.display = productsSelected.size ? 'flex' : 'none';
+    document.getElementById('productsSelectedCount').textContent = `Обрано: ${productsSelected.size}`;
+    document.getElementById('bulkFilteredCount').textContent = productsTotal;
+  }
+
+  function renderProductsPagination() {
+    const el = document.getElementById('productsPagination');
+    const limit = 50;
+    const totalPages = Math.max(1, Math.ceil(productsTotal / limit));
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <button class="btn-sm" id="ppPrev" ${productsPage <= 1 ? 'disabled' : ''}>← Назад</button>
+      <span style="font-size:13px;color:var(--muted);">Сторінка ${productsPage} з ${totalPages} · всього ${productsTotal}</span>
+      <button class="btn-sm" id="ppNext" ${productsPage >= totalPages ? 'disabled' : ''}>Далі →</button>
+    `;
+    document.getElementById('ppPrev')?.addEventListener('click', () => { productsPage--; loadProducts(); });
+    document.getElementById('ppNext')?.addEventListener('click', () => { productsPage++; loadProducts(); });
+  }
+
+  async function loadProducts() {
+    const supplierId = document.getElementById('pfSupplier').value;
+    const tbody = document.querySelector('#productsTable tbody');
+    if (!supplierId) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Оберіть постачальника з увімкненим «ручним відбором товарів» (налаштовується в розділі «Постачальники»).</td></tr>';
+      document.getElementById('productsPagination').innerHTML = '';
+      productsTotal = 0; updateProductsBulkBar();
+      return;
+    }
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Завантаження…</td></tr>';
+
+    const f = currentProductFilter();
+    const params = new URLSearchParams();
+    Object.entries(f).forEach(([k, v]) => { if (v !== '' && v != null) params.set(k, v); });
+    params.set('page', productsPage);
+    params.set('limit', 50);
+
+    const { ok, data } = await api(`/api/admin/products?${params.toString()}`);
+    if (!ok) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Помилка завантаження</td></tr>'; return; }
+
+    productsCache = data.products;
+    productsTotal = data.pagination.total;
+    renderProductsTable();
+    renderProductsPagination();
+  }
+
+  document.getElementById('pfApplyBtn').addEventListener('click', () => { productsPage = 1; loadProducts(); });
+  document.getElementById('pfResetBtn').addEventListener('click', () => {
+    ['pfName', 'pfVendorCode', 'pfSupplierProductId', 'pfPriceFrom', 'pfPriceTo', 'pfAttrName', 'pfAttrValue'].forEach((id) => { document.getElementById(id).value = ''; });
+    ['pfVendor', 'pfCategory', 'pfAvailability', 'pfStatus', 'pfHubberSupplier', 'pfIsTop', 'pfShopCategory'].forEach((id) => { document.getElementById(id).value = ''; });
+    document.getElementById('pfIncluded').value = 'all';
+    document.getElementById('pfAvailability').value = 'all';
+    productsPage = 1;
+    loadProducts();
+  });
+  document.getElementById('pfSupplier').addEventListener('change', () => {
+    productsSelected.clear();
+    productsPage = 1;
+    loadProductFilterOptions().then(loadProducts);
+  });
+  document.getElementById('refreshProductsBtn').addEventListener('click', loadProducts);
+
+  document.querySelector('#productsTable tbody').addEventListener('click', async (e) => {
+    const check = e.target.closest('.prow-check');
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    const id = tr.dataset.id;
+
+    if (check) {
+      if (check.checked) productsSelected.add(id); else productsSelected.delete(id);
+      updateProductsBulkBar();
+      return;
+    }
+
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+
+    if (act === 'include' || act === 'exclude') {
+      const { ok, data } = await api('/api/admin/products/bulk-include', { method: 'PATCH', body: { ids: [id], included: act === 'include' } });
+      if (!ok) return toast(data?.error || 'Помилка', 'err');
+      toast(act === 'include' ? 'Товар додано на сайт' : 'Товар прибрано з сайту', 'ok');
+      loadProducts();
+      loadManualSuppliers();
+      return;
+    }
+
+    if (act === 'cats') return openAssignCategoriesModal([id]);
+  });
+
+  document.getElementById('productsSelectAll').addEventListener('change', (e) => {
+    productsCache.forEach((p) => { if (e.target.checked) productsSelected.add(String(p.id)); else productsSelected.delete(String(p.id)); });
+    renderProductsTable();
+  });
+
+  document.getElementById('bulkIncludeBtn').addEventListener('click', () => bulkIncludeSelected(true));
+  document.getElementById('bulkExcludeBtn').addEventListener('click', () => bulkIncludeSelected(false));
+
+  async function bulkIncludeSelected(included) {
+    if (!productsSelected.size) return;
+    const { ok, data } = await api('/api/admin/products/bulk-include', { method: 'PATCH', body: { ids: [...productsSelected], included } });
+    if (!ok) return toast(data?.error || 'Помилка', 'err');
+    toast(`Оновлено товарів: ${data.updated}`, 'ok');
+    productsSelected.clear();
+    loadProducts();
+    loadManualSuppliers();
+  }
+
+  document.getElementById('bulkIncludeAllFilteredBtn').addEventListener('click', () => bulkIncludeAllFiltered(true));
+  document.getElementById('bulkExcludeAllFilteredBtn').addEventListener('click', () => bulkIncludeAllFiltered(false));
+
+  async function bulkIncludeAllFiltered(included) {
+    const verb = included ? 'додати на сайт' : 'прибрати з сайту';
+    if (!confirm(`Це ${verb} УСІ ${productsTotal} товар(и/ів), що відповідають поточному фільтру — не лише видимі на сторінці. Продовжити?`)) return;
+    const { ok, data } = await api('/api/admin/products/bulk-include', { method: 'PATCH', body: { filter: currentProductFilter(), included } });
+    if (!ok) return toast(data?.error || 'Помилка', 'err');
+    toast(`Оновлено товарів: ${data.updated}`, 'ok');
+    productsSelected.clear();
+    loadProducts();
+    loadManualSuppliers();
+  }
+
+  // ----- Assign-categories modal -----
+  function renderAssignCatTree() {
+    const tree = buildCategoryTree(categoriesCache);
+    const container = document.getElementById('assignCatTree');
+    document.getElementById('assignCatEmptyHint').hidden = categoriesCache.length > 0;
+    if (!categoriesCache.length) { container.innerHTML = ''; return; }
+
+    function renderList(nodes, depth) {
+      return nodes.map((n) => `
+        <label class="check-row" style="margin-left:${depth * 18}px;">
+          <input type="checkbox" class="assign-cat-check" value="${esc(n.id)}">
+          ${esc(n.name)} <span style="color:var(--muted);font-size:11px;">(${esc(n.product_count)})</span>
+        </label>
+        ${renderList(n.children, depth + 1)}
+      `).join('');
+    }
+    container.innerHTML = renderList(tree, 0);
+  }
+
+  async function openAssignCategoriesModal(ids) {
+    assignCatTargetIds = ids;
+    document.getElementById('assignCatCount').textContent = ids.length;
+    document.getElementById('assignCatMode').value = 'add';
+    document.getElementById('assignCatError').hidden = true;
+    await loadCategoriesCache();
+    renderAssignCatTree();
+    document.getElementById('assignCatModalBackdrop').hidden = false;
+  }
+
+  document.getElementById('bulkCategoriesBtn').addEventListener('click', () => {
+    if (!productsSelected.size) return;
+    openAssignCategoriesModal([...productsSelected]);
+  });
+  document.getElementById('assignCatCancel').addEventListener('click', () => { document.getElementById('assignCatModalBackdrop').hidden = true; });
+
+  document.getElementById('assignCatSave').addEventListener('click', async () => {
+    const errorEl = document.getElementById('assignCatError');
+    errorEl.hidden = true;
+    const category_ids = [...document.querySelectorAll('.assign-cat-check:checked')].map((c) => parseInt(c.value, 10));
+    const mode = document.getElementById('assignCatMode').value;
+    if (!category_ids.length && mode !== 'set') {
+      errorEl.textContent = 'Оберіть хоча б одну категорію';
+      errorEl.hidden = false; return;
+    }
+    const { ok, data } = await api('/api/admin/products/assign-categories', {
+      method: 'PATCH', body: { ids: assignCatTargetIds, category_ids, mode },
+    });
+    if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
+    document.getElementById('assignCatModalBackdrop').hidden = true;
+    toast('Категорії оновлено', 'ok');
+    productsSelected.clear();
+    loadProducts();
+  });
+
+  // ----- Category tree management modal -----
+  function renderCatManageTree() {
+    const tree = buildCategoryTree(categoriesCache);
+    const container = document.getElementById('catManageTree');
+    if (!tree.length) { container.innerHTML = '<p class="empty-state">Категорій ще немає.</p>'; return; }
+
+    function renderList(nodes, depth) {
+      return nodes.map((n) => `
+        <div style="margin-left:${depth * 20}px;padding:6px 0;border-bottom:1px solid #EFF2F6;display:flex;align-items:center;gap:8px;flex-wrap:wrap;" data-cat-id="${esc(n.id)}">
+          <span style="font-weight:${depth === 0 ? '700' : '500'};">${esc(n.name)}</span>
+          <span style="font-size:11px;color:var(--muted);">(${esc(n.product_count)} тов., ${esc(n.children.length)} підкат.)</span>
+          <span style="flex:1;"></span>
+          <button class="btn-sm" data-cat-act="rename">Перейменувати</button>
+          <button class="btn-sm danger" data-cat-act="delete">Видалити</button>
+        </div>
+        ${renderList(n.children, depth + 1)}
+      `).join('');
+    }
+    container.innerHTML = renderList(tree, 0);
+  }
+
+  function refreshCatParentSelect() {
+    const tree = buildCategoryTree(categoriesCache);
+    const flat = flattenTreeForOptions(tree);
+    document.getElementById('catNewParent').innerHTML = '<option value="">— Категорія верхнього рівня —</option>' +
+      flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+  }
+
+  async function openCategoriesManageModal() {
+    document.getElementById('catManageError').hidden = true;
+    await loadCategoriesCache();
+    renderCatManageTree();
+    refreshCatParentSelect();
+    document.getElementById('catManageModalBackdrop').hidden = false;
+  }
+
+  document.getElementById('manageCategoriesBtn').addEventListener('click', openCategoriesManageModal);
+  document.getElementById('catManageClose').addEventListener('click', async () => {
+    document.getElementById('catManageModalBackdrop').hidden = true;
+    await loadShopCategoryFilterOptions();
+    loadProducts();
+  });
+
+  document.getElementById('catAddBtn').addEventListener('click', async () => {
+    const errorEl = document.getElementById('catManageError');
+    errorEl.hidden = true;
+    const name = document.getElementById('catNewName').value.trim();
+    if (!name) { errorEl.textContent = 'Вкажіть назву категорії'; errorEl.hidden = false; return; }
+    const parent_id = document.getElementById('catNewParent').value || null;
+    const { ok, data } = await api('/api/admin/categories', { method: 'POST', body: { name, parent_id } });
+    if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
+    document.getElementById('catNewName').value = '';
+    await loadCategoriesCache();
+    renderCatManageTree();
+    refreshCatParentSelect();
+    toast('Категорію додано', 'ok');
+  });
+
+  document.getElementById('catManageTree').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-cat-act]');
+    if (!btn) return;
+    const row = btn.closest('[data-cat-id]');
+    const id = row.dataset.catId;
+    const cat = categoriesCache.find((c) => String(c.id) === id);
+    const act = btn.dataset.catAct;
+    const errorEl = document.getElementById('catManageError');
+    errorEl.hidden = true;
+
+    if (act === 'rename') {
+      const name = prompt('Нова назва категорії:', cat?.name || '');
+      if (!name || !name.trim()) return;
+      const { ok, data } = await api(`/api/admin/categories/${id}`, { method: 'PATCH', body: { name: name.trim() } });
+      if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
+      await loadCategoriesCache();
+      renderCatManageTree();
+      refreshCatParentSelect();
+      return;
+    }
+
+    if (act === 'delete') {
+      if (!confirm(`Видалити категорію «${cat?.name}»?`)) return;
+      let { ok, data } = await api(`/api/admin/categories/${id}`, { method: 'DELETE' });
+      if (!ok && data?.error && (data.children > 0 || data.products > 0)) {
+        if (!confirm(`${data.error}\n\nВидалити разом з підкатегоріями й відв'язати товари?`)) return;
+        ({ ok, data } = await api(`/api/admin/categories/${id}?force=true`, { method: 'DELETE' }));
+      }
+      if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
+      await loadCategoriesCache();
+      renderCatManageTree();
+      refreshCatParentSelect();
+      toast('Категорію видалено', 'ok');
+      return;
+    }
   });
 
   // ---------- Logs ----------
