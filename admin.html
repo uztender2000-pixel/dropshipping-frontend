@@ -387,12 +387,16 @@
       <div id="productsLiveMode">
         <p class="hint" style="margin:0 0 10px;">
           Це живий запит до Hubber — товари показуються прямо з їхнього каталогу і <b>не зберігаються на нашому сервері</b>,
-          поки ви явно не натиснете «Імпортувати обрані».
+          поки ви явно не натиснете «Імпортувати обрані». Товари, які вже є у вашому каталозі, у цьому списку не показуються.
         </p>
         <div class="panel">
           <div class="field-row">
             <div class="field"><label>Назва товару</label><input type="text" id="lfName" placeholder="Пошук за назвою…"></div>
             <div class="field"><label>Артикул (точний збіг)</label><input type="text" id="lfVendorCode"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Категорія постачальника</label><select id="lfCategory"><option value="">Усі категорії</option></select></div>
+            <div class="field"><label>Підкатегорія</label><select id="lfSubcategory" disabled><option value="">— спершу оберіть категорію —</option></select></div>
           </div>
           <div class="field-row">
             <div class="field"><label>ID товару в Hubber</label><input type="text" id="lfId"></div>
@@ -406,13 +410,17 @@
             <div class="field"><label>Наявність</label>
               <select id="lfAvailability"><option value="">Будь-яка</option><option value="1">У наявності</option><option value="0">Немає в наявності</option></select>
             </div>
-            <div class="field"><label>Статус модерації</label>
-              <select id="lfStatus"><option value="">Будь-який</option><option value="4">4 — Промодерований</option><option value="7">7</option></select>
-            </div>
+            <div class="field"><label>Залишок більше ніж (шт.)</label><input type="number" id="lfStockMin" min="0" step="1" placeholder="напр. 5"></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Редаговано від</label><input type="date" id="lfEditedFrom"></div>
-            <div class="field"><label>Редаговано до</label><input type="date" id="lfEditedTo"></div>
+            <div class="field"><label>Статус модерації
+                <span class="hint-icon" id="statusHelpBtn" title="Що це?" style="cursor:help;">ⓘ</span>
+              </label>
+              <select id="lfStatus"><option value="">Будь-який</option><option value="4">4 — Промодерований</option><option value="7">7 — Допущений</option></select>
+            </div>
+            <div class="field"><label>Редаговано від / до</label>
+              <div style="display:flex;gap:6px;"><input type="date" id="lfEditedFrom" style="flex:1;"><input type="date" id="lfEditedTo" style="flex:1;"></div>
+            </div>
           </div>
           <label class="check-row"><input type="checkbox" id="lfMarkTop"> Лише позначені «Топ»</label>
           <div style="display:flex;gap:8px;margin-top:6px;">
@@ -421,9 +429,18 @@
           </div>
         </div>
 
-        <div class="panel" id="liveBulkBar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span id="liveSelectedCount" style="font-weight:700;"></span>
-          <button class="btn-sm primary" id="liveImportBtn">✅ Імпортувати обрані на сайт</button>
+        <div class="panel" id="liveBulkBar" style="display:none;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span id="liveSelectedCount" style="font-weight:700;"></span>
+            <span style="flex:1;"></span>
+            <button class="btn-sm primary" id="liveImportBtn">✅ Імпортувати обрані на сайт</button>
+          </div>
+          <div class="field-row" style="align-items:end;margin:0;">
+            <div class="field" style="margin:0;">
+              <label>Одразу віднести до категорії сайту (необов'язково — якщо категорія постачальника вам не підходить)</label>
+              <select id="liveTargetCategory"><option value="">— не призначати —</option></select>
+            </div>
+          </div>
         </div>
 
         <div class="panel" style="padding:0;overflow-x:auto;">
@@ -437,7 +454,6 @@
                 <th>Наявність</th>
                 <th>Категорія постачальника</th>
                 <th>Hubber</th>
-                <th>Стан</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -445,6 +461,7 @@
         </div>
         <div style="display:flex;justify-content:center;gap:8px;align-items:center;margin-top:14px;">
           <button class="btn-sm" id="liveBackBtn" disabled>← Попередня сторінка</button>
+          <span id="livePageInfo" style="font-size:13px;color:var(--muted);"></span>
           <button class="btn-sm" id="liveMoreBtn">Наступна сторінка →</button>
         </div>
       </div>
@@ -1576,7 +1593,11 @@
     document.getElementById('productsLiveMode').hidden = mode !== 'live';
     document.getElementById('productsDbMode').hidden = mode !== 'db';
     document.getElementById('productsModeLiveBtn').style.display = (sup && sup.live_browse) ? '' : 'none';
-    if (mode === 'live') resetLiveBrowse(); else loadProducts();
+    if (mode === 'live') {
+      Promise.all([loadLiveCategories(), refreshLiveTargetCategoryOptions()]).then(resetLiveBrowse);
+    } else {
+      loadProducts();
+    }
   }
   document.getElementById('productsModeLiveBtn').addEventListener('click', () => switchProductsMode('live'));
   document.getElementById('productsModeDbBtn').addEventListener('click', () => switchProductsMode('db'));
@@ -1596,9 +1617,47 @@
   // ----- Live catalogue browse (no server-side storage) -----
   let liveItems = [];
   let liveSelected = new Map(); // supplierProductId -> full item object
-  let liveCursorStack = [];     // cursors of previous pages, for "← Попередня"
-  let liveCursor = undefined;   // cursor that produced the CURRENT page
-  let liveNextCursor = null;
+  let livePage = 1;
+  let liveTotal = null;
+  let liveHasMore = false;
+  let liveCategoriesCache = []; // supplier's OWN category tree: [{id, name, parentId}]
+
+  async function loadLiveCategories() {
+    const supplierId = document.getElementById('pfSupplier').value;
+    const catSel = document.getElementById('lfCategory');
+    const subSel = document.getElementById('lfSubcategory');
+    catSel.innerHTML = '<option value="">Усі категорії</option>';
+    subSel.innerHTML = '<option value="">— спершу оберіть категорію —</option>';
+    subSel.disabled = true;
+    liveCategoriesCache = [];
+    if (!supplierId) return;
+
+    const { ok, data } = await api(`/api/admin/products/browse-categories?supplier_id=${encodeURIComponent(supplierId)}`);
+    if (!ok || !Array.isArray(data)) return;
+    liveCategoriesCache = data;
+    // Top-level: categories with no parent, OR whose parent isn't in this
+    // list at all (Hubber's tree can be flat/inconsistent) — either way
+    // treated as a top-level pick with its own children resolved below.
+    const byId = new Map(liveCategoriesCache.map((c) => [String(c.id), c]));
+    const topLevel = liveCategoriesCache.filter((c) => !c.parentId || !byId.has(String(c.parentId)));
+    topLevel.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+    catSel.innerHTML = '<option value="">Усі категорії</option>' +
+      topLevel.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  }
+
+  document.getElementById('lfCategory').addEventListener('change', () => {
+    const parentId = document.getElementById('lfCategory').value;
+    const subSel = document.getElementById('lfSubcategory');
+    const children = liveCategoriesCache.filter((c) => String(c.parentId) === String(parentId));
+    if (!parentId || !children.length) {
+      subSel.innerHTML = '<option value="">— немає підкатегорій —</option>';
+      subSel.disabled = true;
+      return;
+    }
+    children.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+    subSel.innerHTML = '<option value="">Усі підкатегорії</option>' + children.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+    subSel.disabled = false;
+  });
 
   function currentLiveFilter() {
     return {
@@ -1606,9 +1665,11 @@
       vendor_code: document.getElementById('lfVendorCode').value.trim(),
       id: document.getElementById('lfId').value.trim(),
       company_id: document.getElementById('lfCompanyId').value.trim(),
+      category_id: document.getElementById('lfSubcategory').value || document.getElementById('lfCategory').value,
       price_from: document.getElementById('lfPriceFrom').value,
       price_to: document.getElementById('lfPriceTo').value,
       availability: document.getElementById('lfAvailability').value,
+      stock_min: document.getElementById('lfStockMin').value,
       status: document.getElementById('lfStatus').value,
       edited_from: document.getElementById('lfEditedFrom').value,
       edited_to: document.getElementById('lfEditedTo').value,
@@ -1617,50 +1678,50 @@
   }
 
   function resetLiveBrowse() {
-    liveCursorStack = [];
-    liveCursor = undefined;
-    liveNextCursor = null;
     liveSelected.clear();
-    loadLivePage(undefined, false);
+    loadLivePage(1);
   }
 
-  async function loadLivePage(cursor, pushCurrentToStack = true) {
+  async function loadLivePage(page) {
     const supplierId = document.getElementById('pfSupplier').value;
     const tbody = document.querySelector('#liveTable tbody');
-    if (!supplierId) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Оберіть постачальника</td></tr>'; return; }
+    if (!supplierId) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Оберіть постачальника</td></tr>'; return; }
 
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Завантаження з Hubber…</td></tr>';
-    if (pushCurrentToStack) liveCursorStack.push(liveCursor);
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Завантаження з Hubber…</td></tr>';
 
     const params = new URLSearchParams(currentLiveFilter());
     params.set('supplier_id', supplierId);
-    if (cursor) params.set('cursor', cursor);
+    params.set('page', page);
 
     const { ok, data } = await api(`/api/admin/products/browse?${params.toString()}`);
     if (!ok) {
-      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${esc(data?.error || 'Помилка завантаження з Hubber')}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${esc(data?.error || 'Помилка завантаження з Hubber')}</td></tr>`;
       return;
     }
 
     liveItems = data.items;
-    liveCursor = cursor;
-    liveNextCursor = data.nextCursor;
+    livePage = data.page;
+    liveTotal = data.total;
+    liveHasMore = data.hasMore;
     renderLiveTable();
-    document.getElementById('liveBackBtn').disabled = liveCursorStack.length <= 1;
-    document.getElementById('liveMoreBtn').disabled = !data.hasMore;
+    document.getElementById('liveBackBtn').disabled = livePage <= 1;
+    document.getElementById('liveMoreBtn').disabled = !liveHasMore;
+    document.getElementById('livePageInfo').textContent = liveTotal != null
+      ? `Сторінка ${livePage}${' · всього ≈' + liveTotal + ' (без урахування вже доданих)'}`
+      : `Сторінка ${livePage}`;
   }
 
   function renderLiveTable() {
     const tbody = document.querySelector('#liveTable tbody');
     if (!liveItems.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Нічого не знайдено за цим фільтром</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Нічого не знайдено за цим фільтром (можливо, все, що підходить, уже додано до каталогу)</td></tr>';
       return;
     }
     tbody.innerHTML = liveItems.map((p) => {
       const id = String(p.supplierProductId);
       return `
       <tr data-id="${esc(id)}">
-        <td><input type="checkbox" class="live-check" ${liveSelected.has(id) ? 'checked' : ''} ${p.included ? 'disabled' : ''}></td>
+        <td><input type="checkbox" class="live-check" ${liveSelected.has(id) ? 'checked' : ''}></td>
         <td>${p.pictureUrl ? `<div class="order-thumb-sm" style="background-image:url('${esc(p.pictureUrl)}')"></div>` : ''}</td>
         <td>
           <div style="font-weight:600;">${esc(p.name)}</div>
@@ -1670,10 +1731,9 @@
         <td>${p.available ? '<span class="badge on">є</span>' : '<span class="badge off">нема</span>'}${Number.isFinite(p.stock) ? `<div style="font-size:11px;color:var(--muted);">${esc(p.stock)} шт.</div>` : ''}</td>
         <td style="font-size:12px;">${esc(p.categoryName || p.section || '—')}</td>
         <td>${hubberBadges({ raw_meta: p.meta })}</td>
-        <td>${p.included ? '<span class="badge on">на сайті</span>' : (p.alreadyImported ? '<span class="badge off">імпортовано, вимкнено</span>' : '<span style="color:var(--muted);font-size:12px;">не імпортовано</span>')}</td>
       </tr>`;
     }).join('');
-    document.getElementById('liveSelectAll').checked = liveItems.length > 0 && liveItems.every((p) => p.included || liveSelected.has(String(p.supplierProductId)));
+    document.getElementById('liveSelectAll').checked = liveItems.length > 0 && liveItems.every((p) => liveSelected.has(String(p.supplierProductId)));
     updateLiveBulkBar();
   }
 
@@ -1683,21 +1743,27 @@
     document.getElementById('liveSelectedCount').textContent = `Обрано для імпорту: ${liveSelected.size}`;
   }
 
+  async function refreshLiveTargetCategoryOptions() {
+    await loadCategoriesCache();
+    const tree = buildCategoryTree(categoriesCache);
+    const flat = flattenTreeForOptions(tree);
+    document.getElementById('liveTargetCategory').innerHTML = '<option value="">— не призначати —</option>' +
+      flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+  }
+
   document.getElementById('lfApplyBtn').addEventListener('click', () => resetLiveBrowse());
   document.getElementById('lfResetBtn').addEventListener('click', () => {
-    ['lfName', 'lfVendorCode', 'lfId', 'lfCompanyId', 'lfPriceFrom', 'lfPriceTo', 'lfEditedFrom', 'lfEditedTo'].forEach((id) => { document.getElementById(id).value = ''; });
+    ['lfName', 'lfVendorCode', 'lfId', 'lfCompanyId', 'lfPriceFrom', 'lfPriceTo', 'lfStockMin', 'lfEditedFrom', 'lfEditedTo'].forEach((id) => { document.getElementById(id).value = ''; });
     document.getElementById('lfAvailability').value = '';
     document.getElementById('lfStatus').value = '';
+    document.getElementById('lfCategory').value = '';
+    document.getElementById('lfSubcategory').innerHTML = '<option value="">— спершу оберіть категорію —</option>';
+    document.getElementById('lfSubcategory').disabled = true;
     document.getElementById('lfMarkTop').checked = false;
     resetLiveBrowse();
   });
-  document.getElementById('liveMoreBtn').addEventListener('click', () => { if (liveNextCursor) loadLivePage(liveNextCursor, true); });
-  document.getElementById('liveBackBtn').addEventListener('click', () => {
-    if (liveCursorStack.length <= 1) return;
-    liveCursorStack.pop(); // drop current page's own entry
-    const prev = liveCursorStack.pop();
-    loadLivePage(prev, false);
-  });
+  document.getElementById('liveMoreBtn').addEventListener('click', () => { if (liveHasMore) loadLivePage(livePage + 1); });
+  document.getElementById('liveBackBtn').addEventListener('click', () => { if (livePage > 1) loadLivePage(livePage - 1); });
 
   document.querySelector('#liveTable tbody').addEventListener('click', (e) => {
     const check = e.target.closest('.live-check');
@@ -1711,7 +1777,6 @@
 
   document.getElementById('liveSelectAll').addEventListener('change', (e) => {
     liveItems.forEach((p) => {
-      if (p.included) return; // already on sale — nothing to import
       const id = String(p.supplierProductId);
       if (e.target.checked) liveSelected.set(id, p); else liveSelected.delete(id);
     });
@@ -1722,12 +1787,24 @@
     if (!liveSelected.size) return;
     const supplier_id = document.getElementById('pfSupplier').value;
     const items = [...liveSelected.values()];
-    const { ok, data } = await api('/api/admin/products/import-selected', { method: 'POST', body: { supplier_id, items } });
+    const targetCategory = document.getElementById('liveTargetCategory').value;
+    const category_ids = targetCategory ? [parseInt(targetCategory, 10)] : [];
+    const { ok, data } = await api('/api/admin/products/import-selected', { method: 'POST', body: { supplier_id, items, category_ids } });
     if (!ok) return toast(data?.error || 'Помилка імпорту', 'err');
     toast(`Імпортовано товарів: ${data.imported}`, 'ok');
     liveSelected.clear();
     await loadManualSuppliers();
-    loadLivePage(liveCursor, false); // refresh current page's "вже додано" badges
+    loadLivePage(livePage); // re-fetch: just-imported items now drop out of the "not yet added" list
+  });
+
+  document.getElementById('statusHelpBtn').addEventListener('click', () => {
+    alert(
+      'Статус модерації — це внутрішня перевірка самого Hubber, а не ваша.\n\n' +
+      '4 — «Промодерований»: картку товару (фото, опис, ціну) повністю перевірила команда Hubber.\n' +
+      '7 — «Допущений»: товар пропущений до продажу за спрощеною/швидшою перевіркою.\n\n' +
+      'Це ніяк не залежить від того, додали ви товар до свого каталогу чи ні — це лише позначка якості картки на боці Hubber. ' +
+      'В більшості випадків цей фільтр можна ігнорувати; він корисний, якщо хочете імпортувати лише повністю перевірені картки.'
+    );
   });
 
   function hubberBadges(p) {
