@@ -424,7 +424,7 @@
           </div>
           <label class="check-row"><input type="checkbox" id="lfMarkTop"> Лише позначені «Топ»</label>
           <div style="display:flex;gap:8px;margin-top:6px;">
-            <button class="btn-sm primary" id="lfApplyBtn">Застосувати фільтр</button>
+            <button class="btn-sm primary" id="lfApplyBtn">📋 Сформувати перелік</button>
             <button class="btn-sm" id="lfResetBtn">Скинути</button>
           </div>
         </div>
@@ -443,6 +443,8 @@
           </div>
         </div>
 
+        <div id="liveResultsInfo" style="font-size:13px;color:var(--muted);margin-bottom:8px;"></div>
+
         <div class="panel" style="padding:0;overflow-x:auto;">
           <table id="liveTable">
             <thead>
@@ -456,13 +458,11 @@
                 <th>Hubber</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody><tr><td colspan="7" class="empty-state">Налаштуйте фільтр і натисніть «Сформувати перелік»</td></tr></tbody>
           </table>
         </div>
         <div style="display:flex;justify-content:center;gap:8px;align-items:center;margin-top:14px;">
-          <button class="btn-sm" id="liveBackBtn" disabled>← Попередня сторінка</button>
-          <span id="livePageInfo" style="font-size:13px;color:var(--muted);"></span>
-          <button class="btn-sm" id="liveMoreBtn">Наступна сторінка →</button>
+          <button class="btn-sm primary" id="liveMoreBtn" hidden>Знайти ще</button>
         </div>
       </div>
 
@@ -1623,7 +1623,14 @@
     document.getElementById('productsDbMode').hidden = mode !== 'db';
     document.getElementById('productsModeLiveBtn').style.display = (sup && sup.live_browse) ? '' : 'none';
     if (mode === 'live') {
-      Promise.all([loadLiveCategories(), refreshLiveTargetCategoryOptions()]).then(resetLiveBrowse);
+      liveSearchRun = false;
+      liveItems = [];
+      liveSelected.clear();
+      Promise.all([loadLiveCategories(), refreshLiveTargetCategoryOptions()]).then(() => {
+        renderLiveTable();
+        setLiveInfo('');
+        document.getElementById('liveMoreBtn').hidden = true;
+      });
     } else {
       loadProducts();
     }
@@ -1644,48 +1651,92 @@
   }
 
   // ----- Live catalogue browse (no server-side storage) -----
+  // "Сформувати перелік" runs a real search: the server walks the
+  // supplier's own pages internally and only ever hands back products
+  // that already pass every filter (including our own stock_min and
+  // "not already imported" checks) — see routes/adminProducts.js's
+  // /browse. There is no page-by-page navigation; "Знайти ще" continues
+  // the SAME search further into the supplier's catalogue and appends
+  // more guaranteed-matching results, it never reveals hidden rows.
   let liveItems = [];
   let liveSelected = new Map(); // supplierProductId -> full item object
-  let livePage = 1;
-  let liveTotal = null;
-  let liveHasMore = false;
-  let liveCategoriesCache = []; // supplier's OWN category tree: [{id, name, parentId}]
+  let liveNextStartPage = null;
+  let liveExhausted = true;
+  let liveSearchRun = false; // becomes true only after "Сформувати перелік" is clicked
+  let liveCategoriesCache = []; // supplier's OWN category tree, current level only: [{id, name, parentId}]
+
+  // Which live filter fields, when changed, narrow the category dropdown
+  // (see loadLiveCategories below) — deliberately excludes lfCategory/
+  // lfSubcategory themselves (changing category doesn't narrow category)
+  // and lfStockMin (Hubber can't filter by stock server-side, see backend).
+  const LIVE_CATEGORY_NARROWING_FIELDS = ['lfName', 'lfVendorCode', 'lfId', 'lfCompanyId', 'lfPriceFrom', 'lfPriceTo', 'lfAvailability', 'lfStatus', 'lfEditedFrom', 'lfEditedTo', 'lfMarkTop'];
+
+  function otherLiveFiltersForCategories() {
+    // Same shape as currentLiveFilter() but without category_id/stock_min —
+    // sent to /browse-categories so it can do its per-category existence
+    // checks against exactly what's currently applied everywhere else.
+    const f = currentLiveFilter();
+    delete f.category_id;
+    delete f.stock_min;
+    return f;
+  }
 
   async function loadLiveCategories() {
     const supplierId = document.getElementById('pfSupplier').value;
     const catSel = document.getElementById('lfCategory');
     const subSel = document.getElementById('lfSubcategory');
-    catSel.innerHTML = '<option value="">Усі категорії</option>';
     subSel.innerHTML = '<option value="">— спершу оберіть категорію —</option>';
     subSel.disabled = true;
     liveCategoriesCache = [];
-    if (!supplierId) return;
+    if (!supplierId) { catSel.innerHTML = '<option value="">Усі категорії</option>'; return; }
 
-    const { ok, data } = await api(`/api/admin/products/browse-categories?supplier_id=${encodeURIComponent(supplierId)}`);
-    if (!ok || !Array.isArray(data)) return;
+    const keepValue = catSel.value;
+    catSel.innerHTML = '<option value="">Завантаження…</option>';
+    const params = new URLSearchParams(otherLiveFiltersForCategories());
+    params.set('supplier_id', supplierId);
+    const { ok, data } = await api(`/api/admin/products/browse-categories?${params.toString()}`);
+    if (!ok || !Array.isArray(data)) { catSel.innerHTML = '<option value="">Усі категорії</option>'; return; }
+
     liveCategoriesCache = data;
-    // Top-level: categories with no parent, OR whose parent isn't in this
-    // list at all (Hubber's tree can be flat/inconsistent) — either way
-    // treated as a top-level pick with its own children resolved below.
-    const byId = new Map(liveCategoriesCache.map((c) => [String(c.id), c]));
-    const topLevel = liveCategoriesCache.filter((c) => !c.parentId || !byId.has(String(c.parentId)));
-    topLevel.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+    data.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
     catSel.innerHTML = '<option value="">Усі категорії</option>' +
-      topLevel.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+      data.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+    if ([...catSel.options].some((o) => o.value === keepValue)) catSel.value = keepValue;
+    else document.getElementById('lfSubcategory').innerHTML = '<option value="">— спершу оберіть категорію —</option>';
   }
 
-  document.getElementById('lfCategory').addEventListener('change', () => {
+  document.getElementById('lfCategory').addEventListener('change', async () => {
     const parentId = document.getElementById('lfCategory').value;
     const subSel = document.getElementById('lfSubcategory');
-    const children = liveCategoriesCache.filter((c) => String(c.parentId) === String(parentId));
-    if (!parentId || !children.length) {
-      subSel.innerHTML = '<option value="">— немає підкатегорій —</option>';
+    if (!parentId) {
+      subSel.innerHTML = '<option value="">— спершу оберіть категорію —</option>';
+      subSel.disabled = true;
+      return;
+    }
+    subSel.innerHTML = '<option value="">Завантаження…</option>';
+    subSel.disabled = true;
+    const supplierId = document.getElementById('pfSupplier').value;
+    const params = new URLSearchParams(otherLiveFiltersForCategories());
+    params.set('supplier_id', supplierId);
+    params.set('parent_id', parentId);
+    const { ok, data } = await api(`/api/admin/products/browse-categories?${params.toString()}`);
+    const children = ok && Array.isArray(data) ? data : [];
+    if (!children.length) {
+      subSel.innerHTML = '<option value="">— немає підкатегорій із товарами за цим фільтром —</option>';
       subSel.disabled = true;
       return;
     }
     children.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
     subSel.innerHTML = '<option value="">Усі підкатегорії</option>' + children.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
     subSel.disabled = false;
+  });
+
+  // Any OTHER filter changing re-narrows the category list — exactly the
+  // "active facets" behaviour from the DB-mode filter panel, applied here
+  // via cheap per-category existence checks instead of a local SQL count.
+  LIVE_CATEGORY_NARROWING_FIELDS.forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'blur', () => loadLiveCategories());
   });
 
   function currentLiveFilter() {
@@ -1706,44 +1757,58 @@
     };
   }
 
-  function resetLiveBrowse() {
-    liveSelected.clear();
-    loadLivePage(1);
-  }
+  function setLiveInfo(text) { document.getElementById('liveResultsInfo').textContent = text; }
 
-  async function loadLivePage(page) {
+  // Starts a brand-new search (replaces the list). Only ever called from
+  // the "Сформувати перелік" button click — never automatically.
+  async function runLiveSearch() {
     const supplierId = document.getElementById('pfSupplier').value;
     const tbody = document.querySelector('#liveTable tbody');
     if (!supplierId) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Оберіть постачальника</td></tr>'; return; }
 
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Завантаження з Hubber…</td></tr>';
+    liveSearchRun = true;
+    liveSelected.clear();
+    liveItems = [];
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Шукаємо у Hubber…</td></tr>';
+    setLiveInfo('');
+    document.getElementById('liveMoreBtn').hidden = true;
 
+    await fetchLiveBatch(1, /* append */ false);
+  }
+
+  async function fetchLiveBatch(startPage, append) {
+    const supplierId = document.getElementById('pfSupplier').value;
     const params = new URLSearchParams(currentLiveFilter());
     params.set('supplier_id', supplierId);
-    params.set('page', page);
+    params.set('start_page', startPage);
 
     const { ok, data } = await api(`/api/admin/products/browse?${params.toString()}`);
     if (!ok) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${esc(data?.error || 'Помилка завантаження з Hubber')}</td></tr>`;
+      const tbody = document.querySelector('#liveTable tbody');
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${esc(data?.error || 'Помилка пошуку в Hubber')}</td></tr>`;
       return;
     }
 
-    liveItems = data.items;
-    livePage = data.page;
-    liveTotal = data.total;
-    liveHasMore = data.hasMore;
+    liveItems = append ? liveItems.concat(data.items) : data.items;
+    liveNextStartPage = data.nextStartPage;
+    liveExhausted = data.exhausted;
     renderLiveTable();
-    document.getElementById('liveBackBtn').disabled = livePage <= 1;
-    document.getElementById('liveMoreBtn').disabled = !liveHasMore;
-    document.getElementById('livePageInfo').textContent = liveTotal != null
-      ? `Сторінка ${livePage}${' · всього ≈' + liveTotal + ' (без урахування вже доданих)'}`
-      : `Сторінка ${livePage}`;
+
+    const parts = [`Знайдено: ${liveItems.length} товар(ів), що відповідають фільтру`];
+    if (data.capped) parts.push(`⚠ переглянуто ліміт сторінок постачальника за один запит — звузьте фільтр, щоб побачити більше за раз`);
+    else if (liveExhausted) parts.push('переглянуто весь каталог постачальника за цим фільтром');
+    setLiveInfo(parts.join(' · '));
+    document.getElementById('liveMoreBtn').hidden = liveExhausted;
   }
 
   function renderLiveTable() {
     const tbody = document.querySelector('#liveTable tbody');
+    if (!liveSearchRun) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Налаштуйте фільтр і натисніть «Сформувати перелік»</td></tr>';
+      return;
+    }
     if (!liveItems.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Нічого не знайдено за цим фільтром (можливо, все, що підходить, уже додано до каталогу)</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">За цим фільтром нічого не знайдено (перевірено весь доступний каталог постачальника)</td></tr>';
       return;
     }
     tbody.innerHTML = liveItems.map((p) => {
@@ -1780,7 +1845,7 @@
       flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
   }
 
-  document.getElementById('lfApplyBtn').addEventListener('click', () => resetLiveBrowse());
+  document.getElementById('lfApplyBtn').addEventListener('click', () => runLiveSearch());
   document.getElementById('lfResetBtn').addEventListener('click', () => {
     ['lfName', 'lfVendorCode', 'lfId', 'lfCompanyId', 'lfPriceFrom', 'lfPriceTo', 'lfStockMin', 'lfEditedFrom', 'lfEditedTo'].forEach((id) => { document.getElementById(id).value = ''; });
     document.getElementById('lfAvailability').value = '';
@@ -1789,10 +1854,18 @@
     document.getElementById('lfSubcategory').innerHTML = '<option value="">— спершу оберіть категорію —</option>';
     document.getElementById('lfSubcategory').disabled = true;
     document.getElementById('lfMarkTop').checked = false;
-    resetLiveBrowse();
+    liveSearchRun = false;
+    liveItems = [];
+    liveSelected.clear();
+    renderLiveTable();
+    setLiveInfo('');
+    document.getElementById('liveMoreBtn').hidden = true;
+    loadLiveCategories();
   });
-  document.getElementById('liveMoreBtn').addEventListener('click', () => { if (liveHasMore) loadLivePage(livePage + 1); });
-  document.getElementById('liveBackBtn').addEventListener('click', () => { if (livePage > 1) loadLivePage(livePage - 1); });
+  document.getElementById('liveMoreBtn').addEventListener('click', () => {
+    if (liveExhausted || liveNextStartPage == null) return;
+    fetchLiveBatch(liveNextStartPage, /* append */ true);
+  });
 
   document.querySelector('#liveTable tbody').addEventListener('click', (e) => {
     const check = e.target.closest('.live-check');
@@ -1821,9 +1894,11 @@
     const { ok, data } = await api('/api/admin/products/import-selected', { method: 'POST', body: { supplier_id, items, category_ids } });
     if (!ok) return toast(data?.error || 'Помилка імпорту', 'err');
     toast(`Імпортовано товарів: ${data.imported}`, 'ok');
+    const importedIds = new Set(items.map((p) => String(p.supplierProductId)));
+    liveItems = liveItems.filter((p) => !importedIds.has(String(p.supplierProductId))); // just-imported items drop out of the "not yet added" list
     liveSelected.clear();
+    renderLiveTable();
     await loadManualSuppliers();
-    loadLivePage(livePage); // re-fetch: just-imported items now drop out of the "not yet added" list
   });
 
   document.getElementById('statusHelpBtn').addEventListener('click', () => {
@@ -1946,7 +2021,8 @@
     });
   });
   document.getElementById('refreshProductsBtn').addEventListener('click', () => {
-    if (productsMode === 'live') resetLiveBrowse(); else loadProducts();
+    if (productsMode === 'live') { if (liveSearchRun) runLiveSearch(); else loadLiveCategories(); }
+    else loadProducts();
   });
 
   document.querySelector('#productsTable tbody').addEventListener('click', async (e) => {
