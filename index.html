@@ -24,6 +24,8 @@
     --muted: #6B7A93;        /* secondary text  == admin.html --muted */
     --line: #D7E1EE;         /* borders  == admin.html's card border (#D7E1EE) */
     --white: #FFFFFF;
+    --panel-dark: #1B212C;   /* header/nav background  == admin.html --panel (its dark sidebar) */
+    --panel-light: #232B38;  /* header buttons/hover    == admin.html --panel-light */
   }
 
   * { box-sizing: border-box; }
@@ -42,15 +44,15 @@
   /* ---------- Header ---------- */
   header {
     position: sticky; top: 0; z-index: 20;
-    background: var(--sand-light);
-    border-bottom: 1px solid var(--line);
+    background: var(--panel-dark);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18); /* gives the sticky bar a visible "shelf" as content scrolls under it */
   }
   .header-inner {
     max-width: 1920px; margin: 0 auto; padding: 14px 8px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   }
   .logo { display: flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
-  .logo .oll { color: var(--forest); }
+  .logo .oll { color: var(--white); }
   .logo .shop { color: var(--rust); }
   .logo svg { flex-shrink: 0; }
 
@@ -67,24 +69,24 @@
   .header-search form { display: flex; }
   .header-search input {
     flex: 1; min-width: 0; font-family: 'Inter', sans-serif; font-size: 14px;
-    padding: 9px 12px; border: 1px solid var(--line); border-radius: 4px 0 0 4px;
+    padding: 9px 12px; border: 1px solid transparent; border-radius: 4px 0 0 4px;
     background: var(--white); color: var(--ink);
   }
-  .header-search input:focus { outline: none; border-color: var(--forest); }
+  .header-search input:focus { outline: none; box-shadow: 0 0 0 2px var(--rust); }
   .header-search button {
-    background: var(--forest); color: var(--white); border: none; padding: 0 16px;
+    background: var(--rust); color: var(--white); border: none; padding: 0 16px;
     border-radius: 0 4px 4px 0; cursor: pointer; font-size: 15px;
   }
-  .header-search button:hover { background: var(--forest-dark); }
+  .header-search button:hover { background: var(--rust-dark); }
   @media (max-width: 720px) { .header-search { order: 3; flex-basis: 100%; max-width: none; margin-top: 10px; } }
 
   .icon-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    background: var(--white); border: 1px solid var(--line); color: var(--ink);
+    background: var(--panel-light); border: 1px solid rgba(255,255,255,0.12); color: var(--white);
     padding: 8px 14px; border-radius: 4px; font-family: 'Inter', sans-serif;
     font-size: 14px; cursor: pointer; position: relative;
   }
-  .icon-btn:hover { border-color: var(--forest); }
+  .icon-btn:hover { border-color: var(--rust); }
   .cart-badge {
     position: absolute; top: -6px; right: -6px; background: var(--rust); color: var(--white);
     font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 100px;
@@ -413,7 +415,8 @@
   }
 
   /* Prevent horizontal scroll on narrow viewports from any wide inline element. */
-  html, body { max-width: 100%; overflow-x: hidden; }
+  html { overflow-x: hidden; } /* body deliberately NOT included: giving body its own overflow value silently turns it into a second scroll container in some browsers, which is what was breaking position:sticky on the header/sidebar below */
+  body { max-width: 100%; }
 </style>
 </head>
 <body>
@@ -656,13 +659,7 @@
   // ЗАМІНИ на адресу свого бекенду на Render.
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
-  // Must match UNCATEGORIZED in routes/products.js exactly — this is how
-  // the backend marks "products with no section" as a filterable bucket
-  // instead of a value that can collide with a real category name.
-  const UNCATEGORIZED_SECTION = '__uncategorized__';
-  const sectionLabel = (section) => (section === UNCATEGORIZED_SECTION ? 'Без категорії' : section);
-
-  const state = { section: '', categoryId: '', categoryName: '', sort: 'newest', query: '', page: 1, limit: 50, loading: false, homepage: true };
+  const state = { shopCategoryId: '', shopCategoryName: '', sort: 'newest', query: '', page: 1, limit: 50, loading: false, homepage: true };
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
@@ -802,8 +799,7 @@
         ? new URLSearchParams({ page: 1, limit: 10, sort: 'random' })
         : new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
       if (!state.homepage) {
-        if (state.section) params.set('section', state.section);
-        if (state.categoryId) params.set('category_id', state.categoryId);
+        if (state.shopCategoryId) params.set('shop_category_id', state.shopCategoryId);
         if (state.query) params.set('q', state.query);
       }
 
@@ -845,126 +841,109 @@
     return true;
   }
 
-  function setActiveSectionButton(sectionName) {
-    allProductsLink.classList.toggle('active', !sectionName);
-    document.querySelectorAll('.section-toggle').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.section === sectionName);
+  function setActiveShopCategoryButton(categoryId) {
+    allProductsLink.classList.toggle('active', !categoryId);
+    document.querySelectorAll('.section-toggle, .category-item button').forEach((btn) => {
+      btn.classList.toggle('active', String(btn.dataset.categoryId) === String(categoryId));
     });
   }
 
-  function setActiveCategoryButton(categoryId) {
-    document.querySelectorAll('.category-item button').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.category === categoryId);
-    });
-  }
-
-  async function selectSection(sectionName, sectionLabel) {
+  // Selecting a top-level category shows everything filed under it AND
+  // any of its subcategories (the backend's shop_category_id filter walks
+  // the whole branch — see routes/products.js) — so shoppers get "all of
+  // Electronics", not just the handful of products filed on the parent
+  // category itself with nothing from its subcategories.
+  async function selectShopCategory(categoryId, categoryName) {
     state.homepage = false;
-    state.section = sectionName;
-    state.categoryId = '';
-    state.categoryName = '';
+    state.shopCategoryId = categoryId;
+    state.shopCategoryName = categoryName;
     state.query = '';
     state.page = 1;
     searchInput.value = '';
-    contentTitle.textContent = sectionName ? sectionLabel : 'Усі товари';
-    setActiveSectionButton(sectionName);
-    setActiveCategoryButton('');
+    contentTitle.textContent = categoryId ? (categoryName || 'Товари') : 'Усі товари';
+    setActiveShopCategoryButton(categoryId);
     loadProducts(false);
     closeSidebarOnMobile();
   }
 
-  function selectCategory(categoryId, categoryName, sectionName) {
-    state.homepage = false;
-    state.section = sectionName;
-    state.categoryId = categoryId;
-    state.categoryName = categoryName;
-    state.query = '';
-    state.page = 1;
-    searchInput.value = '';
-    contentTitle.textContent = categoryName || 'Товари';
-    setActiveSectionButton(sectionName);
-    setActiveCategoryButton(categoryId);
-    loadProducts(false);
-    closeSidebarOnMobile();
-  }
+  // Builds the sidebar from OUR OWN category tree (routes/adminCategories.js
+  // + product_categories), not the supplier's raw categories — and the
+  // endpoint itself already excludes any branch with zero products on sale
+  // (see routes/products.js meta/shop-categories), so an empty category
+  // never appears here at all.
+  let shopCategoriesCache = []; // flat list from /meta/shop-categories, reused to resolve a product's parent category name for its breadcrumb
 
-  async function loadCategoriesInto(container, sectionName) {
-    container.innerHTML = '<div class="category-loading">Завантаження…</div>';
+  async function loadShopCategories() {
     try {
-      const res = await fetch(`${API_BASE}/api/products/meta/categories?section=${encodeURIComponent(sectionName)}`);
-      if (!res.ok) throw new Error('Request failed');
-      const categories = await res.json();
-      container.innerHTML = '';
-      if (categories.length === 0) {
-        container.innerHTML = '<div class="category-loading">Немає підрозділів</div>';
-        return;
-      }
-      for (const c of categories) {
-        const item = document.createElement('div');
-        item.className = 'category-item';
-        const label = c.category_name || `Категорія ${c.category_id}`;
-        item.innerHTML = `<button data-category="${c.category_id}">${label} (${c.count})</button>`;
-        item.querySelector('button').addEventListener('click', () => {
-          selectCategory(c.category_id, label, sectionName);
-        });
-        container.appendChild(item);
-      }
-    } catch (err) {
-      container.innerHTML = '<div class="category-loading">Не вдалося завантажити</div>';
-      console.error(err);
-    }
-  }
-
-  async function loadSections() {
-    try {
-      const res = await fetch(`${API_BASE}/api/products/meta/sections`);
+      const res = await fetch(`${API_BASE}/api/products/meta/shop-categories`);
       if (!res.ok) return;
-      const sections = await res.json();
+      const categories = await res.json();
+      shopCategoriesCache = categories;
 
-      for (const s of sections) {
+      const byParent = new Map(); // parentId (or 'root') -> children[]
+      for (const c of categories) {
+        const key = c.parent_id || 'root';
+        if (!byParent.has(key)) byParent.set(key, []);
+        byParent.get(key).push(c);
+      }
+
+      const topLevel = byParent.get('root') || [];
+      for (const s of topLevel) {
+        const children = byParent.get(s.id) || [];
         const item = document.createElement('div');
         item.className = 'section-item';
-        const label = s.label || sectionLabel(s.section);
+
+        if (!children.length) {
+          // No subcategories with products of their own — just a plain
+          // clickable entry, no accordion chevron needed.
+          item.innerHTML = `<button class="section-toggle" data-category-id="${s.id}"><span>${s.name} <span class="count">(${s.total_count})</span></span></button>`;
+          item.querySelector('.section-toggle').addEventListener('click', () => selectShopCategory(s.id, s.name));
+          sectionsList.appendChild(item);
+          continue;
+        }
+
         item.innerHTML = `
-          <button class="section-toggle" data-section="${s.section}">
-            <span>${label} <span class="count">(${s.count})</span></span>
+          <button class="section-toggle" data-category-id="${s.id}">
+            <span>${s.name} <span class="count">(${s.total_count})</span></span>
             <span class="chevron">›</span>
           </button>
           <div class="category-list"></div>
         `;
         const toggleBtn = item.querySelector('.section-toggle');
         const catList = item.querySelector('.category-list');
-        let loaded = false;
+
+        for (const c of children) {
+          const sub = document.createElement('div');
+          sub.className = 'category-item';
+          sub.innerHTML = `<button data-category-id="${c.id}">${c.name} (${c.total_count})</button>`;
+          sub.querySelector('button').addEventListener('click', () => selectShopCategory(c.id, c.name));
+          catList.appendChild(sub);
+        }
 
         toggleBtn.addEventListener('click', () => {
           const isOpen = catList.classList.contains('open');
-          // Clicking a section both filters to that whole section AND
-          // expands/collapses its subcategory list underneath.
-          selectSection(s.section, label);
+          // Clicking a top-level category both filters to the whole
+          // branch AND expands/collapses its subcategory list underneath.
+          selectShopCategory(s.id, s.name);
 
-          // Accordion: close every other open section first.
+          // Accordion: close every other open category first.
           sectionsList.querySelectorAll('.category-list.open').forEach((el) => el.classList.remove('open'));
           sectionsList.querySelectorAll('.section-toggle.open').forEach((btn) => btn.classList.remove('open'));
 
           if (!isOpen) {
             catList.classList.add('open');
             toggleBtn.classList.add('open');
-            if (!loaded) {
-              loaded = true;
-              loadCategoriesInto(catList, s.section);
-            }
           }
         });
 
         sectionsList.appendChild(item);
-
       }
     } catch (err) {
       console.error(err);
     }
   }
 
-  allProductsLink.addEventListener('click', () => selectSection('', ''));
+  allProductsLink.addEventListener('click', () => selectShopCategory('', ''));
 
   const searchForm = document.getElementById('searchForm');
   const searchInput = document.getElementById('searchInput');
@@ -976,11 +955,9 @@
 
     state.homepage = false;
     state.query = q;
-    state.section = '';
-    state.categoryId = '';
+    state.shopCategoryId = '';
     state.page = 1;
-    setActiveSectionButton('');
-    setActiveCategoryButton('');
+    setActiveShopCategoryButton('');
     contentTitle.textContent = `Результати пошуку: «${q}»`;
     loadProducts(false);
     closeSidebarOnMobile();
@@ -1001,7 +978,7 @@
   });
 
   document.getElementById('homepageShowAllBtn').addEventListener('click', () => {
-    selectSection('', '');
+    selectShopCategory('', '');
   });
 
   loadMoreBtn.addEventListener('click', () => {
@@ -1040,12 +1017,15 @@
             .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')
         : '';
 
+      const cat = p.shop_categories && p.shop_categories[0];
+      const parentCat = cat && cat.parent_id ? shopCategoriesCache.find((c) => c.id === cat.parent_id) : null;
+
       productDetailEl.innerHTML = `
         <div class="product-detail-inner">
         <div class="breadcrumb">
           <a id="breadcrumbAll">Усі товари</a>
-          ${p.section ? `<span>›</span><a id="breadcrumbSection" data-section="${p.section}">${p.section}</a>` : ''}
-          ${p.category_name ? `<span>›</span><a id="breadcrumbCategory" data-category="${p.category_id}" data-section="${p.section}">${p.category_name}</a>` : ''}
+          ${parentCat ? `<span>›</span><a id="breadcrumbParentCategory" data-category-id="${parentCat.id}">${parentCat.name}</a>` : ''}
+          ${cat ? `<span>›</span><a id="breadcrumbCategory" data-category-id="${cat.id}">${cat.name}</a>` : ''}
           <span>›</span><span class="current">${p.name}</span>
         </div>
 
@@ -1115,11 +1095,11 @@
       });
 
       document.getElementById('detailBackBtn').addEventListener('click', hideProductDetail);
-      document.getElementById('breadcrumbAll').addEventListener('click', () => { hideProductDetail(); selectSection('', ''); });
-      const sectionCrumb = document.getElementById('breadcrumbSection');
-      if (sectionCrumb) sectionCrumb.addEventListener('click', () => { hideProductDetail(); selectSection(p.section, p.section); });
+      document.getElementById('breadcrumbAll').addEventListener('click', () => { hideProductDetail(); selectShopCategory('', ''); });
+      const parentCategoryCrumb = document.getElementById('breadcrumbParentCategory');
+      if (parentCategoryCrumb) parentCategoryCrumb.addEventListener('click', () => { hideProductDetail(); selectShopCategory(parentCat.id, parentCat.name); });
       const categoryCrumb = document.getElementById('breadcrumbCategory');
-      if (categoryCrumb) categoryCrumb.addEventListener('click', () => { hideProductDetail(); selectCategory(p.category_id, p.category_name, p.section); });
+      if (categoryCrumb) categoryCrumb.addEventListener('click', () => { hideProductDetail(); selectShopCategory(cat.id, cat.name); });
 
       document.getElementById('detailAddToCart').addEventListener('click', () => {
         addToCart(p.id, parseInt(qtyInput.value, 10) || 1);
@@ -1972,7 +1952,7 @@
   allProductsLink.classList.add('active');
   contentTitle.textContent = 'Рекомендуємо';
   loadProductCount();
-  loadSections();
+  loadShopCategories();
   loadProducts(false); // homepage mode: 10 random products (state.homepage starts true)
   restoreSession();
 </script>

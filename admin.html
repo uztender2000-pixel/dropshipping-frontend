@@ -1533,9 +1533,24 @@
     document.getElementById('pfHubberRow2').hidden = !isHubber;
     if (!supplierId) return;
 
-    const { ok, data } = await api(`/api/admin/products/filter-options?supplier_id=${encodeURIComponent(supplierId)}`);
+    // "Active" facets: send every OTHER currently-applied filter along with
+    // the request, so each dropdown only offers values that are actually
+    // reachable given what's already picked (see buildFacetWhere on the
+    // backend) — e.g. picking status "Промодерований" narrows the
+    // category list down to categories that have a moderated product.
+    const params = new URLSearchParams(currentProductFilter());
+    // Remember what's currently chosen in each select, so a value that's
+    // still valid after the refresh stays selected instead of resetting.
+    const keepVendor = document.getElementById('pfVendor').value;
+    const keepCategory = document.getElementById('pfCategory').value;
+    const keepStatus = document.getElementById('pfStatus').value;
+    const keepHubberSupplier = document.getElementById('pfHubberSupplier').value;
+
+    const { ok, data } = await api(`/api/admin/products/filter-options?${params.toString()}`);
     if (!ok) return;
     productsFilterOptions = data;
+
+    const restore = (id, keep) => { const el = document.getElementById(id); if ([...el.options].some((o) => o.value === keep)) el.value = keep; };
 
     document.getElementById('pfVendor').innerHTML = '<option value="">Усі бренди</option>' +
       data.brands.map((b) => `<option value="${esc(b.value)}">${esc(b.value)} (${esc(b.count)})</option>`).join('');
@@ -1545,7 +1560,21 @@
       data.statuses.map((s) => `<option value="${esc(s.id)}">${esc(s.name || s.id)} (${esc(s.count)})</option>`).join('');
     document.getElementById('pfHubberSupplier').innerHTML = '<option value="">Усі</option>' +
       data.hubberSuppliers.map((h) => `<option value="${esc(h.id)}">${esc(h.name || h.id)}${h.rating ? ' · ' + Number(h.rating).toFixed(1) + '★' : ''} (${esc(h.count)})</option>`).join('');
+
+    restore('pfVendor', keepVendor);
+    restore('pfCategory', keepCategory);
+    restore('pfStatus', keepStatus);
+    restore('pfHubberSupplier', keepHubberSupplier);
   }
+
+  // Facets are "active": every time a filter that could narrow the other
+  // dropdowns changes, refresh the option lists (not just on "Застосувати").
+  ['pfIncluded', 'pfVendor', 'pfCategory', 'pfAvailability', 'pfStatus', 'pfHubberSupplier', 'pfIsTop', 'pfShopCategory'].forEach((id) => {
+    document.getElementById(id).addEventListener('change', () => loadProductFilterOptions());
+  });
+  ['pfPriceFrom', 'pfPriceTo', 'pfAttrName', 'pfAttrValue'].forEach((id) => {
+    document.getElementById(id).addEventListener('blur', () => loadProductFilterOptions());
+  });
 
   async function loadShopCategoryFilterOptions() {
     await loadCategoriesCache();
