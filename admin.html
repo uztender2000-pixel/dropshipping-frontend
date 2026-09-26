@@ -403,6 +403,13 @@
             <div class="field"><label>Наявність</label>
               <select id="lfAvailability"><option value="">Будь-яка</option><option value="1">У наявності</option><option value="0">Немає в наявності</option></select>
             </div>
+            <div class="field"><label>Мінімальна кількість на складі
+                <span class="hint-icon" title="Hubber не фільтрує за залишком на своєму боці — цей мінімум застосовується вже під час формування переліку, тому в самому переліку не з'являться товари з меншим залишком" style="cursor:help;">ⓘ</span>
+              </label>
+              <input type="number" id="lfStockMin" min="0" step="1" placeholder="напр. 5">
+            </div>
+          </div>
+          <div class="field-row">
             <div class="field"><label>Статус модерації
                 <span class="hint-icon" id="statusHelpBtn" title="Що це?" style="cursor:help;">ⓘ</span>
               </label>
@@ -446,7 +453,6 @@
             <div class="field" style="margin:0;min-width:160px;flex:1;"><label>Пошук (назва / артикул)</label><input type="text" id="lgSearch" placeholder="почніть вводити…"></div>
             <div class="field" style="margin:0;min-width:160px;"><label>Категорія *</label><select id="lgCategory"><option value="">Усі категорії</option></select></div>
             <div class="field" style="margin:0;min-width:160px;"><label>Продавець (Hubber) *</label><select id="lgSeller"><option value="">Усі продавці</option></select></div>
-            <div class="field" style="margin:0;width:110px;"><label>Залишок від</label><input type="number" id="lgStockMin" min="0" step="1"></div>
             <div class="field" style="margin:0;width:110px;"><label>Ціна від</label><input type="number" id="lgPriceFrom" min="0" step="0.01"></div>
             <div class="field" style="margin:0;width:110px;"><label>Ціна до</label><input type="number" id="lgPriceTo" min="0" step="0.01"></div>
             <button class="btn-sm" id="lgFilterReset">Скинути</button>
@@ -1699,6 +1705,7 @@
       price_from: document.getElementById('lfPriceFrom').value,
       price_to: document.getElementById('lfPriceTo').value,
       availability: document.getElementById('lfAvailability').value,
+      stock_min: document.getElementById('lfStockMin').value,
       status: document.getElementById('lfStatus').value,
       edited_from: document.getElementById('lfEditedFrom').value,
       edited_to: document.getElementById('lfEditedTo').value,
@@ -1785,7 +1792,6 @@
       q: document.getElementById('lgSearch').value.trim().toLowerCase(),
       category: document.getElementById('lgCategory').value,
       seller: document.getElementById('lgSeller').value,
-      stockMin: document.getElementById('lgStockMin').value,
       priceFrom: document.getElementById('lgPriceFrom').value,
       priceTo: document.getElementById('lgPriceTo').value,
     };
@@ -1797,7 +1803,6 @@
       if (f.q && !(`${p.name} ${p.vendorCode || ''}`.toLowerCase().includes(f.q))) return false;
       if (f.category && (p.categoryName || p.section) !== f.category) return false;
       if (f.seller && p.meta?.hubberSupplierName !== f.seller) return false;
-      if (f.stockMin && !(Number.isFinite(p.stock) && p.stock >= Number(f.stockMin))) return false;
       if (f.priceFrom && !(p.price >= Number(f.priceFrom))) return false;
       if (f.priceTo && !(p.price <= Number(f.priceTo))) return false;
       return true;
@@ -1891,7 +1896,7 @@
 
   document.getElementById('lfApplyBtn').addEventListener('click', () => runLiveSearch());
   document.getElementById('lfResetBtn').addEventListener('click', () => {
-    ['lfPriceFrom', 'lfPriceTo', 'lfEditedFrom', 'lfEditedTo'].forEach((id) => { document.getElementById(id).value = ''; });
+    ['lfPriceFrom', 'lfPriceTo', 'lfStockMin', 'lfEditedFrom', 'lfEditedTo'].forEach((id) => { document.getElementById(id).value = ''; });
     document.getElementById('lfAvailability').value = '';
     document.getElementById('lfStatus').value = '';
     liveSearchRun = false;
