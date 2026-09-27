@@ -1731,6 +1731,7 @@
 
     let startPage = 1;
     let pagesTotal = 0;
+    let sameFailedPageStreak = 0; // consecutive calls that stalled on the SAME page number — a real "stop trying" signal, unlike a one-off blip
     for (;;) {
       const params = new URLSearchParams(currentLiveFilter());
       params.set('supplier_id', supplierId);
@@ -1745,7 +1746,18 @@
 
       liveAllItems = liveAllItems.concat(data.items);
       pagesTotal += data.pagesScanned;
-      setProgress(`Знайдено: ${liveAllItems.length} товар(ів) · перевірено ${pagesTotal} сторінок постачальника…`);
+
+      if (data.pageFailed && data.nextStartPage === startPage) {
+        sameFailedPageStreak += 1;
+        setProgress(`Знайдено: ${liveAllItems.length} товар(ів) · сторінка ${startPage} постачальника не відповідає, повторюємо (${sameFailedPageStreak}/3)…`);
+        if (sameFailedPageStreak >= 3) {
+          toast(`Hubber стабільно не відповідає на сторінці ${startPage} — показуємо те, що вже знайдено (${liveAllItems.length})`, 'err');
+          break;
+        }
+      } else {
+        sameFailedPageStreak = 0;
+        setProgress(`Знайдено: ${liveAllItems.length} товар(ів) · перевірено ${pagesTotal} сторінок постачальника…`);
+      }
 
       if (liveAborted || data.exhausted || liveAllItems.length >= 20000) break;
       startPage = data.nextStartPage;
