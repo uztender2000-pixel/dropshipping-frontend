@@ -1911,9 +1911,9 @@
   // Grid-level (Excel-style) controls — none of these touch the server.
   ['lgSearch'].forEach((id) => document.getElementById(id).addEventListener('input', () => { liveView.page = 1; renderLiveGrid(); }));
   ['lgCategory', 'lgSeller'].forEach((id) => document.getElementById(id).addEventListener('change', () => { liveView.page = 1; renderLiveGrid(); }));
-  ['lgStockMin', 'lgPriceFrom', 'lgPriceTo'].forEach((id) => document.getElementById(id).addEventListener('input', () => { liveView.page = 1; renderLiveGrid(); }));
+  ['lgPriceFrom', 'lgPriceTo'].forEach((id) => document.getElementById(id).addEventListener('input', () => { liveView.page = 1; renderLiveGrid(); }));
   document.getElementById('lgFilterReset').addEventListener('click', () => {
-    ['lgSearch', 'lgStockMin', 'lgPriceFrom', 'lgPriceTo'].forEach((id) => { document.getElementById(id).value = ''; });
+    ['lgSearch', 'lgPriceFrom', 'lgPriceTo'].forEach((id) => { document.getElementById(id).value = ''; });
     document.getElementById('lgCategory').value = '';
     document.getElementById('lgSeller').value = '';
     liveView.page = 1;
