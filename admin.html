@@ -442,9 +442,10 @@
               <button class="btn-sm primary" id="liveImportBtn">✅ Імпортувати обрані на сайт</button>
             </div>
             <div class="field-row" style="align-items:end;margin:0;">
-              <div class="field" style="margin:0;">
+              <div class="field" style="margin:0;position:relative;">
                 <label>Одразу віднести до категорії сайту (необов'язково — якщо категорія постачальника вам не підходить)</label>
-                <select id="liveTargetCategory"><option value="">— не призначати —</option></select>
+                <button type="button" class="btn-sm" id="liveTargetCategoryBtn" style="width:100%;text-align:left;">— не призначати —</button>
+                <div id="liveTargetCategoryPanel" hidden style="position:absolute;top:100%;left:0;right:0;z-index:15;background:#fff;border:1px solid #D7E1EE;border-radius:6px;padding:8px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.12);"></div>
               </div>
             </div>
           </div>
@@ -826,9 +827,10 @@
         <label>Назва нової категорії</label>
         <input type="text" id="catNewName" placeholder="напр. Навушники">
       </div>
-      <div class="field">
+      <div class="field" style="position:relative;">
         <label>Батьківська категорія</label>
-        <select id="catNewParent"><option value="">— Категорія верхнього рівня —</option></select>
+        <button type="button" class="btn-sm" id="catNewParentBtn" style="width:100%;text-align:left;">— Категорія верхнього рівня —</button>
+        <div id="catNewParentPanel" hidden style="position:absolute;top:100%;left:0;right:0;z-index:15;background:#fff;border:1px solid #D7E1EE;border-radius:6px;padding:8px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.12);"></div>
       </div>
     </div>
     <button class="btn-sm primary" id="catAddBtn">+ Додати</button>
@@ -1898,13 +1900,70 @@
     document.getElementById('liveSelectedCount').textContent = `Обрано для імпорту: ${liveSelected.size}`;
   }
 
+  let liveTargetCategoryId = null;
+  let liveTargetCatExpanded = new Set();
+
+  function renderLiveTargetCategoryPanel() {
+    const tree = buildCategoryTree(categoriesCache);
+    const panel = document.getElementById('liveTargetCategoryPanel');
+    if (!tree.length) { panel.innerHTML = '<span class="empty-state">Категорій ще немає — створіть у «Керувати категоріями»</span>'; return; }
+
+    function renderList(nodes, depth) {
+      return nodes.map((n) => {
+        const hasChildren = n.children.length > 0;
+        const isOpen = liveTargetCatExpanded.has(n.id);
+        const isSelected = liveTargetCategoryId === n.id;
+        return `
+        <div style="margin-left:${depth * 18}px;display:flex;align-items:center;gap:4px;">
+          ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
+          <button type="button" class="cat-pick-item" data-cat-id="${esc(n.id)}" style="background:${isSelected ? 'var(--blue)' : 'none'};color:${isSelected ? '#fff' : 'var(--ink)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;flex:1;font-size:13px;">${esc(n.name)}</button>
+        </div>
+        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
+      `;
+      }).join('');
+    }
+    panel.innerHTML = `
+      <button type="button" class="cat-pick-item" data-cat-id="" style="background:${liveTargetCategoryId === null ? 'var(--blue)' : 'none'};color:${liveTargetCategoryId === null ? '#fff' : 'var(--muted)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;width:100%;font-size:13px;margin-bottom:4px;">— не призначати —</button>
+      ${renderList(tree, 0)}
+    `;
+  }
+
   async function refreshLiveTargetCategoryOptions() {
     await loadCategoriesCache();
-    const tree = buildCategoryTree(categoriesCache);
-    const flat = flattenTreeForOptions(tree);
-    document.getElementById('liveTargetCategory').innerHTML = '<option value="">— не призначати —</option>' +
-      flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+    liveTargetCategoryId = null;
+    liveTargetCatExpanded = new Set();
+    document.getElementById('liveTargetCategoryBtn').textContent = '— не призначати —';
+    renderLiveTargetCategoryPanel();
   }
+
+  document.getElementById('liveTargetCategoryBtn').addEventListener('click', () => {
+    const panel = document.getElementById('liveTargetCategoryPanel');
+    panel.hidden = !panel.hidden;
+  });
+
+  document.getElementById('liveTargetCategoryPanel').addEventListener('click', (e) => {
+    const toggle = e.target.closest('.tree-toggle');
+    if (toggle) {
+      const id = parseInt(toggle.dataset.toggleId, 10);
+      if (liveTargetCatExpanded.has(id)) liveTargetCatExpanded.delete(id); else liveTargetCatExpanded.add(id);
+      renderLiveTargetCategoryPanel();
+      return;
+    }
+    const pick = e.target.closest('.cat-pick-item');
+    if (pick) {
+      liveTargetCategoryId = pick.dataset.catId ? parseInt(pick.dataset.catId, 10) : null;
+      document.getElementById('liveTargetCategoryBtn').textContent = pick.dataset.catId ? pick.textContent : '— не призначати —';
+      document.getElementById('liveTargetCategoryPanel').hidden = true;
+    }
+  });
+
+  // Click anywhere outside the picker closes it.
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('liveTargetCategoryPanel');
+    const btn = document.getElementById('liveTargetCategoryBtn');
+    if (!panel || panel.hidden) return;
+    if (!panel.contains(e.target) && e.target !== btn) panel.hidden = true;
+  });
 
   document.getElementById('lfApplyBtn').addEventListener('click', () => runLiveSearch());
   document.getElementById('lfResetBtn').addEventListener('click', () => {
@@ -1974,8 +2033,7 @@
     if (!liveSelected.size) return;
     const supplier_id = document.getElementById('pfSupplier').value;
     const items = [...liveSelected.values()];
-    const targetCategory = document.getElementById('liveTargetCategory').value;
-    const category_ids = targetCategory ? [parseInt(targetCategory, 10)] : [];
+    const category_ids = liveTargetCategoryId ? [liveTargetCategoryId] : [];
     const { ok, data } = await api('/api/admin/products/import-selected', { method: 'POST', body: { supplier_id, items, category_ids } });
     if (!ok) return toast(data?.error || 'Помилка імпорту', 'err');
     toast(`Імпортовано товарів: ${data.imported}`, 'ok');
@@ -2171,6 +2229,12 @@
   }
 
   // ----- Assign-categories modal -----
+  // Expand/collapse state for the two tree UIs below — reset fresh each
+  // time a modal opens (per the request: main categories start collapsed,
+  // a subcategory is only visible after explicitly expanding its parent).
+  let assignCatExpanded = new Set();
+  let catManageExpanded = new Set();
+
   function renderAssignCatTree() {
     const tree = buildCategoryTree(categoriesCache);
     const container = document.getElementById('assignCatTree');
@@ -2178,22 +2242,61 @@
     if (!categoriesCache.length) { container.innerHTML = ''; return; }
 
     function renderList(nodes, depth) {
-      return nodes.map((n) => `
-        <label class="check-row" style="margin-left:${depth * 18}px;">
-          <input type="checkbox" class="assign-cat-check" value="${esc(n.id)}">
-          ${esc(n.name)} <span style="color:var(--muted);font-size:11px;">(${esc(n.product_count)})</span>
-        </label>
-        ${renderList(n.children, depth + 1)}
-      `).join('');
+      return nodes.map((n) => {
+        const hasChildren = n.children.length > 0;
+        const isOpen = assignCatExpanded.has(n.id);
+        return `
+        <div style="margin-left:${depth * 18}px;display:flex;align-items:center;gap:4px;">
+          ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
+          <label class="check-row" style="margin:0;">
+            <input type="checkbox" class="assign-cat-check" value="${esc(n.id)}" ${assignCatPrechecked.has(String(n.id)) ? 'checked' : ''}>
+            ${esc(n.name)} <span style="color:var(--muted);font-size:11px;">(${esc(n.product_count)})</span>
+          </label>
+        </div>
+        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
+      `;
+      }).join('');
     }
     container.innerHTML = renderList(tree, 0);
   }
 
+  document.getElementById('assignCatTree').addEventListener('click', (e) => {
+    const toggle = e.target.closest('.tree-toggle');
+    if (!toggle) return;
+    const id = parseInt(toggle.dataset.toggleId, 10);
+    if (assignCatExpanded.has(id)) assignCatExpanded.delete(id); else assignCatExpanded.add(id);
+    renderAssignCatTree();
+  });
+
+  let assignCatPrechecked = new Set(); // ids already assigned — only meaningful when editing ONE product, so its current category can be preselected
+
   async function openAssignCategoriesModal(ids) {
     assignCatTargetIds = ids;
     document.getElementById('assignCatCount').textContent = ids.length;
-    document.getElementById('assignCatMode').value = 'add';
     document.getElementById('assignCatError').hidden = true;
+    assignCatExpanded = new Set();
+    assignCatPrechecked = new Set();
+
+    // Editing exactly one product: preselect its CURRENT category/ies and
+    // default to "replace" — this is the "I filed it under the wrong
+    // category, let me fix it" flow. Bulk edits stay on "add" (a sensible
+    // default across a mix of products with different existing categories).
+    if (ids.length === 1) {
+      const product = productsCache.find((p) => String(p.id) === String(ids[0]));
+      if (product?.shop_categories?.length) {
+        assignCatPrechecked = new Set(product.shop_categories.map((c) => String(c.id)));
+        // Auto-expand whichever branch already holds the current category,
+        // so the admin sees it checked immediately instead of a collapsed tree.
+        product.shop_categories.forEach((c) => {
+          const cat = categoriesCache.find((x) => String(x.id) === String(c.id));
+          if (cat?.parent_id) assignCatExpanded.add(cat.parent_id);
+        });
+      }
+      document.getElementById('assignCatMode').value = 'set';
+    } else {
+      document.getElementById('assignCatMode').value = 'add';
+    }
+
     await loadCategoriesCache();
     renderAssignCatTree();
     document.getElementById('assignCatModalBackdrop').hidden = false;
@@ -2225,35 +2328,133 @@
   });
 
   // ----- Category tree management modal -----
+  let catMoveOpenId = null; // which category currently shows its inline "move to…" picker (only one at a time)
+
   function renderCatManageTree() {
     const tree = buildCategoryTree(categoriesCache);
     const container = document.getElementById('catManageTree');
     if (!tree.length) { container.innerHTML = '<p class="empty-state">Категорій ще немає.</p>'; return; }
 
+    // Every OTHER category except this one and its own descendants (moving
+    // a category under its own child would create a cycle — same rule the
+    // backend enforces, checked here too just so the picker doesn't even
+    // offer an option that would come back as an error).
+    function descendantIds(node, out = new Set()) {
+      node.children.forEach((c) => { out.add(c.id); descendantIds(c, out); });
+      return out;
+    }
+
     function renderList(nodes, depth) {
-      return nodes.map((n) => `
-        <div style="margin-left:${depth * 20}px;padding:6px 0;border-bottom:1px solid #EFF2F6;display:flex;align-items:center;gap:8px;flex-wrap:wrap;" data-cat-id="${esc(n.id)}">
-          <span style="font-weight:${depth === 0 ? '700' : '500'};">${esc(n.name)}</span>
-          <span style="font-size:11px;color:var(--muted);">(${esc(n.product_count)} тов., ${esc(n.children.length)} підкат.)</span>
-          <span style="flex:1;"></span>
-          <button class="btn-sm" data-cat-act="rename">Перейменувати</button>
-          <button class="btn-sm danger" data-cat-act="delete">Видалити</button>
+      return nodes.map((n) => {
+        const hasChildren = n.children.length > 0;
+        const isOpen = catManageExpanded.has(n.id);
+        const blocked = new Set([n.id, ...descendantIds(n)]);
+        const moveOptions = flattenTreeForOptions(tree).filter((o) => !blocked.has(o.id));
+        return `
+        <div style="margin-left:${depth * 20}px;padding:6px 0;border-bottom:1px solid #EFF2F6;" data-cat-id="${esc(n.id)}">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
+            <span style="font-weight:${depth === 0 ? '700' : '500'};">${esc(n.name)}</span>
+            <span style="font-size:11px;color:var(--muted);">(${esc(n.product_count)} тов., ${esc(n.children.length)} підкат.)</span>
+            <span style="flex:1;"></span>
+            <button class="btn-sm" data-cat-act="move">🔀 Перемістити</button>
+            <button class="btn-sm" data-cat-act="rename">Перейменувати</button>
+            <button class="btn-sm danger" data-cat-act="delete">Видалити</button>
+          </div>
+          ${catMoveOpenId === n.id ? `
+            <div style="margin:8px 0 0 22px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <select class="cat-move-target">
+                <option value="" ${!n.parent_id ? 'selected' : ''}>— Категорія верхнього рівня —</option>
+                ${moveOptions.map((o) => `<option value="${esc(o.id)}" ${o.id === n.parent_id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
+              </select>
+              <button class="btn-sm primary" data-cat-act="move-confirm">Перемістити сюди</button>
+              <button class="btn-sm" data-cat-act="move-cancel">Скасувати</button>
+            </div>
+          ` : ''}
         </div>
-        ${renderList(n.children, depth + 1)}
-      `).join('');
+        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
+      `;
+      }).join('');
     }
     container.innerHTML = renderList(tree, 0);
   }
 
-  function refreshCatParentSelect() {
+  document.getElementById('catManageTree').addEventListener('click', (e) => {
+    const toggle = e.target.closest('.tree-toggle');
+    if (toggle) {
+      const id = parseInt(toggle.dataset.toggleId, 10);
+      if (catManageExpanded.has(id)) catManageExpanded.delete(id); else catManageExpanded.add(id);
+      renderCatManageTree();
+    }
+  });
+
+  let catNewParentId = null;
+  let catNewParentExpanded = new Set();
+
+  function renderCatNewParentPanel() {
     const tree = buildCategoryTree(categoriesCache);
-    const flat = flattenTreeForOptions(tree);
-    document.getElementById('catNewParent').innerHTML = '<option value="">— Категорія верхнього рівня —</option>' +
-      flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+    const panel = document.getElementById('catNewParentPanel');
+    if (!tree.length) { panel.innerHTML = '<span class="empty-state">Категорій ще немає</span>'; return; }
+
+    function renderList(nodes, depth) {
+      return nodes.map((n) => {
+        const hasChildren = n.children.length > 0;
+        const isOpen = catNewParentExpanded.has(n.id);
+        const isSelected = catNewParentId === n.id;
+        return `
+        <div style="margin-left:${depth * 18}px;display:flex;align-items:center;gap:4px;">
+          ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
+          <button type="button" class="cat-pick-item" data-cat-id="${esc(n.id)}" style="background:${isSelected ? 'var(--blue)' : 'none'};color:${isSelected ? '#fff' : 'var(--ink)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;flex:1;font-size:13px;">${esc(n.name)}</button>
+        </div>
+        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
+      `;
+      }).join('');
+    }
+    panel.innerHTML = `
+      <button type="button" class="cat-pick-item" data-cat-id="" style="background:${catNewParentId === null ? 'var(--blue)' : 'none'};color:${catNewParentId === null ? '#fff' : 'var(--muted)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;width:100%;font-size:13px;margin-bottom:4px;">— Категорія верхнього рівня —</button>
+      ${renderList(tree, 0)}
+    `;
   }
+
+  function refreshCatParentSelect() {
+    catNewParentId = null;
+    catNewParentExpanded = new Set();
+    document.getElementById('catNewParentBtn').textContent = '— Категорія верхнього рівня —';
+    renderCatNewParentPanel();
+  }
+
+  document.getElementById('catNewParentBtn').addEventListener('click', () => {
+    const panel = document.getElementById('catNewParentPanel');
+    panel.hidden = !panel.hidden;
+  });
+
+  document.getElementById('catNewParentPanel').addEventListener('click', (e) => {
+    const toggle = e.target.closest('.tree-toggle');
+    if (toggle) {
+      const id = parseInt(toggle.dataset.toggleId, 10);
+      if (catNewParentExpanded.has(id)) catNewParentExpanded.delete(id); else catNewParentExpanded.add(id);
+      renderCatNewParentPanel();
+      return;
+    }
+    const pick = e.target.closest('.cat-pick-item');
+    if (pick) {
+      catNewParentId = pick.dataset.catId ? parseInt(pick.dataset.catId, 10) : null;
+      document.getElementById('catNewParentBtn').textContent = pick.dataset.catId ? pick.textContent : '— Категорія верхнього рівня —';
+      document.getElementById('catNewParentPanel').hidden = true;
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('catNewParentPanel');
+    const btn = document.getElementById('catNewParentBtn');
+    if (!panel || panel.hidden) return;
+    if (!panel.contains(e.target) && e.target !== btn) panel.hidden = true;
+  });
 
   async function openCategoriesManageModal() {
     document.getElementById('catManageError').hidden = true;
+    catManageExpanded = new Set();
+    catMoveOpenId = null;
     await loadCategoriesCache();
     renderCatManageTree();
     refreshCatParentSelect();
@@ -2272,7 +2473,7 @@
     errorEl.hidden = true;
     const name = document.getElementById('catNewName').value.trim();
     if (!name) { errorEl.textContent = 'Вкажіть назву категорії'; errorEl.hidden = false; return; }
-    const parent_id = document.getElementById('catNewParent').value || null;
+    const parent_id = catNewParentId || null;
     const { ok, data } = await api('/api/admin/categories', { method: 'POST', body: { name, parent_id } });
     if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
     document.getElementById('catNewName').value = '';
@@ -2291,6 +2492,34 @@
     const act = btn.dataset.catAct;
     const errorEl = document.getElementById('catManageError');
     errorEl.hidden = true;
+
+    if (act === 'move') {
+      catMoveOpenId = parseInt(id, 10);
+      renderCatManageTree();
+      return;
+    }
+
+    if (act === 'move-cancel') {
+      catMoveOpenId = null;
+      renderCatManageTree();
+      return;
+    }
+
+    if (act === 'move-confirm') {
+      const select = row.querySelector('.cat-move-target');
+      const newParentId = select.value || null;
+      const { ok, data } = await api(`/api/admin/categories/${id}`, { method: 'PATCH', body: { parent_id: newParentId } });
+      if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
+      catMoveOpenId = null;
+      // The category just followed its new parent, so make sure that
+      // branch is expanded — otherwise it'd look like it vanished.
+      if (newParentId) catManageExpanded.add(parseInt(newParentId, 10));
+      await loadCategoriesCache();
+      renderCatManageTree();
+      refreshCatParentSelect();
+      toast('Категорію переміщено', 'ok');
+      return;
+    }
 
     if (act === 'rename') {
       const name = prompt('Нова назва категорії:', cat?.name || '');
