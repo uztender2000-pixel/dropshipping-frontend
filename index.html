@@ -293,6 +293,34 @@
     font-size: 12px; padding: 4px 10px; border-radius: 100px; background: var(--sand); color: var(--forest);
     white-space: nowrap;
   }
+  .order-status.done { background: #E3F2E5; color: #1E7A3E; }
+  .order-status.shipped { background: #E3EEFC; color: var(--forest); }
+  .order-status.cancelled { background: #FCE8E0; color: var(--rust-dark); }
+
+  .order-group {
+    border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px;
+  }
+  .order-group-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    padding-bottom: 10px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+  }
+  .order-group-meta { font-size: 12px; color: var(--muted); }
+  .order-group-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line);
+  }
+  .order-total { font-weight: 700; }
+  .order-ttn { font-size: 12px; color: var(--muted); }
+
+  .viewed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+  .viewed-card { position: relative; text-align: left; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
+  .viewed-thumb { width: 100%; aspect-ratio: 1; border-radius: 6px; background: var(--sand) center/cover no-repeat; margin-bottom: 6px; }
+  .viewed-name { font-size: 12px; line-height: 1.3; color: var(--ink); }
+  .viewed-price { font-size: 12px; font-weight: 700; color: var(--forest); margin-top: 2px; }
+  .viewed-remove {
+    position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); border: 1px solid var(--line); cursor: pointer; font-size: 12px; line-height: 1;
+  }
 
 
   .state-message { text-align: center; padding: 60px 20px; color: var(--muted); }
@@ -791,21 +819,28 @@
     }
 
     try {
-      // Homepage ("Рекомендуємо") view: 10 random products from the whole
-      // catalogue, no pagination — as soon as the visitor sorts, filters,
-      // searches or clicks "Показати всі товари" we drop out of this mode
-      // (see exitHomepage()) and behave like a normal listing.
-      const params = state.homepage
-        ? new URLSearchParams({ page: 1, limit: 10, sort: 'random' })
-        : new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
-      if (!state.homepage) {
+      let data;
+      if (state.homepage) {
+        // Homepage ("Рекомендуємо") view: personalised picks based on this
+        // shopper's purchase/browsing history (or, for a guest, whatever
+        // they've looked at in this browser) — see /api/products/recommended.
+        // No pagination, same as the old random list this replaced.
+        const params = new URLSearchParams({ limit: 10 });
+        const headers = {};
+        if (authToken) headers.Authorization = `Bearer ${authToken}`;
+        else { const guestIds = getGuestViews(); if (guestIds.length) params.set('viewed', guestIds.slice(0, 20).join(',')); }
+        const res = await fetch(`${API_BASE}/api/products/recommended?${params}`, { headers });
+        if (!res.ok) throw new Error('Request failed');
+        data = await res.json();
+        data.pagination = { page: 1, totalPages: 1 };
+      } else {
+        const params = new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
         if (state.shopCategoryId) params.set('shop_category_id', state.shopCategoryId);
         if (state.query) params.set('q', state.query);
+        const res = await fetch(`${API_BASE}/api/products?${params}`);
+        if (!res.ok) throw new Error('Request failed');
+        data = await res.json();
       }
-
-      const res = await fetch(`${API_BASE}/api/products?${params}`);
-      if (!res.ok) throw new Error('Request failed');
-      const data = await res.json();
 
       if (!append) grid.innerHTML = '';
 
@@ -819,6 +854,7 @@
       }
 
       homepageBanner.hidden = !state.homepage;
+      if (state.homepage) contentTitle.textContent = data.personalized ? 'Рекомендуємо саме вам' : 'Рекомендуємо';
       const hasMore = !state.homepage && data.pagination.page < data.pagination.totalPages;
       loadMoreBtn.hidden = !hasMore;
     } catch (err) {
@@ -1003,6 +1039,7 @@
       const res = await fetch(`${API_BASE}/api/products/${id}`);
       if (!res.ok) throw new Error('Not found');
       const p = await res.json();
+      recordProductView(p.id);
 
       const images = (p.pictures && p.pictures.length ? p.pictures : [p.picture_url]).filter(Boolean);
       const mainImage = images[0] || '';
@@ -1127,27 +1164,33 @@
     accountPageEl.innerHTML = '<p class="state-message">Завантажуємо…</p>';
 
     try {
-      const [meRes, ordersRes, configRes] = await Promise.all([
+      const [meRes, ordersRes, viewsRes, configRes] = await Promise.all([
         fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${authToken}` } }),
-        fetch(`${API_BASE}/api/account/orders`, { headers: { Authorization: `Bearer ${authToken}` } }),
+        fetch(`${API_BASE}/api/account/orders/grouped`, { headers: { Authorization: `Bearer ${authToken}` } }),
+        fetch(`${API_BASE}/api/account/views`, { headers: { Authorization: `Bearer ${authToken}` } }),
         fetch(`${API_BASE}/api/config`),
       ]);
       const { user } = await meRes.json();
       const orders = ordersRes.ok ? await ordersRes.json() : [];
+      const views = viewsRes.ok ? await viewsRes.json() : [];
       const config = configRes.ok ? await configRes.json() : {};
 
       const ordersHtml = orders.length
-        ? orders.map((o) => `
-            <div class="order-row">
-              <div class="order-thumb" style="${o.picture_url ? `background-image:url('${o.picture_url}')` : ''}"></div>
-              <div style="flex:1;">
-                <div style="font-size:14px;">${o.product_name}</div>
-                <div style="font-size:12px;color:var(--muted);">№${o.id} · ${new Date(o.created_at).toLocaleDateString('uk-UA')}</div>
-              </div>
-              <span class="order-status">${orderStatusLabel(o.status)}</span>
-            </div>
-          `).join('')
+        ? orders.map(renderOrderGroup).join('')
         : '<p style="color:var(--muted);font-size:14px;">Замовлень ще немає.</p>';
+
+      const viewsHtml = views.length
+        ? `<div class="viewed-grid">${views.map((p) => `
+            <div style="position:relative;">
+              <button type="button" class="viewed-card" data-detail-id="${p.id}">
+                <div class="viewed-thumb" style="${p.picture_url ? `background-image:url('${p.picture_url}')` : ''}"></div>
+                <div class="viewed-name">${p.name}</div>
+                <div class="viewed-price">${money(p.retail_price)}</div>
+              </button>
+              <button type="button" class="viewed-remove" data-remove-view="${p.id}" title="Прибрати з історії">✕</button>
+            </div>
+          `).join('')}</div>`
+        : '<p style="color:var(--muted);font-size:14px;">Ви ще нічого не переглядали.</p>';
 
       accountPageEl.innerHTML = `
         <div class="product-detail-inner">
@@ -1194,6 +1237,11 @@
             ${ordersHtml}
           </div>
 
+          <div class="account-section">
+            <h3>Переглянуті товари ${views.length ? `<button type="button" class="btn-secondary" id="clearViewsBtn" style="float:right;font-size:12px;padding:6px 12px;">Очистити історію</button>` : ''}</h3>
+            ${viewsHtml}
+          </div>
+
           ${config.customerBotUrl ? `
           <div class="account-section">
             <h3>Сповіщення в Telegram</h3>
@@ -1206,6 +1254,46 @@
 
       document.getElementById('accountBackBtn').addEventListener('click', hideAccountPage);
       document.getElementById('logoutBtn').addEventListener('click', () => { logout(); hideAccountPage(); });
+
+      document.querySelectorAll('.reorder-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = 'Додаємо…';
+          try {
+            const res = await fetch(`${API_BASE}/api/account/orders/${btn.dataset.groupKey}/reorder`, {
+              method: 'POST', headers: { Authorization: `Bearer ${authToken}` },
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Помилка');
+            updateCartBadge(data.cartCount);
+            showToast(data.skipped.length
+              ? `Додано ${data.added} із ${data.added + data.skipped.length} товарів у кошик. Немає в наявності: ${data.skipped.join(', ')}`
+              : `Додано ${data.added} товар(ів) у кошик`);
+          } catch (err) {
+            showToast(err.message || 'Не вдалося повторити замовлення');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Повторити замовлення';
+          }
+        });
+      });
+
+      document.querySelectorAll('.viewed-card').forEach((btn) => {
+        btn.addEventListener('click', () => { hideAccountPage(); showProductDetail(btn.dataset.detailId); });
+      });
+      document.querySelectorAll('[data-remove-view]').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await fetch(`${API_BASE}/api/account/views/${btn.dataset.removeView}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` } });
+          showAccountPage();
+        });
+      });
+      const clearViewsBtn = document.getElementById('clearViewsBtn');
+      if (clearViewsBtn) clearViewsBtn.addEventListener('click', async () => {
+        if (!confirm('Очистити всю історію переглядів?')) return;
+        await fetch(`${API_BASE}/api/account/views`, { method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` } });
+        showAccountPage();
+      });
 
       document.getElementById('saveProfileBtn').addEventListener('click', async () => {
         const status = document.getElementById('profileStatus');
@@ -1297,9 +1385,52 @@
   function orderStatusLabel(status) {
     const labels = {
       new: 'Нове', confirmed: 'Підтверджено', ordered_from_supplier: 'Замовлено у постачальника',
-      shipped: 'Відправлено', done: 'Виконано',
+      shipped: 'Відправлено', done: 'Виконано', cancelled: 'Скасовано',
     };
     return labels[status] || status;
+  }
+  function orderStatusClass(status) {
+    if (status === 'done') return 'done';
+    if (status === 'shipped' || status === 'ordered_from_supplier') return 'shipped';
+    if (status === 'cancelled') return 'cancelled';
+    return '';
+  }
+
+  function renderOrderGroup(o) {
+    const itemsHtml = o.items.map((it) => `
+      <div class="order-row">
+        <div class="order-thumb" style="${it.picture_url ? `background-image:url('${it.picture_url}')` : ''}"></div>
+        <div style="flex:1;">
+          <div style="font-size:14px;">${it.name}</div>
+          <div style="font-size:12px;color:var(--muted);">${it.quantity} × ${money(it.unit_price)}</div>
+        </div>
+        ${it.status !== o.status ? `<span class="order-status ${orderStatusClass(it.status)}">${orderStatusLabel(it.status)}</span>` : ''}
+      </div>
+    `).join('');
+
+    const deliveryLine = o.delivery_method === 'branch'
+      ? `Нова пошта, ${o.city || ''}${o.np_branch ? ', ' + o.np_branch : ''}`
+      : (o.delivery_method === 'courier' ? `Кур'єром, ${o.courier_address || o.city || ''}` : '');
+
+    return `
+      <div class="order-group" data-group-key="${o.group_key}">
+        <div class="order-group-head">
+          <div>
+            <div style="font-weight:700;">Замовлення №${o.number}</div>
+            <div class="order-group-meta">${new Date(o.created_at).toLocaleDateString('uk-UA')}${deliveryLine ? ' · ' + deliveryLine : ''}</div>
+          </div>
+          <span class="order-status ${orderStatusClass(o.status)}">${orderStatusLabel(o.status)}</span>
+        </div>
+        ${itemsHtml}
+        <div class="order-group-foot">
+          <div>
+            <div class="order-total">Разом: ${money(o.total)}</div>
+            ${o.ttns.length ? `<div class="order-ttn">ТТН: ${o.ttns.join(', ')}</div>` : ''}
+          </div>
+          <button type="button" class="btn-secondary reorder-btn" data-group-key="${o.group_key}">Повторити замовлення</button>
+        </div>
+      </div>
+    `;
   }
 
   grid.addEventListener('click', (e) => {
@@ -1315,6 +1446,39 @@
   // ---------- Auth ----------
   let authToken = localStorage.getItem('authToken') || null;
   let currentUser = null;
+
+  // ---------- Browsing history ----------
+  // Logged in: the server keeps it (see /api/account/views). Guest: kept
+  // in this browser only, newest first, capped at 50 — merged into the
+  // account the moment they log in (syncGuestViews below) and cleared
+  // locally afterwards so it isn't double-counted.
+  const GUEST_VIEWS_KEY = 'guestProductViews';
+  function getGuestViews() {
+    try { return JSON.parse(localStorage.getItem(GUEST_VIEWS_KEY) || '[]'); } catch { return []; }
+  }
+  function recordProductView(id) {
+    if (authToken) {
+      fetch(`${API_BASE}/api/account/views`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ product_id: String(id) }),
+      }).catch(() => {});
+      return;
+    }
+    const ids = getGuestViews().filter((v) => v !== String(id));
+    ids.unshift(String(id));
+    localStorage.setItem(GUEST_VIEWS_KEY, JSON.stringify(ids.slice(0, 50)));
+  }
+  async function syncGuestViews() {
+    const ids = getGuestViews();
+    if (!ids.length || !authToken) return;
+    try {
+      await fetch(`${API_BASE}/api/account/views/sync`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ product_ids: ids }),
+      });
+      localStorage.removeItem(GUEST_VIEWS_KEY);
+    } catch { /* keep the local copy if the sync failed — nothing lost */ }
+  }
 
   const loginBtn = document.getElementById('loginBtn');
   const headerLogoutBtn = document.getElementById('headerLogoutBtn');
@@ -1548,6 +1712,7 @@
       localStorage.setItem('authToken', authToken);
       setLoggedInUI();
       refreshCartBadge();
+      syncGuestViews();
       authBackdrop.hidden = true;
     } catch (err) {
       loginStatus.textContent = err.message;
@@ -1578,6 +1743,7 @@
       localStorage.setItem('authToken', authToken);
       setLoggedInUI();
       refreshCartBadge();
+      syncGuestViews();
       registerBackdrop.hidden = true;
     } catch (err) {
       registerStatus.textContent = err.message;
@@ -1953,8 +2119,8 @@
   contentTitle.textContent = 'Рекомендуємо';
   loadProductCount();
   loadShopCategories();
-  loadProducts(false); // homepage mode: 10 random products (state.homepage starts true)
-  restoreSession();
+  loadProducts(false); // homepage mode: personalised (or random for a guest with no history yet) picks
+  restoreSession().then(syncGuestViews);
 </script>
 
 </body>
