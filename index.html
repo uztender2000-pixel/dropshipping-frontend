@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OllShop — усе для дому, авто, дітей та не тільки</title>
+<title>В Хату.UA — усе для дому, авто, дітей та не тільки</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,8 +14,8 @@
        color research), not a niche-boutique aesthetic.
        Kept identical to the admin panel's own tokens (admin.html's --blue/--orange/
        --bg/--muted) so the storefront and the admin panel read as one product. */
-    --forest: #1B4B8F;       /* primary blue  == admin.html --blue */
-    --forest-dark: #123563;  /* blue, hover/active */
+    --forest: #4B5563;       /* primary action gray — buttons, top strip, accents (was blue) */
+    --forest-dark: #374151;  /* gray, hover/active */
     --sand: #EAF0F8;         /* light blue-tinted surface */
     --sand-light: #F3F5F8;   /* page background == admin.html --bg */
     --rust: #FF7A1A;         /* accent orange — CTAs  == admin.html --orange */
@@ -449,15 +449,16 @@
 </head>
 <body>
 
-<div class="tagline-bar">Все — в одному місці. <strong>OllShop</strong> — <span id="productCountText">40 000+</span> товарів з доставкою по всій Україні</div>
+<div class="tagline-bar">Все — в одному місці. <strong>В Хату.UA</strong> — <span id="productCountText">40 000+</span> товарів з доставкою по всій Україні</div>
 <header>
   <div class="header-inner">
     <div class="logo">
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6 9H20L19 22C18.9 23.1 18 24 16.9 24H9.1C8 24 7.1 23.1 7 22L6 9Z" stroke="#1B4B8F" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M9 9V7C9 4.79086 10.7909 3 13 3C15.2091 3 17 4.79086 17 7V9" stroke="#FF7A1A" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 12L13 4L22 12" stroke="#4B5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6.5 10.5V22H19.5V10.5" stroke="#4B5563" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="11" y="15.5" width="4" height="6.5" fill="#FF7A1A"/>
       </svg>
-      <span class="oll">Oll</span><span class="shop">Shop</span>
+      <span class="oll">В Хату</span><span class="shop">.UA</span>
     </div>
     <div class="header-search">
       <form id="searchForm">
@@ -522,18 +523,6 @@
     <div id="accountPage" class="product-detail" hidden></div>
   </main>
 </div>
-
-<footer>
-  <div style="max-width:640px;margin:0 auto;">
-    <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:16px;color:var(--ink);margin-bottom:8px;">OllShop</div>
-    <p style="margin:0 0 8px;">
-      OllShop — український маркетплейс, заснований у 2026 році. Попри молодість,
-      ми вже пропонуємо понад <strong>40 000 товарів</strong> у категоріях: товари для дому,
-      авто, дітей, одяг та багато іншого.
-    </p>
-    <p style="margin:0;">Доставка Новою поштою по всій Україні. Оплата при отриманні.</p>
-  </div>
-</footer>
 
 <!-- Auth modal: login + register in one, switchable -->
 <div class="modal-backdrop" id="authBackdrop" hidden>
