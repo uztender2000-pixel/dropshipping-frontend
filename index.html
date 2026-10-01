@@ -1343,8 +1343,10 @@
 
       const sendEmailBtn = document.getElementById('sendEmailCodeBtn');
       if (sendEmailBtn) sendEmailBtn.addEventListener('click', async () => {
-        await fetch(`${API_BASE}/api/auth/send-email-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
-        showToast('Код надіслано на email');
+        const res = await fetch(`${API_BASE}/api/auth/send-email-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) showToast(data.alreadyVerified ? 'Email уже підтверджено' : 'Код надіслано на email');
+        else showToast(data.error || 'Не вдалося надіслати код', 'error');
       });
       const verifyEmailBtn = document.getElementById('verifyEmailBtn');
       if (verifyEmailBtn) verifyEmailBtn.addEventListener('click', async () => {
@@ -1359,8 +1361,10 @@
 
       const sendPhoneBtn = document.getElementById('sendPhoneCodeBtn');
       if (sendPhoneBtn) sendPhoneBtn.addEventListener('click', async () => {
-        await fetch(`${API_BASE}/api/auth/send-phone-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
-        showToast('Код надіслано SMS');
+        const res = await fetch(`${API_BASE}/api/auth/send-phone-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) showToast(data.alreadyVerified ? 'Телефон уже підтверджено' : 'Код надіслано SMS');
+        else showToast(data.error || 'Не вдалося надіслати код', 'error');
       });
       const verifyPhoneBtn = document.getElementById('verifyPhoneBtn');
       if (verifyPhoneBtn) verifyPhoneBtn.addEventListener('click', async () => {
