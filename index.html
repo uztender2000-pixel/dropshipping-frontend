@@ -1043,6 +1043,11 @@
             .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')
         : '';
 
+      const PAYMENT_LABELS = { prepaid: 'Передоплата', on_delivery: 'Оплата при отриманні' };
+      const paymentMethodsHtml = Array.isArray(p.payment_methods) && p.payment_methods.length
+        ? `<div class="detail-meta" style="margin-top:4px;">Оплата: <b>${p.payment_methods.map((m) => PAYMENT_LABELS[m] || m).join(' або ')}</b></div>`
+        : '';
+
       const cat = p.shop_categories && p.shop_categories[0];
       const parentCat = cat && cat.parent_id ? shopCategoriesCache.find((c) => c.id === cat.parent_id) : null;
 
@@ -1067,9 +1072,11 @@
             <div class="detail-meta">
               ${p.vendor_code ? `<div>Артикул: <b>${p.vendor_code}</b></div>` : ''}
               ${p.vendor ? `<div>Бренд: <b>${p.vendor}</b></div>` : ''}
+              ${p.seller_name ? `<div>Продавець: <b>${p.seller_name}</b></div>` : ''}
             </div>
             <div class="card-stock">✓ В наявності</div>
             <div class="card-price" style="font-size:26px;">${p.retail_price ? money(p.retail_price) : 'Ціна уточнюється'}</div>
+            ${paymentMethodsHtml}
 
             <div class="qty-row">
               <div class="qty-control">

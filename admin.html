@@ -783,6 +783,21 @@
     <label class="check-row"><input type="checkbox" id="smAutoOrder"> Автоматично відправляти йому замовлення</label>
     <label class="check-row"><input type="checkbox" id="smManualSelection"> Ручний відбір товарів (нові товари НЕ показуються на сайті, поки їх не додасть адмін у розділі «Товари»)</label>
 
+    <div class="field">
+      <label>Як виконуються замовлення
+        <span class="hint-icon" title="Класичний дропшипінг: постачальник сам відправляє товар і отримує оплату від покупця, вам перераховує маржу. Продаж від вашого імені: ви створюєте чек і ТТН, приймаєте оплату і розраховуєтесь із постачальником окремо." style="cursor:help;">ⓘ</span>
+      </label>
+      <select id="smFulfillmentType">
+        <option value="supplier_ships">Класичний дропшипінг — постачальник сам відправляє й отримує оплату</option>
+        <option value="shop_ships">Продаж від мого імені — я створюю чек/ТТН і приймаю оплату</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Способи оплати, які підтримує цей постачальник</label>
+      <label class="check-row"><input type="checkbox" id="smPaymentPrepaid"> Попередня оплата</label>
+      <label class="check-row"><input type="checkbox" id="smPaymentOnDelivery" checked> Оплата при отриманні</label>
+    </div>
+
     <div class="modal-actions">
       <button class="btn-sm" id="supModalCancel" style="flex:1;">Скасувати</button>
       <button class="btn-sm primary" id="supModalSave" style="flex:1;">Зберегти</button>
@@ -1262,7 +1277,7 @@
       <tr data-id="${esc(s.id)}">
         <td>
           <div class="sup-name">${esc(s.name)}</div>
-          <div class="sup-code">${esc(s.code)} · <span class="badge info">${esc(s.adapter)}</span>${s.manual_selection ? ' <span class="badge warn">ручний відбір</span>' : ''}</div>
+          <div class="sup-code">${esc(s.code)} · <span class="badge info">${esc(s.adapter)}</span>${s.manual_selection ? ' <span class="badge warn">ручний відбір</span>' : ''} <span class="badge ${s.fulfillment_type === 'shop_ships' ? 'off' : 'on'}">${s.fulfillment_type === 'shop_ships' ? 'продаж від мого імені' : 'класичний дропшипінг'}</span></div>
         </td>
         <td>${s.manual_selection ? `${esc(s.included_count)} відібрано` : esc(s.available_count)} <span style="color:var(--muted);">/ ${esc(s.product_count)}</span></td>
         <td>${esc(Number(s.markup_percent))}%</td>
@@ -1437,6 +1452,10 @@
     document.getElementById('smActive').checked = s ? !!s.active : true;
     document.getElementById('smAutoOrder').checked = s ? !!s.auto_order : false;
     document.getElementById('smManualSelection').checked = s ? !!s.manual_selection : false;
+    document.getElementById('smFulfillmentType').value = s && s.fulfillment_type ? s.fulfillment_type : 'supplier_ships';
+    const paymentMethods = s && Array.isArray(s.payment_methods) ? s.payment_methods : ['on_delivery'];
+    document.getElementById('smPaymentPrepaid').checked = paymentMethods.includes('prepaid');
+    document.getElementById('smPaymentOnDelivery').checked = paymentMethods.includes('on_delivery');
     document.getElementById('supModalError').hidden = true;
     supModalBackdrop.hidden = false;
   }
@@ -1455,6 +1474,10 @@
       errorEl.hidden = false; return;
     }
     if (!name) { errorEl.textContent = 'Вкажіть назву'; errorEl.hidden = false; return; }
+    if (!document.getElementById('smPaymentPrepaid').checked && !document.getElementById('smPaymentOnDelivery').checked) {
+      errorEl.textContent = 'Оберіть хоча б один спосіб оплати';
+      errorEl.hidden = false; return;
+    }
 
     const configRaw = document.getElementById('smConfig').value.trim();
     let configParsed; // undefined = leave untouched on edit; {} on create if left blank
@@ -1480,6 +1503,11 @@
       active: document.getElementById('smActive').checked,
       auto_order: document.getElementById('smAutoOrder').checked,
       manual_selection: document.getElementById('smManualSelection').checked,
+      fulfillment_type: document.getElementById('smFulfillmentType').value,
+      payment_methods: [
+        ...(document.getElementById('smPaymentPrepaid').checked ? ['prepaid'] : []),
+        ...(document.getElementById('smPaymentOnDelivery').checked ? ['on_delivery'] : []),
+      ],
     };
     if (configParsed !== undefined) body.config = configParsed; // omitted = keep existing config on edit
     const key = document.getElementById('smApiKey').value;
