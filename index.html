@@ -323,6 +323,159 @@
   }
 
 
+  /* ---------- Customer cabinet ---------- */
+  .cab-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+  .cab-avatar {
+    width: 56px; height: 56px; border-radius: 50%; background: var(--forest); color: var(--white);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; flex-shrink: 0;
+  }
+  .cab-head-text { flex: 1; min-width: 180px; }
+  .cab-head-text h2 { font-size: 22px; margin: 0; }
+  .cab-sub { color: var(--muted); font-size: 14px; word-break: break-all; }
+  .cab-layout { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+  @media (min-width: 760px) { .cab-layout { grid-template-columns: 230px 1fr; gap: 24px; } }
+  .cab-nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+  @media (min-width: 760px) {
+    .cab-nav {
+      flex-direction: column; overflow: visible; position: sticky; top: 16px; background: var(--white);
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px; gap: 2px;
+    }
+  }
+  .cab-nav-btn {
+    display: flex; align-items: center; gap: 10px; white-space: nowrap; background: var(--white);
+    border: 1px solid var(--line); border-radius: 100px; padding: 9px 14px; font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer;
+  }
+  @media (min-width: 760px) {
+    .cab-nav-btn { border: none; border-radius: 6px; background: transparent; width: 100%; text-align: left; padding: 11px 12px; }
+    .cab-nav-btn:hover { background: var(--sand-light); }
+  }
+  .cab-nav-btn.active { background: var(--forest); color: var(--white); border-color: var(--forest); }
+  @media (min-width: 760px) { .cab-nav-btn.active, .cab-nav-btn.active:hover { background: var(--sand); color: var(--forest-dark); } }
+  .cab-nav-badge {
+    margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 100px; background: var(--rust);
+    color: var(--white); font-size: 12px; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .cab-card { background: var(--white); border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .cab-card h3 { font-size: 16px; margin: 0 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cab-muted { color: var(--muted); font-size: 14px; }
+  .cab-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .cab-stat { background: var(--white); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  .cab-stat-num { font-size: 20px; font-weight: 700; color: var(--forest-dark); line-height: 1.2; }
+  .cab-stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cab-alert {
+    display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    background: #FFF4E8; border: 1px solid #FFD9B3; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; font-size: 14px;
+  }
+  .cab-empty { text-align: center; padding: 28px 12px; color: var(--muted); font-size: 14px; }
+  .cab-empty .btn-primary { flex: none; margin-top: 14px; padding: 11px 22px; }
+  .cab-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .cab-chip {
+    background: var(--white); border: 1px solid var(--line); border-radius: 100px; padding: 7px 14px; font-size: 13px;
+    font-family: 'Inter', sans-serif; color: var(--ink); cursor: pointer;
+  }
+  .cab-chip.active { background: var(--forest); color: var(--white); border-color: var(--forest); }
+  .cab-order { background: var(--white); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+  .cab-order-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .cab-order-title { font-weight: 700; }
+  .cab-order-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cab-steps { display: flex; margin: 16px 0 8px; }
+  .cab-step { flex: 1; min-width: 0; text-align: center; font-size: 11px; line-height: 1.2; color: var(--muted); position: relative; padding-top: 22px; overflow-wrap: anywhere; }
+  @media (max-width: 480px) { .cab-step { font-size: 10px; } .cab-order { padding: 14px 12px; } }
+  .cab-step::before {
+    content: ''; position: absolute; top: 4px; left: 50%; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--line); transform: translateX(-50%); z-index: 1;
+  }
+  .cab-step::after { content: ''; position: absolute; top: 9px; left: -50%; width: 100%; height: 2px; background: var(--line); }
+  .cab-step:first-child::after { display: none; }
+  .cab-step.reached { color: var(--ink); }
+  .cab-step.reached::before, .cab-step.reached::after { background: var(--forest); }
+  .cab-step.current { font-weight: 700; color: var(--forest-dark); }
+  .cab-step.current::before { background: var(--rust); box-shadow: 0 0 0 4px rgba(255,122,26,0.2); }
+  .cab-cancelled { background: #FCE8E0; color: var(--rust-dark); border-radius: 6px; padding: 8px 12px; font-size: 13px; margin: 12px 0 4px; }
+  .cab-items { margin-top: 8px; }
+  .cab-item-link { cursor: pointer; }
+  .cab-item-link:hover .cab-item-name { text-decoration: underline; }
+  .cab-item-name { font-size: 14px; }
+  .cab-delivery { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .cab-ttn-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; margin-top: 8px; }
+  .cab-link-btn { background: none; border: none; padding: 0; color: var(--rust-dark); cursor: pointer; font: inherit; text-decoration: underline; }
+  .cab-order-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--line);
+  }
+  .cab-hint { font-size: 12px; color: var(--muted); }
+  .cab-verified { font-size: 12px; padding: 3px 8px; border-radius: 100px; background: #E3F2E5; color: var(--forest); margin-left: 8px; }
+  .cab-unverified { font-size: 12px; padding: 3px 8px; border-radius: 100px; background: #FCE8E0; color: var(--rust-dark); margin-left: 8px; }
+  .cab-verify {
+    background: var(--sand-light); border: 1px dashed var(--line); border-radius: 6px; padding: 10px 12px; font-size: 13px;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .cab-verify input { width: 120px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font-family: inherit; font-size: 14px; }
+  .cab-sm { flex: none; padding: 8px 14px; font-size: 13px; }
+  .cab-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .cab-row:last-child { border-bottom: none; }
+  .cab-row span:first-child { color: var(--muted); }
+  .cab-row span:last-child { text-align: right; }
+  .cab-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .cab-actions .btn-primary { flex: none; padding: 11px 22px; }
+
+  /* ---------- Filters (by product characteristics) ---------- */
+  .catalog-body { display: flex; align-items: flex-start; gap: 20px; }
+  .catalog-main { flex: 1; min-width: 0; }
+  .filters {
+    width: 260px; flex-shrink: 0; background: var(--white); border: 1px solid var(--line); border-radius: 6px;
+    position: sticky; top: 70px; max-height: calc(100vh - 90px); overflow-y: auto; padding: 6px 14px 14px;
+  }
+  .filters[hidden] { display: none; }
+  .filters-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0 6px; font-weight: 700; font-size: 15px; }
+  .filters-close, .filters-apply, .filters-toggle { display: none; }
+  .f-group { border-top: 1px solid var(--line); padding: 4px 0 8px; }
+  .f-title {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: none; border: none;
+    padding: 9px 0 7px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left;
+  }
+  .f-title .f-chev { color: var(--muted); font-size: 12px; transition: transform 0.15s ease; }
+  .f-group.collapsed .f-chev { transform: rotate(-90deg); }
+  .f-group.collapsed .f-values { display: none; }
+  .f-opt { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; cursor: pointer; line-height: 1.3; }
+  .f-opt input { margin: 0; accent-color: var(--forest); flex-shrink: 0; }
+  .f-opt .f-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .f-opt .f-count { color: var(--muted); font-size: 12px; }
+  .f-opt[hidden] { display: none; } /* display:flex інакше перебиває атрибут hidden */
+  .f-opt.zero { opacity: 0.5; }
+  .f-more { background: none; border: none; padding: 6px 0 0; color: var(--rust-dark); font: inherit; font-size: 13px; cursor: pointer; }
+  .f-search { width: 100%; padding: 7px 10px; margin: 2px 0 6px; border: 1px solid var(--line); border-radius: 4px; font-family: inherit; font-size: 13px; }
+  .f-price { display: flex; align-items: center; gap: 6px; padding-top: 2px; }
+  .f-price input { width: 100%; min-width: 0; padding: 8px 8px; border: 1px solid var(--line); border-radius: 4px; font-family: inherit; font-size: 13px; }
+  .active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .active-filters[hidden] { display: none; }
+  .af-chip {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--sand); color: var(--forest-dark); border: none;
+    border-radius: 100px; padding: 6px 12px; font-family: 'Inter', sans-serif; font-size: 13px; cursor: pointer;
+  }
+  .af-chip:hover { background: #DCE6F4; }
+  .af-clear { background: none; border: none; color: var(--rust-dark); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; padding: 6px 4px; }
+  @media (max-width: 899px) {
+    .catalog-body { display: block; }
+    .filters {
+      display: none; position: fixed; inset: 0; z-index: 60; width: 100%; max-height: none;
+      border-radius: 0; border: none; padding: 6px 16px 90px; background: var(--white);
+    }
+    .filters.open { display: block; }
+    .filters-close { display: inline-block; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); padding: 4px 8px; }
+    .filters-apply {
+      display: block; position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 61; flex: none;
+    }
+    .filters:not(.open) .filters-apply { display: none; }
+    .filters-toggle {
+      display: inline-flex; align-items: center; gap: 6px; background: var(--white); color: var(--ink); border: 1px solid var(--line);
+      border-radius: 4px; padding: 9px 12px; font-family: 'Inter', sans-serif; font-size: 14px; cursor: pointer;
+    }
+    .filters-toggle[hidden] { display: none; }
+    .filters-toggle .af-count { background: var(--rust); color: var(--white); border-radius: 100px; padding: 0 7px; font-size: 12px; }
+  }
+
   .state-message { text-align: center; padding: 60px 20px; color: var(--muted); }
 
   .load-more {
@@ -424,6 +577,7 @@
     font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap;
   }
   .homepage-banner button:hover { background: var(--forest); color: var(--white); }
+  .homepage-banner[hidden] { display: none; } /* без цього display:flex перебивав атрибут hidden і банер «10 випадкових товарів» не зникав у категорії */
 
   /* ---------- Responsive polish across breakpoints ---------- */
   .header-right { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
@@ -490,6 +644,7 @@
         <div class="content-count" id="contentCount"></div>
       </div>
       <div class="content-controls">
+        <button type="button" class="filters-toggle" id="filtersToggle" hidden>⚙ Фільтри <span class="af-count" id="filtersToggleCount" hidden></span></button>
         <select class="sort-select" id="sortSelect">
           <option value="newest">Спершу нові</option>
           <option value="popular">Спершу популярні</option>
@@ -515,9 +670,25 @@
       <button type="button" id="homepageShowAllBtn">Показати всі товари</button>
     </div>
 
-    <div class="grid" id="grid"></div>
-    <p class="state-message" id="stateMessage" hidden></p>
-    <button class="load-more" id="loadMore" hidden>Показати ще</button>
+    <div class="catalog-body">
+      <aside class="filters" id="filtersPanel" hidden>
+        <div class="filters-head">
+          <span>Фільтри</span>
+          <span>
+            <button type="button" class="af-clear" id="filtersReset" hidden>Скинути все</button>
+            <button type="button" class="filters-close" id="filtersClose" aria-label="Закрити">✕</button>
+          </span>
+        </div>
+        <div id="filtersBody"></div>
+        <button type="button" class="btn-primary filters-apply" id="filtersApply">Показати товари</button>
+      </aside>
+      <div class="catalog-main">
+        <div class="active-filters" id="activeFilters" hidden></div>
+        <div class="grid" id="grid"></div>
+        <p class="state-message" id="stateMessage" hidden></p>
+        <button class="load-more" id="loadMore" hidden>Показати ще</button>
+      </div>
+    </div>
 
     <div id="productDetail" class="product-detail" hidden></div>
     <div id="accountPage" class="product-detail" hidden></div>
@@ -693,7 +864,8 @@
   // ЗАМІНИ на адресу свого бекенду на Render.
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
-  const state = { shopCategoryId: '', shopCategoryName: '', sort: 'newest', query: '', page: 1, limit: 50, loading: false, homepage: true };
+  const state = { shopCategoryId: '', shopCategoryName: '', sort: 'newest', query: '', page: 1, limit: 50, loading: false, reloadQueued: false, homepage: true,
+    filters: {}, priceMin: '', priceMax: '', facets: null, lastTotal: 0 };
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
@@ -815,7 +987,12 @@
   }
 
   async function loadProducts(append) {
-    if (state.loading) return;
+    if (state.loading) {
+      // Користувач змінив фільтр, поки йшов попередній запит — повторимо одразу після нього,
+      // інакше на екрані лишилась би видача за застарілими фільтрами.
+      if (!append) state.reloadQueued = true;
+      return;
+    }
     state.loading = true;
     loadMoreBtn.hidden = true;
 
@@ -843,6 +1020,7 @@
         const params = new URLSearchParams({ page: state.page, limit: state.limit, sort: state.sort });
         if (state.shopCategoryId) params.set('shop_category_id', state.shopCategoryId);
         if (state.query) params.set('q', state.query);
+        appendFilterParams(params);
         const res = await fetch(`${API_BASE}/api/products?${params}`);
         if (!res.ok) throw new Error('Request failed');
         data = await res.json();
@@ -850,8 +1028,14 @@
 
       if (!append) grid.innerHTML = '';
 
+      state.lastTotal = data.pagination.total || 0;
+      updateFiltersApplyLabel();
       if (data.products.length === 0 && !append) {
-        stateMessage.textContent = 'У цій категорії поки немає товарів.';
+        if (hasActiveFilters()) {
+          stateMessage.innerHTML = 'За обраними фільтрами нічого не знайдено.<br>Змініть умови або <button type="button" class="af-clear" id="stateResetFilters">скиньте фільтри</button>.';
+        } else {
+          stateMessage.textContent = 'У цій категорії поки немає товарів.';
+        }
         stateMessage.hidden = false;
         contentCount.textContent = '';
       } else {
@@ -870,6 +1054,7 @@
       console.error(err);
     } finally {
       state.loading = false;
+      if (state.reloadQueued) { state.reloadQueued = false; loadProducts(false); }
     }
   }
 
@@ -904,7 +1089,9 @@
     searchInput.value = '';
     contentTitle.textContent = categoryId ? (categoryName || 'Товари') : 'Усі товари';
     setActiveShopCategoryButton(categoryId);
+    resetFilters();
     loadProducts(false);
+    loadFilters();
     closeSidebarOnMobile();
   }
 
@@ -1001,7 +1188,9 @@
     state.page = 1;
     setActiveShopCategoryButton('');
     contentTitle.textContent = `Результати пошуку: «${q}»`;
+    resetFilters();
     loadProducts(false);
+    loadFilters();
     closeSidebarOnMobile();
   });
 
@@ -1027,6 +1216,247 @@
     state.page += 1;
     loadProducts(true);
   });
+
+  // ---------- Filters by product characteristics ----------
+  // Набір фільтрів будує сервер (/api/products/meta/filters) із характеристик
+  // товарів, що лежать у вибраній категорії: колір, розмір, матеріал тощо — у
+  // різних категорій вони різні. Вибір передається в /api/products одним
+  // параметром filters (JSON), див. routes/products.js.
+  const filtersPanel = document.getElementById('filtersPanel');
+  const filtersBody = document.getElementById('filtersBody');
+  const filtersResetBtn = document.getElementById('filtersReset');
+  const filtersToggle = document.getElementById('filtersToggle');
+  const filtersToggleCount = document.getElementById('filtersToggleCount');
+  const filtersApplyBtn = document.getElementById('filtersApply');
+  const activeFiltersEl = document.getElementById('activeFilters');
+  const FILTER_VISIBLE = 8;      // скільки значень групи видно до «Показати ще»
+  const FILTER_SEARCH_FROM = 12; // від скількох значень з'являється пошук усередині групи
+  const filterUi = { collapsed: new Set(), expanded: new Set(), search: new Map() };
+  let facetsToken = 0;
+  let applyTimer = null;
+
+  const fEsc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function selectedCount() {
+    const values = Object.values(state.filters).reduce((n, v) => n + v.length, 0);
+    return values + (state.priceMin !== '' || state.priceMax !== '' ? 1 : 0);
+  }
+  function hasActiveFilters() { return selectedCount() > 0; }
+
+  function appendFilterParams(params) {
+    if (Object.keys(state.filters).length) params.set('filters', JSON.stringify(state.filters));
+    if (state.priceMin !== '') params.set('price_min', state.priceMin);
+    if (state.priceMax !== '') params.set('price_max', state.priceMax);
+  }
+
+  // Повне скидання (зміна категорії/пошуку): і вибір, і самі групи фільтрів.
+  function resetFilters() {
+    clearTimeout(applyTimer);
+    state.filters = {}; state.priceMin = ''; state.priceMax = ''; state.facets = null;
+    filterUi.collapsed.clear(); filterUi.expanded.clear(); filterUi.search.clear();
+    facetsToken += 1; // відповіді на застарілі запити більше не потрібні
+    renderFilters();
+    renderActiveFilters();
+  }
+
+  // Зміна вибору: оновлюємо видачу й лічильники (з невеликою затримкою, щоб серія кліків давала один запит).
+  function scheduleApply() {
+    state.page = 1;
+    renderActiveFilters();
+    updateFiltersToggle();
+    clearTimeout(applyTimer);
+    applyTimer = setTimeout(() => { loadProducts(false); loadFilters(); }, 250);
+  }
+
+  function clearSelection() {
+    state.filters = {}; state.priceMin = ''; state.priceMax = '';
+    renderFilters();
+    scheduleApply();
+  }
+
+  async function loadFilters() {
+    const token = ++facetsToken;
+    if (!state.shopCategoryId || state.homepage || state.query) {
+      state.facets = null;
+      renderFilters(); renderActiveFilters();
+      return;
+    }
+    const params = new URLSearchParams({ shop_category_id: state.shopCategoryId });
+    appendFilterParams(params);
+    try {
+      const res = await fetch(`${API_BASE}/api/products/meta/filters?${params}`);
+      if (!res.ok) throw new Error('filters request failed');
+      const data = await res.json();
+      if (token !== facetsToken) return;
+      state.facets = data;
+    } catch (err) {
+      if (token !== facetsToken) return;
+      state.facets = null;
+      console.error(err);
+    }
+    renderFilters();
+    renderActiveFilters();
+  }
+
+  function updateFiltersToggle() {
+    const n = selectedCount();
+    filtersToggleCount.textContent = n;
+    filtersToggleCount.hidden = n === 0;
+    filtersResetBtn.hidden = n === 0;
+  }
+  function updateFiltersApplyLabel() {
+    filtersApplyBtn.textContent = state.lastTotal ? `Показати ${state.lastTotal} товар(ів)` : 'Закрити';
+  }
+
+  // Показ/приховування значень групи: за замовчуванням перші FILTER_VISIBLE + вибрані,
+  // «Показати ще» розгортає все, пошук усередині групи показує лише збіги.
+  function applyGroupVisibility(groupEl) {
+    const key = groupEl.dataset.key;
+    const q = (filterUi.search.get(key) || '').trim().toLowerCase();
+    const expanded = filterUi.expanded.has(key);
+    const opts = [...groupEl.querySelectorAll('.f-opt')];
+    let hiddenCount = 0;
+    opts.forEach((el, i) => {
+      const show = q ? el.dataset.label.includes(q) : (expanded || i < FILTER_VISIBLE || el.querySelector('input').checked);
+      el.hidden = !show;
+      if (!show) hiddenCount += 1;
+    });
+    const more = groupEl.querySelector('[data-more]');
+    if (more) {
+      more.hidden = Boolean(q) || (!expanded && hiddenCount === 0) || opts.length <= FILTER_VISIBLE;
+      more.textContent = expanded ? 'Згорнути' : `Показати ще ${hiddenCount}`;
+    }
+  }
+
+  function renderFilters() {
+    const data = state.facets;
+    const available = Boolean(state.shopCategoryId) && !state.homepage && data && (data.filters.length > 0 || hasActiveFilters());
+    filtersPanel.hidden = !available;
+    filtersToggle.hidden = !available;
+    if (!available) { filtersPanel.classList.remove('open'); return; }
+
+    const scrollTop = filtersPanel.scrollTop;
+    let html = '';
+
+    if (data.price && (data.price.max > data.price.min || state.priceMin !== '' || state.priceMax !== '')) {
+      const collapsed = filterUi.collapsed.has('__price');
+      html += `<div class="f-group ${collapsed ? 'collapsed' : ''}" data-key="__price">
+        <button type="button" class="f-title" data-group-toggle="__price">Ціна, грн <span class="f-chev">▾</span></button>
+        <div class="f-values"><div class="f-price">
+          <input type="number" min="0" inputmode="numeric" placeholder="${Math.floor(data.price.min)}" value="${fEsc(state.priceMin)}" data-price="min" aria-label="Ціна від">
+          <span>—</span>
+          <input type="number" min="0" inputmode="numeric" placeholder="${Math.ceil(data.price.max)}" value="${fEsc(state.priceMax)}" data-price="max" aria-label="Ціна до">
+        </div></div></div>`;
+    }
+
+    for (const f of data.filters) {
+      const collapsed = filterUi.collapsed.has(f.key);
+      const selected = new Set(state.filters[f.key] || []);
+      const search = filterUi.search.get(f.key) || '';
+      html += `<div class="f-group ${collapsed ? 'collapsed' : ''}" data-key="${fEsc(f.key)}">
+        <button type="button" class="f-title" data-group-toggle="${fEsc(f.key)}">
+          <span>${fEsc(f.label)}${selected.size ? ` <span class="cab-hint">(${selected.size})</span>` : ''}</span><span class="f-chev">▾</span></button>
+        <div class="f-values">
+          ${f.values.length > FILTER_SEARCH_FROM ? `<input type="search" class="f-search" placeholder="Пошук" value="${fEsc(search)}" data-fsearch="${fEsc(f.key)}">` : ''}
+          ${f.values.map((v) => `
+            <label class="f-opt ${v.count === 0 ? 'zero' : ''}" data-label="${fEsc(String(v.label).toLowerCase())}">
+              <input type="checkbox" data-fkey="${fEsc(f.key)}" data-fval="${fEsc(v.value)}" ${selected.has(v.value) ? 'checked' : ''}>
+              <span class="f-label">${fEsc(v.label)}</span><span class="f-count">${v.count}</span>
+            </label>`).join('')}
+          <button type="button" class="f-more" data-more="${fEsc(f.key)}" hidden></button>
+        </div></div>`;
+    }
+    filtersBody.innerHTML = html;
+    filtersBody.querySelectorAll('.f-group[data-key]').forEach((g) => { if (g.dataset.key !== '__price') applyGroupVisibility(g); });
+    filtersPanel.scrollTop = scrollTop;
+    updateFiltersToggle();
+    updateFiltersApplyLabel();
+  }
+
+  // Чіпи вибраних фільтрів над сіткою товарів: видно, що застосовано, і можна зняти одним кліком.
+  function renderActiveFilters() {
+    if (!hasActiveFilters() || !state.shopCategoryId) { activeFiltersEl.hidden = true; activeFiltersEl.innerHTML = ''; return; }
+    const chips = [];
+    for (const [key, vals] of Object.entries(state.filters)) {
+      const group = state.facets && state.facets.filters.find((f) => f.key === key);
+      for (const val of vals) {
+        const item = group && group.values.find((v) => v.value === val);
+        chips.push(`<button type="button" class="af-chip" data-af-key="${fEsc(key)}" data-af-val="${fEsc(val)}">${fEsc(group ? group.label : key)}: ${fEsc(item ? item.label : val)} ✕</button>`);
+      }
+    }
+    if (state.priceMin !== '' || state.priceMax !== '') {
+      const txt = state.priceMin !== '' && state.priceMax !== '' ? `${state.priceMin}–${state.priceMax} грн`
+        : state.priceMin !== '' ? `від ${state.priceMin} грн` : `до ${state.priceMax} грн`;
+      chips.push(`<button type="button" class="af-chip" data-af-price>Ціна: ${fEsc(txt)} ✕</button>`);
+    }
+    chips.push('<button type="button" class="af-clear" data-af-clear>Скинути все</button>');
+    activeFiltersEl.innerHTML = chips.join('');
+    activeFiltersEl.hidden = false;
+  }
+
+  filtersBody.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.matches('input[data-fkey]')) {
+      const key = t.dataset.fkey; const val = t.dataset.fval;
+      const set = new Set(state.filters[key] || []);
+      if (t.checked) set.add(val); else set.delete(val);
+      if (set.size) state.filters[key] = [...set]; else delete state.filters[key];
+      const group = t.closest('.f-group');
+      scheduleApply();
+      if (group) applyGroupVisibility(group);
+    } else if (t.matches('input[data-price]')) {
+      let min = t.closest('.f-price').querySelector('[data-price="min"]').value.trim();
+      let max = t.closest('.f-price').querySelector('[data-price="max"]').value.trim();
+      if (min !== '' && max !== '' && Number(min) > Number(max)) [min, max] = [max, min];
+      state.priceMin = min; state.priceMax = max;
+      scheduleApply();
+      renderFilters();
+    }
+  });
+  filtersBody.addEventListener('input', (e) => {
+    if (e.target.matches('input[data-fsearch]')) {
+      filterUi.search.set(e.target.dataset.fsearch, e.target.value);
+      applyGroupVisibility(e.target.closest('.f-group'));
+    }
+  });
+  filtersBody.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('input[data-price]')) e.target.blur(); });
+  filtersBody.addEventListener('click', (e) => {
+    const toggle = e.target.closest('[data-group-toggle]');
+    if (toggle) {
+      const k = toggle.dataset.groupToggle;
+      if (filterUi.collapsed.has(k)) filterUi.collapsed.delete(k); else filterUi.collapsed.add(k);
+      toggle.closest('.f-group').classList.toggle('collapsed');
+      return;
+    }
+    const more = e.target.closest('[data-more]');
+    if (more) {
+      const k = more.dataset.more;
+      if (filterUi.expanded.has(k)) filterUi.expanded.delete(k); else filterUi.expanded.add(k);
+      applyGroupVisibility(more.closest('.f-group'));
+    }
+  });
+
+  activeFiltersEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('.af-chip');
+    if (chip && chip.dataset.afKey !== undefined) {
+      const key = chip.dataset.afKey;
+      state.filters[key] = (state.filters[key] || []).filter((v) => v !== chip.dataset.afVal);
+      if (!state.filters[key].length) delete state.filters[key];
+      renderFilters(); scheduleApply();
+    } else if (chip && chip.hasAttribute('data-af-price')) {
+      state.priceMin = ''; state.priceMax = '';
+      renderFilters(); scheduleApply();
+    } else if (e.target.closest('[data-af-clear]')) {
+      clearSelection();
+    }
+  });
+  filtersResetBtn.addEventListener('click', clearSelection);
+  document.addEventListener('click', (e) => { if (e.target.id === 'stateResetFilters') clearSelection(); });
+
+  // Мобільна версія: фільтри відкриваються на весь екран.
+  filtersToggle.addEventListener('click', () => filtersPanel.classList.add('open'));
+  document.getElementById('filtersClose').addEventListener('click', () => filtersPanel.classList.remove('open'));
+  filtersApplyBtn.addEventListener('click', () => filtersPanel.classList.remove('open'));
 
   function closeSidebarOnMobile() {
     if (window.innerWidth < 900) sidebar.classList.remove('open');
@@ -1166,242 +1596,93 @@
 
   // ---------- Account page (customer cabinet) ----------
   const accountPageEl = document.getElementById('accountPage');
+  let accountTab = 'overview';
+  let accountData = null; // { user, orders, views, config }
+
+  const CAB_TABS = [
+    { id: 'overview', icon: '🏠', label: 'Огляд' },
+    { id: 'orders', icon: '📦', label: 'Мої замовлення' },
+    { id: 'profile', icon: '👤', label: 'Особисті дані' },
+    { id: 'delivery', icon: '🚚', label: 'Адреса доставки' },
+    { id: 'security', icon: '🔒', label: 'Пароль' },
+    { id: 'viewed', icon: '👁', label: 'Переглянуті' },
+  ];
+
+  function cabEsc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function cabImg(url) {
+    // безпечно для вставки у style="background-image:url('…')"
+    return cabEsc(String(url || '').replace(/['"\\<>\s()]/g, (c) => encodeURIComponent(c)));
+  }
+  const cabAuth = () => ({ Authorization: `Bearer ${authToken}` });
+  const cabJson = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` });
 
   function hideAccountPage() {
     accountPageEl.hidden = true;
   }
 
-  async function showAccountPage() {
+  async function loadAccountData() {
+    const [meRes, ordersRes, viewsRes, configRes] = await Promise.all([
+      fetch(`${API_BASE}/api/auth/me`, { headers: cabAuth() }),
+      fetch(`${API_BASE}/api/account/orders/grouped`, { headers: cabAuth() }),
+      fetch(`${API_BASE}/api/account/views`, { headers: cabAuth() }),
+      fetch(`${API_BASE}/api/config`),
+    ]);
+    if (!meRes.ok) throw new Error('Не вдалося завантажити профіль');
+    const { user } = await meRes.json();
+    accountData = {
+      user,
+      orders: ordersRes.ok ? await ordersRes.json() : [],
+      views: viewsRes.ok ? await viewsRes.json() : [],
+      config: configRes.ok ? await configRes.json() : {},
+    };
+  }
+
+  // Відкрити кабінет (з потрібною вкладкою; за замовчуванням — «Огляд»).
+  async function showAccountPage(tab) {
+    accountTab = tab || 'overview';
     accountPageEl.hidden = false;
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    accountPageEl.innerHTML = '<p class="state-message">Завантажуємо…</p>';
-
+    accountPageEl.scrollTop = 0;
+    accountPageEl.innerHTML = '<div class="product-detail-inner"><p class="state-message">Завантажуємо…</p></div>';
     try {
-      const [meRes, ordersRes, viewsRes, configRes] = await Promise.all([
-        fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${authToken}` } }),
-        fetch(`${API_BASE}/api/account/orders/grouped`, { headers: { Authorization: `Bearer ${authToken}` } }),
-        fetch(`${API_BASE}/api/account/views`, { headers: { Authorization: `Bearer ${authToken}` } }),
-        fetch(`${API_BASE}/api/config`),
-      ]);
-      const { user } = await meRes.json();
-      const orders = ordersRes.ok ? await ordersRes.json() : [];
-      const views = viewsRes.ok ? await viewsRes.json() : [];
-      const config = configRes.ok ? await configRes.json() : {};
-
-      const ordersHtml = orders.length
-        ? orders.map(renderOrderGroup).join('')
-        : '<p style="color:var(--muted);font-size:14px;">Замовлень ще немає.</p>';
-
-      const viewsHtml = views.length
-        ? `<div class="viewed-grid">${views.map((p) => `
-            <div style="position:relative;">
-              <button type="button" class="viewed-card" data-detail-id="${p.id}">
-                <div class="viewed-thumb" style="${p.picture_url ? `background-image:url('${p.picture_url}')` : ''}"></div>
-                <div class="viewed-name">${p.name}</div>
-                <div class="viewed-price">${money(p.retail_price)}</div>
-              </button>
-              <button type="button" class="viewed-remove" data-remove-view="${p.id}" title="Прибрати з історії">✕</button>
-            </div>
-          `).join('')}</div>`
-        : '<p style="color:var(--muted);font-size:14px;">Ви ще нічого не переглядали.</p>';
-
+      await loadAccountData();
+      renderCabinet();
+    } catch (err) {
+      console.error(err);
       accountPageEl.innerHTML = `
         <div class="product-detail-inner">
-          <button class="btn-back" id="accountBackBtn" style="margin-bottom:18px;position:sticky;top:0;">← Повернутися</button>
-          <h2 style="margin-bottom:20px;">Особистий кабінет</h2>
-
-          <div class="account-section">
-            <h3>Профіль</h3>
-            <div class="field"><label>Ім'я</label><input type="text" id="acName" value="${user.name}"></div>
-            <div class="field">
-              <label>Email ${user.email_verified ? '<span class="verify-badge yes">підтверджено</span>' : '<span class="verify-badge no">не підтверджено</span>'}</label>
-              <input type="email" id="acEmail" value="${user.email}">
-              ${!user.email_verified ? `
-                <div style="display:flex;gap:8px;margin-top:6px;">
-                  <button type="button" class="btn-secondary" id="sendEmailCodeBtn" style="flex:1;">Надіслати код</button>
-                  <input type="text" id="emailCodeInput" placeholder="Код" style="width:90px;padding:8px;border:1px solid var(--line);border-radius:4px;">
-                  <button type="button" class="btn-secondary" id="verifyEmailBtn">✓</button>
-                </div>` : ''}
-            </div>
-            <div class="field">
-              <label>Телефон ${user.phone_verified ? '<span class="verify-badge yes">підтверджено</span>' : '<span class="verify-badge no">не підтверджено</span>'}</label>
-              <input type="tel" id="acPhone" value="${user.phone || ''}">
-              ${!user.phone_verified ? `
-                <div style="display:flex;gap:8px;margin-top:6px;">
-                  <button type="button" class="btn-secondary" id="sendPhoneCodeBtn" style="flex:1;">Надіслати SMS</button>
-                  <input type="text" id="phoneCodeInput" placeholder="Код" style="width:90px;padding:8px;border:1px solid var(--line);border-radius:4px;">
-                  <button type="button" class="btn-secondary" id="verifyPhoneBtn">✓</button>
-                </div>` : ''}
-            </div>
-            <button type="button" class="btn-primary" id="saveProfileBtn" style="margin-top:8px;">Зберегти профіль</button>
-            <p class="modal-status" id="profileStatus" hidden></p>
-          </div>
-
-          <div class="account-section">
-            <h3>Змінити пароль</h3>
-            <div class="field"><label>Поточний пароль</label><input type="password" id="acCurrentPassword"></div>
-            <div class="field"><label>Новий пароль</label><input type="password" id="acNewPassword"></div>
-            <button type="button" class="btn-primary" id="changePasswordBtn">Змінити пароль</button>
-            <p class="modal-status" id="passwordStatus" hidden></p>
-          </div>
-
-          <div class="account-section">
-            <h3>Мої замовлення</h3>
-            ${ordersHtml}
-          </div>
-
-          <div class="account-section">
-            <h3>Переглянуті товари ${views.length ? `<button type="button" class="btn-secondary" id="clearViewsBtn" style="float:right;font-size:12px;padding:6px 12px;">Очистити історію</button>` : ''}</h3>
-            ${viewsHtml}
-          </div>
-
-          ${config.customerBotUrl ? `
-          <div class="account-section">
-            <h3>Сповіщення в Telegram</h3>
-            <a href="${config.customerBotUrl}" target="_blank" class="btn-primary" style="display:inline-block;text-decoration:none;text-align:center;">Приєднатися до бота</a>
-          </div>` : ''}
-
-          <button type="button" class="btn-secondary" id="logoutBtn" style="width:100%;">Вийти з акаунту</button>
-        </div>
-      `;
-
+          <button class="btn-back" id="accountBackBtn">← Повернутися</button>
+          <p class="state-message">Не вдалося завантажити кабінет.<br><br>
+            <button type="button" class="btn-secondary" id="accountRetryBtn">Спробувати ще раз</button></p>
+        </div>`;
       document.getElementById('accountBackBtn').addEventListener('click', hideAccountPage);
-      document.getElementById('logoutBtn').addEventListener('click', () => { logout(); hideAccountPage(); });
+      document.getElementById('accountRetryBtn').addEventListener('click', () => showAccountPage(accountTab));
+    }
+  }
 
-      document.querySelectorAll('.reorder-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          btn.textContent = 'Додаємо…';
-          try {
-            const res = await fetch(`${API_BASE}/api/account/orders/${btn.dataset.groupKey}/reorder`, {
-              method: 'POST', headers: { Authorization: `Bearer ${authToken}` },
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Помилка');
-            updateCartBadge(data.cartCount);
-            showToast(data.skipped.length
-              ? `Додано ${data.added} із ${data.added + data.skipped.length} товарів у кошик. Немає в наявності: ${data.skipped.join(', ')}`
-              : `Додано ${data.added} товар(ів) у кошик`);
-          } catch (err) {
-            showToast(err.message || 'Не вдалося повторити замовлення');
-          } finally {
-            btn.disabled = false;
-            btn.textContent = 'Повторити замовлення';
-          }
-        });
-      });
-
-      document.querySelectorAll('.viewed-card').forEach((btn) => {
-        btn.addEventListener('click', () => { hideAccountPage(); showProductDetail(btn.dataset.detailId); });
-      });
-      document.querySelectorAll('[data-remove-view]').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await fetch(`${API_BASE}/api/account/views/${btn.dataset.removeView}`, { method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` } });
-          showAccountPage();
-        });
-      });
-      const clearViewsBtn = document.getElementById('clearViewsBtn');
-      if (clearViewsBtn) clearViewsBtn.addEventListener('click', async () => {
-        if (!confirm('Очистити всю історію переглядів?')) return;
-        await fetch(`${API_BASE}/api/account/views`, { method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` } });
-        showAccountPage();
-      });
-
-      document.getElementById('saveProfileBtn').addEventListener('click', async () => {
-        const status = document.getElementById('profileStatus');
-        try {
-          const res = await fetch(`${API_BASE}/api/account`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-            body: JSON.stringify({
-              name: document.getElementById('acName').value,
-              email: document.getElementById('acEmail').value,
-              phone: document.getElementById('acPhone').value,
-            }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Помилка');
-          currentUser = data.user;
-          setLoggedInUI();
-          status.textContent = 'Збережено!';
-          status.className = 'modal-status success';
-          status.hidden = false;
-          showAccountPage();
-        } catch (err) {
-          status.textContent = err.message;
-          status.className = 'modal-status error';
-          status.hidden = false;
-        }
-      });
-
-      document.getElementById('changePasswordBtn').addEventListener('click', async () => {
-        const status = document.getElementById('passwordStatus');
-        try {
-          const res = await fetch(`${API_BASE}/api/account/password`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-            body: JSON.stringify({
-              currentPassword: document.getElementById('acCurrentPassword').value,
-              newPassword: document.getElementById('acNewPassword').value,
-            }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Помилка');
-          status.textContent = 'Пароль змінено!';
-          status.className = 'modal-status success';
-          status.hidden = false;
-        } catch (err) {
-          status.textContent = err.message;
-          status.className = 'modal-status error';
-          status.hidden = false;
-        }
-      });
-
-      const sendEmailBtn = document.getElementById('sendEmailCodeBtn');
-      if (sendEmailBtn) sendEmailBtn.addEventListener('click', async () => {
-        const res = await fetch(`${API_BASE}/api/auth/send-email-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) showToast(data.alreadyVerified ? 'Email уже підтверджено' : 'Код надіслано на email');
-        else showToast(data.error || 'Не вдалося надіслати код', 'error');
-      });
-      const verifyEmailBtn = document.getElementById('verifyEmailBtn');
-      if (verifyEmailBtn) verifyEmailBtn.addEventListener('click', async () => {
-        const code = document.getElementById('emailCodeInput').value;
-        const res = await fetch(`${API_BASE}/api/auth/verify-email`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({ code }),
-        });
-        if (res.ok) { showToast('Email підтверджено ✓'); showAccountPage(); }
-        else showToast('Невірний код', 'error');
-      });
-
-      const sendPhoneBtn = document.getElementById('sendPhoneCodeBtn');
-      if (sendPhoneBtn) sendPhoneBtn.addEventListener('click', async () => {
-        const res = await fetch(`${API_BASE}/api/auth/send-phone-code`, { method: 'POST', headers: { Authorization: `Bearer ${authToken}` } });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) showToast(data.alreadyVerified ? 'Телефон уже підтверджено' : 'Код надіслано SMS');
-        else showToast(data.error || 'Не вдалося надіслати код', 'error');
-      });
-      const verifyPhoneBtn = document.getElementById('verifyPhoneBtn');
-      if (verifyPhoneBtn) verifyPhoneBtn.addEventListener('click', async () => {
-        const code = document.getElementById('phoneCodeInput').value;
-        const res = await fetch(`${API_BASE}/api/auth/verify-phone`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-          body: JSON.stringify({ code }),
-        });
-        if (res.ok) { showToast('Телефон підтверджено ✓'); showAccountPage(); }
-        else showToast('Невірний код', 'error');
-      });
+  // Оновити дані без скидання вкладки й прокрутки (після збереження, змін тощо).
+  async function refreshAccount() {
+    const scroll = accountPageEl.scrollTop;
+    try {
+      await loadAccountData();
+      renderCabinet();
+      accountPageEl.scrollTop = scroll;
     } catch (err) {
-      accountPageEl.innerHTML = '<p class="state-message">Не вдалося завантажити кабінет.</p>';
       console.error(err);
     }
   }
 
+  function setAccountTab(id) {
+    accountTab = id;
+    renderCabinet();
+    accountPageEl.scrollTop = 0;
+  }
+
+  // ----- статуси замовлень -----
   function orderStatusLabel(status) {
     const labels = {
-      new: 'Нове', confirmed: 'Підтверджено', ordered_from_supplier: 'Замовлено у постачальника',
+      new: 'Прийнято', confirmed: 'Підтверджено', ordered_from_supplier: 'Готується до відправки',
       shipped: 'Відправлено', done: 'Виконано', cancelled: 'Скасовано',
     };
     return labels[status] || status;
@@ -1412,42 +1693,470 @@
     if (status === 'cancelled') return 'cancelled';
     return '';
   }
+  // Крок на шкалі: Прийнято → Підтверджено → Відправлено → Виконано
+  const CAB_STEPS = ['Прийнято', 'Підтверджено', 'Відправлено', 'Виконано'];
+  function cabStepIndex(status) {
+    return { new: 0, confirmed: 1, ordered_from_supplier: 1, shipped: 2, done: 3 }[status] ?? 0;
+  }
 
-  function renderOrderGroup(o) {
+  function cabDeliveryLine(o) {
+    const city = o.city || '';
+    if (o.delivery_method === 'branch') {
+      return `Нова пошта · ${city}${o.np_branch ? ', ' + o.np_branch : ''}`;
+    }
+    if (o.delivery_method === 'postomat') {
+      return `Поштомат Нової пошти · ${city}${o.np_branch ? ', ' + o.np_branch : ''}`;
+    }
+    if (o.delivery_method === 'courier') {
+      return `Кур'єром · ${o.courier_address || city}`;
+    }
+    return '';
+  }
+
+  function cabOrderCard(o) {
+    const cancelled = o.status === 'cancelled';
+    const idx = cabStepIndex(o.status);
+    const stepsHtml = cancelled
+      ? '<div class="cab-cancelled">Замовлення скасовано. Якщо це сталося помилково — напишіть нам.</div>'
+      : `<div class="cab-steps">${CAB_STEPS.map((label, i) =>
+          `<div class="cab-step ${i <= idx ? 'reached' : ''} ${i === idx ? 'current' : ''}">${label}</div>`).join('')}</div>`;
+
     const itemsHtml = o.items.map((it) => `
-      <div class="order-row">
-        <div class="order-thumb" style="${it.picture_url ? `background-image:url('${it.picture_url}')` : ''}"></div>
+      <div class="order-row ${it.product_id ? 'cab-item-link' : ''}" ${it.product_id ? `data-open-product="${cabEsc(it.product_id)}"` : ''}>
+        <div class="order-thumb" style="${it.picture_url ? `background-image:url('${cabImg(it.picture_url)}')` : ''}"></div>
         <div style="flex:1;">
-          <div style="font-size:14px;">${it.name}</div>
-          <div style="font-size:12px;color:var(--muted);">${it.quantity} × ${money(it.unit_price)}</div>
+          <div class="cab-item-name">${cabEsc(it.name)}</div>
+          <div class="cab-hint">${it.quantity} × ${money(it.unit_price)}</div>
         </div>
         ${it.status !== o.status ? `<span class="order-status ${orderStatusClass(it.status)}">${orderStatusLabel(it.status)}</span>` : ''}
-      </div>
-    `).join('');
+      </div>`).join('');
 
-    const deliveryLine = o.delivery_method === 'branch'
-      ? `Нова пошта, ${o.city || ''}${o.np_branch ? ', ' + o.np_branch : ''}`
-      : (o.delivery_method === 'courier' ? `Кур'єром, ${o.courier_address || o.city || ''}` : '');
+    const delivery = cabDeliveryLine(o);
+    const ttnHtml = o.ttns.length ? o.ttns.map((t) => `
+      <div class="cab-ttn-row">
+        <span>ТТН <b>${cabEsc(t)}</b></span>
+        <button type="button" class="cab-link-btn" data-copy="${cabEsc(t)}">Копіювати</button>
+        <a class="cab-link-btn" href="https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(t)}" target="_blank" rel="noopener">Відстежити посилку</a>
+      </div>`).join('') : '';
 
     return `
-      <div class="order-group" data-group-key="${o.group_key}">
-        <div class="order-group-head">
+      <div class="cab-order">
+        <div class="cab-order-head">
           <div>
-            <div style="font-weight:700;">Замовлення №${o.number}</div>
-            <div class="order-group-meta">${new Date(o.created_at).toLocaleDateString('uk-UA')}${deliveryLine ? ' · ' + deliveryLine : ''}</div>
+            <div class="cab-order-title">Замовлення №${o.number}</div>
+            <div class="cab-order-meta">від ${new Date(o.created_at).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
           </div>
           <span class="order-status ${orderStatusClass(o.status)}">${orderStatusLabel(o.status)}</span>
         </div>
-        ${itemsHtml}
-        <div class="order-group-foot">
-          <div>
-            <div class="order-total">Разом: ${money(o.total)}</div>
-            ${o.ttns.length ? `<div class="order-ttn">ТТН: ${o.ttns.join(', ')}</div>` : ''}
-          </div>
-          <button type="button" class="btn-secondary reorder-btn" data-group-key="${o.group_key}">Повторити замовлення</button>
+        ${stepsHtml}
+        <div class="cab-items">${itemsHtml}</div>
+        ${delivery ? `<div class="cab-delivery">🚚 ${cabEsc(delivery)}</div>` : ''}
+        ${ttnHtml}
+        <div class="cab-order-foot">
+          <div class="order-total">Разом: ${money(o.total)}</div>
+          <button type="button" class="btn-secondary reorder-btn" data-group-key="${cabEsc(o.group_key)}">Повторити замовлення</button>
         </div>
+      </div>`;
+  }
+
+  // ----- вкладки -----
+  function cabIsActive(o) { return o.status !== 'done' && o.status !== 'cancelled'; }
+
+  function cabTabOverview() {
+    const { user, orders, config } = accountData;
+    const active = orders.filter(cabIsActive);
+    const spent = orders.filter((o) => o.status !== 'cancelled').reduce((sum, o) => sum + (o.total || 0), 0);
+    const alerts = [];
+    if (!user.phone_verified) alerts.push({ text: '📱 Підтвердіть номер телефону — так ми зможемо надсилати вам повідомлення про замовлення.', tab: 'profile' });
+    if (!user.email_verified) alerts.push({ text: '✉️ Підтвердіть email, щоб не пропустити листи про замовлення.', tab: 'profile' });
+    const alertsHtml = alerts.map((a) => `
+      <div class="cab-alert"><span>${a.text}</span>
+        <button type="button" class="btn-secondary cab-sm" data-go-tab="${a.tab}">Підтвердити</button></div>`).join('');
+
+    const last = orders[0];
+    const lastHtml = last
+      ? `<h3 style="font-size:16px;margin:4px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;">${active.length ? 'Поточне замовлення' : 'Останнє замовлення'}
+           <button type="button" class="cab-link-btn" data-go-tab="orders" style="font-size:13px;font-weight:400;">Усі замовлення →</button></h3>
+           ${cabOrderCard(active[0] || last)}`
+      : `<div class="cab-card"><div class="cab-empty">У вас ще немає замовлень.<br>
+           <button type="button" class="btn-primary" data-close-cabinet>Перейти до каталогу</button></div></div>`;
+
+    const tg = config.customerBotUrl
+      ? `<div class="cab-card"><h3>Сповіщення в Telegram</h3>
+           <p class="cab-muted" style="margin-bottom:12px;">Підключіть бота — і статуси замовлень приходитимуть вам у Telegram.</p>
+           <a href="${cabEsc(config.customerBotUrl)}" target="_blank" rel="noopener" class="btn-primary" style="display:inline-block;text-decoration:none;text-align:center;flex:none;padding:11px 22px;">Приєднатися до бота</a></div>`
+      : '';
+
+    return `
+      ${alertsHtml}
+      <div class="cab-stats">
+        <div class="cab-stat"><div class="cab-stat-num">${orders.length}</div><div class="cab-stat-label">Усього замовлень</div></div>
+        <div class="cab-stat"><div class="cab-stat-num">${active.length}</div><div class="cab-stat-label">Зараз в роботі</div></div>
+        <div class="cab-stat"><div class="cab-stat-num">${money(spent)}</div><div class="cab-stat-label">На суму</div></div>
       </div>
-    `;
+      ${lastHtml}
+      <div class="cab-card"><h3>Потрібна допомога?</h3>
+        <p class="cab-muted" style="margin-bottom:12px;">Питання щодо замовлення, доставки чи повернення — напишіть нам, ми відповімо.</p>
+        <button type="button" class="btn-secondary" data-open-contact>✉️ Написати нам</button></div>
+      ${tg}`;
+  }
+
+  let cabOrderFilter = 'all';
+  function cabTabOrders() {
+    const orders = accountData.orders;
+    const groups = {
+      all: orders,
+      active: orders.filter(cabIsActive),
+      done: orders.filter((o) => o.status === 'done'),
+      cancelled: orders.filter((o) => o.status === 'cancelled'),
+    };
+    const labels = { all: 'Усі', active: 'Активні', done: 'Виконані', cancelled: 'Скасовані' };
+    if (!groups[cabOrderFilter] || (cabOrderFilter !== 'all' && !groups[cabOrderFilter].length)) cabOrderFilter = 'all';
+
+    if (!orders.length) {
+      return `<div class="cab-card"><div class="cab-empty">У вас ще немає замовлень.<br>
+        <button type="button" class="btn-primary" data-close-cabinet>Перейти до каталогу</button></div></div>`;
+    }
+    const chips = Object.keys(labels)
+      .filter((k) => k === 'all' || groups[k].length)
+      .map((k) => `<button type="button" class="cab-chip ${cabOrderFilter === k ? 'active' : ''}" data-order-filter="${k}">${labels[k]} (${groups[k].length})</button>`)
+      .join('');
+    return `<div class="cab-chips">${chips}</div>${groups[cabOrderFilter].map(cabOrderCard).join('')}`;
+  }
+
+  function cabVerifyBlock(kind, user) {
+    const isPhone = kind === 'phone';
+    const verified = isPhone ? user.phone_verified : user.email_verified;
+    if (verified) return '';
+    const what = isPhone ? 'SMS' : 'лист';
+    return `
+      <div class="cab-verify" data-verify-block="${kind}">
+        <span>Надішлемо ${what} з кодом на збережений ${isPhone ? 'номер' : 'email'}:</span>
+        <button type="button" class="btn-secondary cab-sm" data-send-code="${kind}">Надіслати код</button>
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Код" data-code-input="${kind}">
+        <button type="button" class="btn-primary cab-sm" data-verify-code="${kind}">Підтвердити</button>
+      </div>`;
+  }
+
+  function cabTabProfile() {
+    const u = accountData.user;
+    const badge = (ok) => ok ? '<span class="cab-verified">✓ підтверджено</span>' : '<span class="cab-unverified">не підтверджено</span>';
+    return `
+      <div class="cab-card">
+        <h3>Особисті дані</h3>
+        <div class="field"><label for="acName">Ім'я</label><input type="text" id="acName" value="${cabEsc(u.name)}"></div>
+        <div class="field">
+          <label for="acEmail">Email ${badge(u.email_verified)}</label>
+          <input type="email" id="acEmail" value="${cabEsc(u.email)}">
+          ${cabVerifyBlock('email', u)}
+        </div>
+        <div class="field">
+          <label for="acPhone">Телефон ${badge(u.phone_verified)}</label>
+          <input type="tel" id="acPhone" value="${cabEsc(u.phone || '')}" placeholder="+380…">
+          ${cabVerifyBlock('phone', u)}
+        </div>
+        <p class="cab-hint" id="acDirtyHint" hidden>Ви змінили дані. Після збереження email чи телефон потрібно підтвердити заново.</p>
+        <div class="cab-actions"><button type="button" class="btn-primary" id="saveProfileBtn" disabled>Зберегти зміни</button></div>
+        <p class="modal-status" id="profileStatus" hidden></p>
+      </div>`;
+  }
+
+  const CAB_DELIVERY_LABELS = { branch: 'Відділення Нової пошти', postomat: 'Поштомат Нової пошти', courier: "Кур'єрська доставка" };
+  function cabTabDelivery() {
+    const u = accountData.user;
+    const has = u.saved_city || u.saved_courier_address || u.saved_branch;
+    if (!has) {
+      return `<div class="cab-card"><h3>Адреса доставки</h3>
+        <div class="cab-empty">Збережена адреса з'явиться тут після першого замовлення —<br>і підставлятиметься автоматично.<br>
+        <button type="button" class="btn-primary" data-close-cabinet>Перейти до каталогу</button></div></div>`;
+    }
+    const rows = [
+      ['Спосіб доставки', CAB_DELIVERY_LABELS[u.saved_delivery_method] || '—'],
+      ['Населений пункт', u.saved_city || '—'],
+    ];
+    if (u.saved_delivery_method === 'courier') rows.push(['Адреса', u.saved_courier_address || '—']);
+    else rows.push([u.saved_delivery_method === 'postomat' ? 'Поштомат' : 'Відділення', u.saved_branch || '—']);
+    return `<div class="cab-card"><h3>Адреса доставки</h3>
+      ${rows.map(([k, v]) => `<div class="cab-row"><span>${k}</span><span>${cabEsc(v)}</span></div>`).join('')}
+      <p class="cab-hint" style="margin-top:12px;">Ми запам'ятовуємо адресу останнього замовлення і підставляємо її при оформленні нового. Щоб змінити її — просто оформіть замовлення з іншою адресою.</p>
+      <div class="cab-actions"><button type="button" class="btn-secondary" id="clearDeliveryBtn">Видалити збережену адресу</button></div>
+    </div>`;
+  }
+
+  function cabTabSecurity() {
+    return `
+      <div class="cab-card">
+        <h3>Змінити пароль</h3>
+        <div class="field"><label for="acCurrentPassword">Поточний пароль</label><input type="password" id="acCurrentPassword" autocomplete="current-password"></div>
+        <div class="field"><label for="acNewPassword">Новий пароль (мінімум 6 символів)</label><input type="password" id="acNewPassword" autocomplete="new-password"></div>
+        <div class="field"><label for="acNewPassword2">Повторіть новий пароль</label><input type="password" id="acNewPassword2" autocomplete="new-password"></div>
+        <label class="cab-hint" style="display:flex;gap:6px;align-items:center;margin-bottom:12px;cursor:pointer;">
+          <input type="checkbox" id="acShowPasswords"> Показати паролі</label>
+        <div class="cab-actions"><button type="button" class="btn-primary" id="changePasswordBtn">Змінити пароль</button></div>
+        <p class="modal-status" id="passwordStatus" hidden></p>
+      </div>`;
+  }
+
+  function cabTabViewed() {
+    const views = accountData.views;
+    if (!views.length) {
+      return `<div class="cab-card"><h3>Переглянуті товари</h3><div class="cab-empty">Ви ще нічого не переглядали.<br>
+        <button type="button" class="btn-primary" data-close-cabinet>Перейти до каталогу</button></div></div>`;
+    }
+    return `<div class="cab-card">
+      <h3>Переглянуті товари <button type="button" class="btn-secondary cab-sm" id="clearViewsBtn">Очистити історію</button></h3>
+      <div class="viewed-grid">${views.map((p) => `
+        <div style="position:relative;">
+          <button type="button" class="viewed-card" data-detail-id="${cabEsc(p.id)}">
+            <div class="viewed-thumb" style="${p.picture_url ? `background-image:url('${cabImg(p.picture_url)}')` : ''}"></div>
+            <div class="viewed-name">${cabEsc(p.name)}</div>
+            <div class="viewed-price">${money(p.retail_price)}</div>
+          </button>
+          <button type="button" class="viewed-remove" data-remove-view="${cabEsc(p.id)}" title="Прибрати з історії">✕</button>
+        </div>`).join('')}</div></div>`;
+  }
+
+  function renderCabinet() {
+    const { user, orders } = accountData;
+    const initials = (user.name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    const activeCount = orders.filter(cabIsActive).length;
+    const needsProfile = !user.phone_verified || !user.email_verified;
+
+    const nav = CAB_TABS.map((t) => {
+      let badge = '';
+      if (t.id === 'orders' && activeCount) badge = `<span class="cab-nav-badge">${activeCount}</span>`;
+      if (t.id === 'profile' && needsProfile) badge = '<span class="cab-nav-badge">!</span>';
+      return `<button type="button" class="cab-nav-btn ${accountTab === t.id ? 'active' : ''}" data-tab="${t.id}">
+        <span>${t.icon}</span><span>${t.label}</span>${badge}</button>`;
+    }).join('');
+
+    const tabs = {
+      overview: cabTabOverview, orders: cabTabOrders, profile: cabTabProfile,
+      delivery: cabTabDelivery, security: cabTabSecurity, viewed: cabTabViewed,
+    };
+    const body = (tabs[accountTab] || cabTabOverview)();
+
+    accountPageEl.innerHTML = `
+      <div class="product-detail-inner">
+        <button class="btn-back" id="accountBackBtn" style="margin-bottom:18px;position:sticky;top:0;z-index:2;">← Повернутися в магазин</button>
+        <div class="cab-head">
+          <div class="cab-avatar">${cabEsc(initials)}</div>
+          <div class="cab-head-text">
+            <h2>Вітаємо, ${cabEsc((user.name || '').split(' ')[0])}!</h2>
+            <div class="cab-sub">${cabEsc(user.email)}</div>
+          </div>
+          <button type="button" class="btn-secondary" id="logoutBtn">Вийти</button>
+        </div>
+        <div class="cab-layout">
+          <nav class="cab-nav">${nav}</nav>
+          <section class="cab-content">${body}</section>
+        </div>
+      </div>`;
+    bindCabinet();
+    // На телефоні вкладки гортаються вбік — показуємо активну по центру.
+    const navEl = accountPageEl.querySelector('.cab-nav');
+    const activeBtn = navEl && navEl.querySelector('.cab-nav-btn.active');
+    if (activeBtn && navEl.scrollWidth > navEl.clientWidth) {
+      navEl.scrollLeft = activeBtn.offsetLeft - (navEl.clientWidth - activeBtn.clientWidth) / 2;
+    }
+  }
+
+  // 60-секундна пауза між надсиланням кодів
+  function cabCooldown(btn, seconds = 60) {
+    const label = btn.textContent;
+    btn.disabled = true;
+    let left = seconds;
+    const timer = setInterval(() => {
+      left -= 1;
+      if (left <= 0 || !document.body.contains(btn)) {
+        clearInterval(timer);
+        btn.disabled = false;
+        btn.textContent = label;
+        return;
+      }
+      btn.textContent = `Ще раз через ${left} с`;
+    }, 1000);
+    btn.textContent = `Ще раз через ${left} с`;
+  }
+
+  function cabStatus(el, text, ok) {
+    el.textContent = text;
+    el.className = 'modal-status ' + (ok ? 'success' : 'error');
+    el.hidden = false;
+  }
+
+  function bindCabinet() {
+    const root = accountPageEl;
+    const $ = (id) => document.getElementById(id);
+
+    $('accountBackBtn').addEventListener('click', hideAccountPage);
+    $('logoutBtn').addEventListener('click', () => { logout(); hideAccountPage(); });
+
+    root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => setAccountTab(b.dataset.tab)));
+    root.querySelectorAll('[data-go-tab]').forEach((b) => b.addEventListener('click', () => setAccountTab(b.dataset.goTab)));
+    root.querySelectorAll('[data-close-cabinet]').forEach((b) => b.addEventListener('click', hideAccountPage));
+    root.querySelectorAll('[data-open-contact]').forEach((b) => b.addEventListener('click', () => $('contactBtn').click()));
+    root.querySelectorAll('[data-order-filter]').forEach((b) => b.addEventListener('click', () => {
+      cabOrderFilter = b.dataset.orderFilter;
+      renderCabinet();
+    }));
+    root.querySelectorAll('[data-open-product]').forEach((el) => el.addEventListener('click', () => {
+      hideAccountPage();
+      showProductDetail(el.dataset.openProduct);
+    }));
+    root.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.dataset.copy); showToast('ТТН скопійовано'); }
+      catch { showToast('Не вдалося скопіювати', 'error'); }
+    }));
+
+    root.querySelectorAll('.reorder-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Додаємо…';
+        try {
+          const res = await fetch(`${API_BASE}/api/account/orders/${btn.dataset.groupKey}/reorder`, { method: 'POST', headers: cabAuth() });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Помилка');
+          updateCartBadge(data.cartCount);
+          showToast(data.skipped.length
+            ? `Додано ${data.added} із ${data.added + data.skipped.length} товарів у кошик. Немає в наявності: ${data.skipped.join(', ')}`
+            : `Додано ${data.added} товар(ів) у кошик`);
+        } catch (err) {
+          showToast(err.message || 'Не вдалося повторити замовлення', 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Повторити замовлення';
+        }
+      });
+    });
+
+    // Переглянуті
+    root.querySelectorAll('.viewed-card').forEach((btn) => btn.addEventListener('click', () => {
+      hideAccountPage();
+      showProductDetail(btn.dataset.detailId);
+    }));
+    root.querySelectorAll('[data-remove-view]').forEach((btn) => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await fetch(`${API_BASE}/api/account/views/${btn.dataset.removeView}`, { method: 'DELETE', headers: cabAuth() });
+      refreshAccount();
+    }));
+    const clearViewsBtn = $('clearViewsBtn');
+    if (clearViewsBtn) clearViewsBtn.addEventListener('click', async () => {
+      if (!confirm('Очистити всю історію переглядів?')) return;
+      await fetch(`${API_BASE}/api/account/views`, { method: 'DELETE', headers: cabAuth() });
+      refreshAccount();
+    });
+
+    // Адреса доставки
+    const clearDeliveryBtn = $('clearDeliveryBtn');
+    if (clearDeliveryBtn) clearDeliveryBtn.addEventListener('click', async () => {
+      if (!confirm('Видалити збережену адресу доставки?')) return;
+      const res = await fetch(`${API_BASE}/api/account`, {
+        method: 'PATCH', headers: cabJson(),
+        body: JSON.stringify({ saved_delivery_method: null, saved_city: null, saved_city_ref: null, saved_branch: null, saved_courier_address: null }),
+      });
+      if (res.ok) { showToast('Адресу видалено'); refreshAccount(); }
+      else showToast('Не вдалося видалити адресу', 'error');
+    });
+
+    // Профіль
+    const saveBtn = $('saveProfileBtn');
+    if (saveBtn) {
+      const u = accountData.user;
+      const fields = { name: $('acName'), email: $('acEmail'), phone: $('acPhone') };
+      const original = { name: u.name || '', email: u.email || '', phone: u.phone || '' };
+      const changed = () => Object.keys(fields).filter((k) => fields[k].value.trim() !== original[k]);
+
+      const onInput = () => {
+        const diff = changed();
+        saveBtn.disabled = diff.length === 0;
+        $('acDirtyHint').hidden = !(diff.includes('email') || diff.includes('phone'));
+        // Код надсилається на збережене значення — поки є незбережені зміни, блок підтвердження ховаємо.
+        root.querySelectorAll('[data-verify-block]').forEach((b) => {
+          const k = b.dataset.verifyBlock;
+          b.style.display = diff.includes(k) ? 'none' : '';
+        });
+      };
+      Object.values(fields).forEach((f) => f.addEventListener('input', onInput));
+
+      saveBtn.addEventListener('click', async () => {
+        const status = $('profileStatus');
+        const diff = changed();
+        if (!diff.length) return;
+        if (!fields.name.value.trim()) { cabStatus(status, "Вкажіть ім'я", false); return; }
+        // Надсилаємо лише змінені поля: сервер скидає підтвердження для кожного переданого email/phone.
+        const payload = {};
+        diff.forEach((k) => { payload[k] = fields[k].value.trim(); });
+        saveBtn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/account`, { method: 'PATCH', headers: cabJson(), body: JSON.stringify(payload) });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Не вдалося зберегти');
+          currentUser = { ...currentUser, ...data.user };
+          setLoggedInUI();
+          showToast('Зміни збережено');
+          refreshAccount();
+        } catch (err) {
+          cabStatus(status, err.message, false);
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
+    // Підтвердження телефону / email кодом
+    root.querySelectorAll('[data-send-code]').forEach((btn) => btn.addEventListener('click', async () => {
+      const kind = btn.dataset.sendCode;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/${kind === 'phone' ? 'send-phone-code' : 'send-email-code'}`, { method: 'POST', headers: cabAuth() });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Не вдалося надіслати код');
+        showToast(kind === 'phone' ? 'Код надіслано в SMS' : 'Код надіслано на email');
+        cabCooldown(btn);
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.disabled = false;
+      }
+    }));
+    root.querySelectorAll('[data-verify-code]').forEach((btn) => btn.addEventListener('click', async () => {
+      const kind = btn.dataset.verifyCode;
+      const code = root.querySelector(`[data-code-input="${kind}"]`).value.trim();
+      if (!code) { showToast('Введіть код', 'error'); return; }
+      const res = await fetch(`${API_BASE}/api/auth/${kind === 'phone' ? 'verify-phone' : 'verify-email'}`, {
+        method: 'POST', headers: cabJson(), body: JSON.stringify({ code }),
+      });
+      if (res.ok) { showToast(kind === 'phone' ? 'Телефон підтверджено ✓' : 'Email підтверджено ✓'); refreshAccount(); }
+      else showToast('Невірний або прострочений код', 'error');
+    }));
+
+    // Пароль
+    const pwBtn = $('changePasswordBtn');
+    if (pwBtn) {
+      const ids = ['acCurrentPassword', 'acNewPassword', 'acNewPassword2'];
+      $('acShowPasswords').addEventListener('change', (e) => ids.forEach((id) => { $(id).type = e.target.checked ? 'text' : 'password'; }));
+      pwBtn.addEventListener('click', async () => {
+        const status = $('passwordStatus');
+        const cur = $('acCurrentPassword').value;
+        const next = $('acNewPassword').value;
+        if (!cur || !next) { cabStatus(status, 'Введіть поточний і новий пароль', false); return; }
+        if (next.length < 6) { cabStatus(status, 'Новий пароль — мінімум 6 символів', false); return; }
+        if (next !== $('acNewPassword2').value) { cabStatus(status, 'Паролі не збігаються', false); return; }
+        pwBtn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/account/password`, {
+            method: 'PATCH', headers: cabJson(), body: JSON.stringify({ currentPassword: cur, newPassword: next }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Не вдалося змінити пароль');
+          ids.forEach((id) => { $(id).value = ''; });
+          cabStatus(status, 'Пароль змінено', true);
+        } catch (err) {
+          cabStatus(status, err.message, false);
+        } finally {
+          pwBtn.disabled = false;
+        }
+      });
+    }
   }
 
   grid.addEventListener('click', (e) => {
