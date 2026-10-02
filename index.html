@@ -585,7 +585,7 @@
       <div class="field">
         <label for="regPhone">Телефон</label>
         <input type="tel" id="regPhone" placeholder="+380..." required>
-        <div class="field-hint">Телефон обов'язковий. Після реєстрації ми надішлемо SMS з кодом — підтвердити номер можна в особистому кабінеті.</div>
+        <div class="field-hint">Телефон обов'язковий: на нього прийде SMS із кодом для підтвердження.</div>
       </div>
       <div class="field"><label for="regPassword">Пароль (мінімум 6 символів)</label><input type="password" id="regPassword" required minlength="6"></div>
       <div class="modal-actions">
@@ -595,6 +595,23 @@
       <p class="modal-status" id="registerStatus" hidden></p>
     </form>
     <p style="margin-top:14px;font-size:14px;">Вже є акаунт? <a href="#" id="showLogin" style="color:var(--rust-dark);font-weight:700;">Увійти</a></p>
+  </div>
+</div>
+
+<!-- Phone verification (SMS code) — shown after registration / login of an unverified phone -->
+<div class="modal-backdrop" id="verifyBackdrop" hidden>
+  <div class="modal">
+    <h2>Підтвердження телефону</h2>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">Ми надіслали SMS із кодом на номер <b id="verifyPhoneLabel"></b>. Введіть код, щоб завершити вхід.</p>
+    <form id="verifyForm">
+      <div class="field"><label for="verifyCode">Код із SMS</label><input type="text" id="verifyCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="verifyCancel">Скасувати</button>
+        <button type="submit" class="btn-primary" id="verifySubmit">Підтвердити</button>
+      </div>
+      <p class="modal-status" id="verifyStatus" hidden></p>
+      <button type="button" class="btn-secondary" id="verifyResend" style="width:100%;margin-top:10px;">Надіслати код ще раз</button>
+    </form>
   </div>
 </div>
 
@@ -1702,6 +1719,10 @@
         }),
       });
       const data = await res.json();
+      if (res.status === 403 && data.needsVerification) {
+        openVerify(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value, data, authBackdrop);
+        return;
+      }
       if (!res.ok) {
         if (res.status === 401) showForgotPasswordBtn.hidden = false;
         throw new Error(data.error || 'Помилка входу');
@@ -1737,6 +1758,10 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Помилка реєстрації');
+      if (data.needsVerification) {
+        openVerify(document.getElementById('regEmail').value, document.getElementById('regPassword').value, data, registerBackdrop);
+        return;
+      }
 
       authToken = data.token;
       currentUser = data.user;
@@ -1749,6 +1774,110 @@
       registerStatus.textContent = err.message;
       registerStatus.className = 'modal-status error';
       registerStatus.hidden = false;
+    }
+  });
+
+  // ---------- Phone verification (SMS) ----------
+  // Після реєстрації або входу з непідтвердженим номером сервер не видає
+  // токен, а надсилає код у SMS. Email і пароль зберігаємо лише в пам'яті
+  // сторінки на час підтвердження.
+  const verifyBackdrop = document.getElementById('verifyBackdrop');
+  const verifyForm = document.getElementById('verifyForm');
+  const verifyStatus = document.getElementById('verifyStatus');
+  const verifyResendBtn = document.getElementById('verifyResend');
+  let pendingVerify = null;
+  let verifyResendTimer = null;
+
+  function showVerifyStatus(text, ok) {
+    verifyStatus.textContent = text;
+    verifyStatus.className = 'modal-status ' + (ok ? 'success' : 'error');
+    verifyStatus.hidden = false;
+  }
+
+  function startResendCooldown(seconds) {
+    clearInterval(verifyResendTimer);
+    let left = seconds;
+    verifyResendBtn.disabled = true;
+    const tick = () => {
+      if (left <= 0) {
+        clearInterval(verifyResendTimer);
+        verifyResendBtn.disabled = false;
+        verifyResendBtn.textContent = 'Надіслати код ще раз';
+        return;
+      }
+      verifyResendBtn.textContent = `Надіслати код ще раз (${left} с)`;
+      left -= 1;
+    };
+    tick();
+    verifyResendTimer = setInterval(tick, 1000);
+  }
+
+  function openVerify(email, password, data, fromBackdrop) {
+    pendingVerify = { email, password };
+    if (fromBackdrop) fromBackdrop.hidden = true;
+    verifyForm.reset();
+    document.getElementById('verifyPhoneLabel').textContent = data.phoneHint || 'вказаний при реєстрації';
+    if (data.smsSent === false) {
+      showVerifyStatus('Не вдалося надіслати SMS. Натисніть «Надіслати код ще раз».', false);
+      verifyResendBtn.disabled = false;
+      verifyResendBtn.textContent = 'Надіслати код ще раз';
+    } else {
+      verifyStatus.hidden = true;
+      startResendCooldown(60);
+    }
+    verifyBackdrop.hidden = false;
+    document.getElementById('verifyCode').focus();
+  }
+
+  function closeVerify() {
+    clearInterval(verifyResendTimer);
+    pendingVerify = null;
+    verifyBackdrop.hidden = true;
+  }
+
+  document.getElementById('verifyCancel').addEventListener('click', closeVerify);
+  verifyBackdrop.addEventListener('click', (e) => { if (e.target === verifyBackdrop) closeVerify(); });
+
+  verifyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!pendingVerify) return;
+    verifyStatus.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/verify-login-phone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...pendingVerify, code: document.getElementById('verifyCode').value.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Не вдалося підтвердити номер');
+
+      authToken = data.token;
+      currentUser = data.user;
+      localStorage.setItem('authToken', authToken);
+      setLoggedInUI();
+      refreshCartBadge();
+      syncGuestViews();
+      closeVerify();
+    } catch (err) {
+      showVerifyStatus(err.message, false);
+    }
+  });
+
+  verifyResendBtn.addEventListener('click', async () => {
+    if (!pendingVerify) return;
+    verifyStatus.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/resend-login-phone-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingVerify),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Не вдалося надіслати код');
+      showVerifyStatus('Код надіслано повторно.', true);
+      startResendCooldown(60);
+    } catch (err) {
+      showVerifyStatus(err.message, false);
     }
   });
 
