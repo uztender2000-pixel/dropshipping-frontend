@@ -1085,6 +1085,35 @@
   // ---------- Dashboard ----------
   let ordersChartInstance = null;
 
+  // Залишок на рахунку AlphaSMS — окрема картка на дашборді. Вантажиться окремо від решти статистики,
+  // щоб повільна відповідь SMS-шлюзу не затримувала дашборд. Показується лише тим, хто має доступ до SMS.
+  async function loadDashSmsBalance() {
+    if (!(isOwner || currentAdmin.permissions?.settings)) return;
+    const grid = document.getElementById('statGrid');
+    const draw = (html, danger) => {
+      const old = document.getElementById('dashSmsCard');
+      if (old) old.remove();
+      grid.insertAdjacentHTML('beforeend',
+        `<div class="stat-card" id="dashSmsCard" style="cursor:pointer;${danger ? 'border-color:#F3C9C0;' : ''}" title="Відкрити журнал SMS">${html}</div>`);
+      document.getElementById('dashSmsCard').addEventListener('click', () => document.getElementById('smsNavItem').click());
+    };
+    try {
+      const { ok, data } = await api('/api/admin/sms/balance');
+      if (!ok) return; // немає прав або сервер недоступний — картку просто не показуємо
+      if (!data.configured) {
+        draw('<div class="label">Залишок AlphaSMS</div><div class="value" style="font-size:15px;color:var(--muted);">SMS не налаштовано</div>');
+      } else if (data.error) {
+        draw(`<div class="label" style="color:var(--red);">Залишок AlphaSMS</div><div class="value" style="font-size:14px;color:var(--red);">${esc(data.error)}</div>`, true);
+      } else {
+        const low = data.balance.amount < 10;
+        draw(`<div class="label"${low ? ' style="color:var(--red);"' : ''}>Залишок AlphaSMS${low ? ' — поповніть рахунок' : ''}</div>
+              <div class="value" style="color:${low ? 'var(--red)' : 'var(--green)'};">${smsMoney(data.balance.amount, data.balance.currency)}</div>`, low);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function loadDashboard() {
     try {
       const { ok, data } = await api('/api/admin/stats');
@@ -1101,6 +1130,8 @@
         <div class="stat-card"><div class="label">Постачальників активних</div><div class="value">${esc(t.active_suppliers)}</div></div>
         ${Number(t.failed_submissions) > 0 ? `<div class="stat-card" style="border-color:#F3C9C0;"><div class="label" style="color:var(--red);">Не пішли постачальнику</div><div class="value" style="color:var(--red);">${esc(t.failed_submissions)}</div></div>` : ''}
       `;
+
+      loadDashSmsBalance();
 
       const days = data.last30Days.map((d) => d.day.slice(5));
       const counts = data.last30Days.map((d) => d.count);
