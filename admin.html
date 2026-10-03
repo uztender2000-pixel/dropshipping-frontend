@@ -293,6 +293,7 @@
     <a class="nav-item" data-view="products" id="productsNavItem">🧩 Товари (відбір)</a>
     <a class="nav-item" data-view="sections" id="sectionsNavItem">🌐 Переклади розділів</a>
     <a class="nav-item" data-view="logs" id="logsNavItem">🪵 Логи</a>
+    <a class="nav-item" data-view="sms" id="smsNavItem">✉️ SMS</a>
     <a class="nav-item" data-view="settings" id="settingsNavItem">⚙️ Налаштування</a>
     <div class="sidebar-footer">
       <div class="who" id="whoAmI"></div>
@@ -610,6 +611,37 @@
           <tbody></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- ---- SMS ---- -->
+    <div class="view" id="view-sms">
+      <div class="page-header">
+        <h2>SMS (AlphaSMS)</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sm" id="smsRefreshBtn">↻ Оновити</button>
+          <button class="btn-sm" id="smsStatusesBtn">Оновити статуси доставки</button>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="smsSummaryGrid" style="margin-bottom:8px;"></div>
+      <p id="smsSummaryNote" style="font-size:12px;color:var(--muted);margin:0 0 20px;"></p>
+
+      <div class="filter-row" id="smsFilters">
+        <button data-status="" class="active">Усі</button>
+        <button data-status="pending">Очікують доставки</button>
+        <button data-status="delivered">Доставлені</button>
+        <button data-status="failed">Не відправлені</button>
+        <input type="search" id="smsSearch" placeholder="Пошук за номером" style="margin-left:auto;padding:7px 10px;border:1px solid #D7E1EE;border-radius:6px;font-size:13px;min-width:180px;">
+      </div>
+
+      <div class="panel" style="padding:0;overflow-x:auto;">
+        <table id="smsTable">
+          <thead><tr><th>Дата</th><th>Кому</th><th>Що відправлено</th><th>Статус</th><th>Частин</th><th>Вартість</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="empty-state" id="smsEmpty" hidden>Повідомлень поки немає.</p>
+      </div>
+      <div style="text-align:center;margin-bottom:20px;"><button class="btn-sm" id="smsMoreBtn" hidden>Показати ще</button></div>
     </div>
 
     <!-- ---- Settings ---- -->
@@ -1018,6 +1050,7 @@
     document.getElementById('productsNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('sectionsNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('logsNavItem').style.display = canSettings ? '' : 'none';
+    document.getElementById('smsNavItem').style.display = canSettings ? '' : 'none';
     document.querySelector('[data-view="dashboard"]').style.display = canStats ? '' : 'none';
     // Вкладка SQL — лише для ролі «Адміністратор».
     document.getElementById('sqlTabBtn').style.display = isOwner ? '' : 'none';
@@ -1037,6 +1070,7 @@
     if (name === 'products') initProductsView();
     if (name === 'sections') loadSectionTranslations();
     if (name === 'logs') loadLogs(currentLogFilter);
+    if (name === 'sms') loadSms(true);
     if (name === 'dashboard') loadDashboard();
     if (name === 'orders') loadOrders(currentOrderFilter); // щоразу свіжий список
   }
@@ -2631,6 +2665,108 @@
       row.addEventListener('click', () => row.classList.toggle('open'));
     });
   }
+
+  // ---------- SMS (баланс і журнал відправок AlphaSMS) ----------
+  const SMS_STATUS_LABELS = {
+    ACCEPTED: 'прийнято шлюзом', QUEUED: 'в черзі', ROUTING: 'маршрутизація', DELIVERED: 'доставлено',
+    EXPIRED: 'термін минув', FILTERED: 'заблоковано фільтром', 'INVALID DESTINATION ADDRESS': 'неправильний номер',
+    'INVALID SOURCE ADDRESS': "неправильне ім'я відправника", 'NO ROUTE': 'немає маршруту', REJECTED: 'відхилено',
+    UNDELIVERABLE: 'не доставлено', UNKNOWN: 'невідомо', DELETED: 'видалено', 'PARTIALLY DELIVERED': 'доставлено частково',
+    'SIM FULL': "пам'ять SIM заповнена", NOT_SENT: 'не відправлено',
+  };
+  const SMS_PURPOSE_LABELS = { phone_code: 'Код підтвердження', phone_notice: 'Зміна номера' };
+  const smsState = { status: '', q: '', offset: 0, pageSize: 100, total: 0, items: [] };
+  let smsSearchTimer = null;
+
+  function smsBadge(item) {
+    const st = item.delivery_status || (item.sent ? 'ACCEPTED' : 'NOT_SENT');
+    const label = SMS_STATUS_LABELS[st] || st;
+    const cls = st === 'DELIVERED' ? 'on' : ['ACCEPTED', 'QUEUED', 'ROUTING'].includes(st) ? 'info' : st === 'NOT_SENT' ? 'fail' : 'warn';
+    return `<span class="badge ${cls}">${esc(label)}</span>`;
+  }
+  const smsMoney = (n, cur) => `${new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)} ${cur === 'UAH' || !cur ? '₴' : esc(cur)}`;
+
+  async function loadSmsSummary(refresh) {
+    const grid = document.getElementById('smsSummaryGrid');
+    const note = document.getElementById('smsSummaryNote');
+    const { ok, data } = await api(`/api/admin/sms/summary${refresh ? '?refresh=1' : ''}`);
+    if (!ok) { grid.innerHTML = '<div class="stat-card"><div class="label">SMS</div><div class="value" style="color:var(--red);font-size:16px;">Не вдалося завантажити</div></div>'; note.textContent = ''; return; }
+    const st = data.stats;
+    const balanceCard = data.balance
+      ? `<div class="stat-card"><div class="label">Залишок на рахунку AlphaSMS</div><div class="value" style="color:${data.balance.amount < 10 ? 'var(--red)' : 'var(--green)'};">${smsMoney(data.balance.amount, data.balance.currency)}</div></div>`
+      : `<div class="stat-card" style="border-color:#F3C9C0;"><div class="label" style="color:var(--red);">Залишок на рахунку</div><div class="value" style="color:var(--red);font-size:14px;">${esc(data.balanceError || 'недоступно')}</div></div>`;
+    grid.innerHTML = `
+      ${balanceCard}
+      <div class="stat-card"><div class="label">За 24 години</div><div class="value">${esc(st.sent_24h)}</div></div>
+      <div class="stat-card"><div class="label">За 7 днів · вартість</div><div class="value">${esc(st.sent_7d)} <span style="font-size:14px;color:var(--muted);">· ${smsMoney(st.cost_7d)}</span></div></div>
+      <div class="stat-card"><div class="label">За 30 днів · вартість</div><div class="value">${esc(st.sent_30d)} <span style="font-size:14px;color:var(--muted);">· ${smsMoney(st.cost_30d)}</span></div></div>
+      <div class="stat-card"><div class="label">Доставлено (30 днів)</div><div class="value" style="color:var(--green);">${esc(st.delivered_30d)}</div></div>
+      ${Number(st.failed_30d) > 0 ? `<div class="stat-card" style="border-color:#F3C9C0;"><div class="label" style="color:var(--red);">Не відправлено (30 днів)</div><div class="value" style="color:var(--red);">${esc(st.failed_30d)}</div></div>` : ''}
+    `;
+    note.textContent = 'Вартість — за прайсом шлюзу (ціна однієї частини × кількість частин) на момент відправки; фактичні списання дивіться в кабінеті AlphaSMS.'
+      + (Number(st.without_price_30d) > 0 ? ` Для ${st.without_price_30d} повідомлень ціну не вдалося визначити.` : '');
+  }
+
+  function renderSmsRows(items, append) {
+    const body = document.querySelector('#smsTable tbody');
+    const rows = items.map((m) => `
+      <tr>
+        <td style="white-space:nowrap;">${esc(fmtDate(m.created_at))}</td>
+        <td><div style="font-weight:600;">+${esc(m.phone)}</div>${m.user_name || m.user_email ? `<div style="font-size:12px;color:var(--muted);">${esc(m.user_name || '')} ${esc(m.user_email || '')}</div>` : ''}</td>
+        <td style="max-width:340px;"><div>${esc(m.text || '')}</div>${m.purpose ? `<div style="font-size:12px;color:var(--muted);">${esc(SMS_PURPOSE_LABELS[m.purpose] || m.purpose)}</div>` : ''}</td>
+        <td>${smsBadge(m)}${!m.sent && m.error ? `<div style="font-size:12px;color:var(--red);margin-top:4px;">${esc(m.error)}</div>` : ''}${m.sent && m.status_updated ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${esc(fmtDate(m.status_updated))}</div>` : ''}</td>
+        <td>${m.parts ? esc(m.parts) : '—'}</td>
+        <td style="white-space:nowrap;">${m.cost !== null && m.cost !== undefined ? smsMoney(m.cost, m.currency) : '—'}</td>
+      </tr>`).join('');
+    if (append) body.insertAdjacentHTML('beforeend', rows); else body.innerHTML = rows;
+  }
+
+  async function loadSmsList(reset) {
+    if (reset) { smsState.offset = 0; smsState.items = []; }
+    const params = new URLSearchParams({ limit: smsState.pageSize, offset: smsState.offset });
+    if (smsState.status) params.set('status', smsState.status);
+    if (smsState.q) params.set('q', smsState.q);
+    const { ok, data } = await api(`/api/admin/sms?${params}`);
+    const empty = document.getElementById('smsEmpty');
+    const more = document.getElementById('smsMoreBtn');
+    if (!ok) { empty.textContent = 'Немає доступу або помилка завантаження'; empty.hidden = false; more.hidden = true; return; }
+    smsState.total = data.total;
+    smsState.items = smsState.items.concat(data.items);
+    renderSmsRows(data.items, !reset);
+    empty.textContent = 'Повідомлень поки немає.';
+    empty.hidden = smsState.items.length > 0;
+    smsState.offset = smsState.items.length;
+    more.hidden = smsState.items.length >= smsState.total;
+  }
+
+  function loadSms(refreshBalance) {
+    loadSmsSummary(refreshBalance);
+    return loadSmsList(true);
+  }
+
+  document.getElementById('smsRefreshBtn').addEventListener('click', () => loadSms(true));
+  document.getElementById('smsMoreBtn').addEventListener('click', () => loadSmsList(false));
+  document.getElementById('smsFilters').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#smsFilters button').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    smsState.status = btn.dataset.status;
+    loadSmsList(true);
+  });
+  document.getElementById('smsSearch').addEventListener('input', (e) => {
+    clearTimeout(smsSearchTimer);
+    smsSearchTimer = setTimeout(() => { smsState.q = e.target.value.trim(); loadSmsList(true); }, 350);
+  });
+  document.getElementById('smsStatusesBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('smsStatusesBtn');
+    btn.disabled = true; btn.textContent = 'Запитуємо шлюз…';
+    const { ok, data } = await api('/api/admin/sms/refresh-statuses', { method: 'POST' });
+    btn.disabled = false; btn.textContent = 'Оновити статуси доставки';
+    if (!ok) { toast((data && data.error) || 'Не вдалося оновити статуси', 'error'); return; }
+    toast(data.checked ? `Перевірено ${data.checked}, оновлено ${data.updated}` : 'Усі статуси вже остаточні');
+    loadSms(false);
+  });
 
   document.getElementById('refreshLogsBtn').addEventListener('click', () => loadLogs(currentLogFilter));
   document.getElementById('logFilters').addEventListener('click', (e) => {
