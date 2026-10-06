@@ -536,6 +536,54 @@
     .fo-close { display: none; }
   }
 
+  /* ---------- Reviews ---------- */
+  #tabReviews { white-space: normal; } /* панелі описів мають pre-line — через нього розмітка відгуків розтягувалась порожніми рядками */
+  .stars {
+    display: inline-block; font-size: 15px; letter-spacing: 1px; line-height: 1; white-space: nowrap;
+    background: linear-gradient(90deg, #F5A623 var(--p, 0%), #D5DBE5 var(--p, 0%));
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  }
+  .card-rating { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .detail-rating { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 8px; font-size: 14px; color: var(--muted); }
+  .detail-rating .stars { font-size: 18px; }
+  .detail-rating a { color: var(--rust-dark); cursor: pointer; text-decoration: underline; }
+  .rv-summary { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .rv-score { text-align: center; min-width: 110px; }
+  .rv-score-num { font-size: 40px; font-weight: 700; line-height: 1; color: var(--forest-dark); }
+  .rv-score .stars { font-size: 20px; margin: 6px 0 4px; }
+  .rv-bars { flex: 1; min-width: 200px; max-width: 360px; }
+  .rv-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin: 3px 0; }
+  .rv-bar-row .lbl { width: 22px; text-align: right; }
+  .rv-bar { flex: 1; height: 8px; background: var(--line); border-radius: 100px; overflow: hidden; }
+  .rv-bar > span { display: block; height: 100%; background: #F5A623; border-radius: 100px; }
+  .rv-bar-row .cnt { width: 26px; }
+  .rv-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .rv-actions .btn-primary { flex: none; padding: 11px 22px; }
+  .rv-form { background: var(--sand-light); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .rv-form-title { font-weight: 700; margin-bottom: 8px; }
+  .rv-pick { display: flex; gap: 2px; margin-bottom: 8px; }
+  .rv-pick-star { background: none; border: none; cursor: pointer; font-size: 30px; line-height: 1; color: #D5DBE5; padding: 0 2px; }
+  .rv-pick-star.on, .rv-pick-star.hover { color: #F5A623; }
+  .rv-form textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; min-height: 90px; box-sizing: border-box; }
+  .rv-form-foot { display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 8px; flex-wrap: wrap; }
+  .rv-form-foot .cab-hint { margin-right: auto; }
+  .rv-form-foot button { flex: none; padding: 9px 18px; }
+  .rv-item { border-top: 1px solid var(--line); padding: 14px 0; }
+  .rv-item-head { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .rv-author { font-weight: 700; font-size: 14px; }
+  .rv-date { font-size: 12px; color: var(--muted); }
+  .rv-verified { font-size: 12px; color: var(--forest); background: #E3F2E5; border-radius: 100px; padding: 2px 8px; }
+  .rv-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .rv-reply { margin-top: 10px; background: var(--sand-light); border-left: 3px solid var(--forest); border-radius: 4px; padding: 8px 12px; font-size: 13px; }
+  .rv-reply b { display: block; margin-bottom: 2px; color: var(--forest-dark); }
+  .rv-mine { background: #FFF9EF; border: 1px solid #F3E2BC; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; }
+  .rv-mine-status { font-size: 12px; margin-left: 4px; padding: 2px 8px; border-radius: 100px; background: #FFF3DE; color: #B87A00; }
+  .rv-mine-status.published { background: #E3F2E5; color: var(--forest); }
+  .rv-mine-status.hidden { background: #FCE8E0; color: var(--rust-dark); }
+  .rv-mine-actions { margin-top: 8px; display: flex; gap: 14px; font-size: 13px; }
+  .rv-more { display: block; margin: 8px auto 0; }
+  .rv-empty { color: var(--muted); font-size: 14px; padding: 14px 0; }
+
   .state-message { text-align: center; padding: 60px 20px; color: var(--muted); }
 
   .load-more {
@@ -1041,6 +1089,7 @@
           <div class="card-name">${p.name}</div>
           ${p.vendor_code ? `<div class="card-vendor">Артикул: ${p.vendor_code}</div>` : ''}
           ${p.vendor ? `<div class="card-vendor">${p.vendor}</div>` : ''}
+          ${p.rating_count ? `<div class="card-rating">${rvStars(p.rating_avg)} <span>${Number(p.rating_avg).toFixed(1)} · ${p.rating_count}</span></div>` : ''}
           <div class="card-stock">✓ В наявності</div>
           <div class="card-price">${price}</div>
           <button class="card-buy" data-detail-id="${p.id}">Детальніше</button>
@@ -1695,6 +1744,7 @@
           </div>
           <div class="detail-info">
             <h2>${p.name}</h2>
+            <div class="detail-rating" id="detailRating"></div>
             <div class="detail-meta">
               ${p.vendor_code ? `<div>Артикул: <b>${p.vendor_code}</b></div>` : ''}
               ${p.vendor ? `<div>Бренд: <b>${p.vendor}</b></div>` : ''}
@@ -1718,9 +1768,11 @@
         <div class="detail-tabs">
           <button class="detail-tab active" data-tab="description">Опис</button>
           ${specsRows ? `<button class="detail-tab" data-tab="specs">Характеристики</button>` : ''}
+          <button class="detail-tab" data-tab="reviews" id="reviewsTabBtn">Відгуки</button>
         </div>
         <div class="detail-tab-panel" id="tabDescription">${p.description ? sanitizeDescriptionHtml(p.description) : 'Опис відсутній.'}</div>
         ${specsRows ? `<table class="specs-table detail-tab-panel" id="tabSpecs" hidden><tbody>${specsRows}</tbody></table>` : ''}
+        <div class="detail-tab-panel" id="tabReviews" hidden></div>
         </div>
       `;
 
@@ -1735,13 +1787,7 @@
 
       // Tabs
       productDetailEl.querySelectorAll('.detail-tab').forEach((tab) => {
-        tab.addEventListener('click', () => {
-          productDetailEl.querySelectorAll('.detail-tab').forEach((t) => t.classList.remove('active'));
-          tab.classList.add('active');
-          document.getElementById('tabDescription').hidden = tab.dataset.tab !== 'description';
-          const specsEl = document.getElementById('tabSpecs');
-          if (specsEl) specsEl.hidden = tab.dataset.tab !== 'specs';
-        });
+        tab.addEventListener('click', () => activateDetailTab(tab.dataset.tab));
       });
 
       // Quantity stepper
@@ -1763,10 +1809,193 @@
       document.getElementById('detailAddToCart').addEventListener('click', () => {
         addToCart(p.id, parseInt(qtyInput.value, 10) || 1);
       });
+
+      setupReviews(p.id);
     } catch (err) {
       productDetailEl.innerHTML = '<p class="state-message">Не вдалося завантажити товар.</p>';
       console.error(err);
     }
+  }
+
+  // ---------- Відгуки про товар ----------
+  // Публічні відгуки та підсумок оцінок віддає /api/reviews/product/:id. Писати можуть лише авторизовані:
+  // відгук покупця (є відправлене замовлення цього товару) публікується одразу з позначкою «Підтверджена покупка»,
+  // інші проходять модерацію.
+  const rv = { productId: null, page: 1, list: [], hasMore: false, summary: null, mine: null, formOpen: false, rating: 0, draft: '' };
+  const rvAuth = () => (authToken ? { Authorization: `Bearer ${authToken}` } : {});
+  const rvStars = (avg) => `<span class="stars" style="--p:${Math.max(0, Math.min(100, ((Number(avg) || 0) / 5) * 100))}%" aria-hidden="true">★★★★★</span>`;
+  function rvPlural(n) {
+    const m10 = n % 10; const m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 'відгук';
+    if (m10 >= 2 && m10 <= 4 && !(m100 >= 12 && m100 <= 14)) return 'відгуки';
+    return 'відгуків';
+  }
+  const rvDate = (d) => new Date(d).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+  const RV_MINE_STATUS = { published: 'Опубліковано', pending: 'На модерації', hidden: 'Приховано модератором' };
+
+  function activateDetailTab(name) {
+    productDetailEl.querySelectorAll('.detail-tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+    const panels = { description: 'tabDescription', specs: 'tabSpecs', reviews: 'tabReviews' };
+    Object.entries(panels).forEach(([tab, id]) => { const el = document.getElementById(id); if (el) el.hidden = tab !== name; });
+  }
+
+  async function loadReviews(reset) {
+    const productId = rv.productId;
+    if (reset) { rv.page = 1; rv.list = []; }
+    const res = await fetch(`${API_BASE}/api/reviews/product/${productId}?page=${rv.page}&limit=10`, { headers: rvAuth() });
+    if (!res.ok) throw new Error('reviews request failed');
+    const data = await res.json();
+    if (productId !== rv.productId) return; // користувач уже відкрив інший товар
+    rv.summary = data.summary;
+    rv.mine = data.mine;
+    rv.hasMore = data.pagination.hasMore;
+    rv.list = rv.list.concat(data.reviews);
+    renderReviews();
+  }
+
+  function renderReviews() {
+    const panel = document.getElementById('tabReviews');
+    if (!panel) return;
+    const s = rv.summary;
+    const tabBtn = document.getElementById('reviewsTabBtn');
+    if (tabBtn) tabBtn.textContent = s.count ? `Відгуки (${s.count})` : 'Відгуки';
+
+    const ratingEl = document.getElementById('detailRating');
+    if (ratingEl) {
+      ratingEl.innerHTML = s.count
+        ? `${rvStars(s.average)} <b>${s.average.toFixed(1)}</b> <a data-rv="goto">${s.count} ${rvPlural(s.count)}</a>`
+        : '<a data-rv="goto">Немає відгуків — станьте першим</a>';
+    }
+
+    const bars = [5, 4, 3, 2, 1].map((v) => {
+      const n = s.distribution[v] || 0;
+      const pct = s.count ? Math.round((n / s.count) * 100) : 0;
+      return `<div class="rv-bar-row"><span class="lbl">${v} ★</span><div class="rv-bar"><span style="width:${pct}%"></span></div><span class="cnt">${n}</span></div>`;
+    }).join('');
+
+    const summaryHtml = s.count
+      ? `<div class="rv-summary">
+           <div class="rv-score"><div class="rv-score-num">${s.average.toFixed(1)}</div>${rvStars(s.average)}<div class="cab-hint">${s.count} ${rvPlural(s.count)}</div></div>
+           <div class="rv-bars">${bars}</div>
+         </div>`
+      : '';
+
+    const mine = rv.mine;
+    const mineHtml = mine ? `
+      <div class="rv-mine">
+        <div>${rvStars(mine.rating)} <b>Ваш відгук</b> <span class="rv-mine-status ${mine.status}">${RV_MINE_STATUS[mine.status] || mine.status}</span></div>
+        ${mine.text ? `<div class="rv-text" style="margin-top:6px;">${catEsc(mine.text)}</div>` : ''}
+        <div class="rv-mine-actions"><a class="cab-link-btn" data-rv="edit">Змінити</a><a class="cab-link-btn" data-rv="delete">Видалити</a></div>
+      </div>` : '';
+
+    const formHtml = rv.formOpen ? `
+      <form class="rv-form" id="rvForm" novalidate>
+        <div class="rv-form-title">${mine ? 'Змінити відгук' : 'Ваш відгук'}</div>
+        <div class="rv-pick" id="rvPick" role="radiogroup" aria-label="Оцінка">
+          ${[1, 2, 3, 4, 5].map((v) => `<button type="button" class="rv-pick-star ${v <= rv.rating ? 'on' : ''}" data-v="${v}" aria-label="${v} з 5">★</button>`).join('')}
+        </div>
+        <textarea id="rvText" maxlength="2000" rows="4" placeholder="Поділіться враженнями про товар (необов'язково)">${catEsc(rv.draft)}</textarea>
+        <div class="rv-form-foot">
+          <span class="cab-hint" id="rvCounter">${rv.draft.length}/2000</span>
+          <button type="button" class="btn-secondary" data-rv="cancel">Скасувати</button>
+          <button type="submit" class="btn-primary" id="rvSubmit">Надіслати</button>
+        </div>
+        <p class="modal-status" id="rvStatus" hidden></p>
+      </form>` : '';
+
+    const listHtml = rv.list.length
+      ? rv.list.map((r) => `
+          <div class="rv-item">
+            <div class="rv-item-head">
+              <span class="rv-author">${catEsc(r.author)}</span>${rvStars(r.rating)}
+              ${r.verified ? '<span class="rv-verified">✓ Підтверджена покупка</span>' : ''}
+              <span class="rv-date">${rvDate(r.created_at)}</span>
+            </div>
+            ${r.text ? `<div class="rv-text">${catEsc(r.text)}</div>` : ''}
+            ${r.reply ? `<div class="rv-reply"><b>Відповідь магазину</b>${catEsc(r.reply)}</div>` : ''}
+          </div>`).join('')
+      : '<div class="rv-empty">Поки що немає відгуків. Станьте першим!</div>';
+
+    panel.innerHTML = `
+      ${summaryHtml}
+      <div class="rv-actions">${!mine && !rv.formOpen ? '<button type="button" class="btn-primary" data-rv="write">✍️ Написати відгук</button>' : ''}</div>
+      ${mineHtml}${formHtml}
+      <div id="rvList">${listHtml}</div>
+      ${rv.hasMore ? '<button type="button" class="btn-secondary rv-more" data-rv="more">Показати ще</button>' : ''}`;
+  }
+
+  function openReviewForm() {
+    if (!authToken) { showToast('Увійдіть, щоб залишити відгук', 'error'); openAuth(); return; }
+    rv.formOpen = true;
+    rv.rating = rv.mine ? rv.mine.rating : 0;
+    rv.draft = rv.mine && rv.mine.text ? rv.mine.text : '';
+    renderReviews();
+    const t = document.getElementById('rvText'); if (t) t.focus();
+  }
+
+  async function submitReview() {
+    const status = document.getElementById('rvStatus');
+    const fail = (m) => { status.textContent = m; status.className = 'modal-status error'; status.hidden = false; };
+    const text = document.getElementById('rvText').value.trim();
+    if (!rv.rating) { fail('Поставте оцінку від 1 до 5 зірок'); return; }
+    const btn = document.getElementById('rvSubmit'); btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/reviews/product/${rv.productId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...rvAuth() }, body: JSON.stringify({ rating: rv.rating, text }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не вдалося надіслати відгук');
+      showToast(data.message || 'Відгук збережено');
+      rv.formOpen = false; rv.draft = '';
+      await loadReviews(true);
+    } catch (err) {
+      fail(err.message);
+      btn.disabled = false;
+    }
+  }
+
+  function setupReviews(productId) {
+    rv.productId = productId; rv.formOpen = false; rv.rating = 0; rv.draft = '';
+    const panel = document.getElementById('tabReviews');
+    panel.innerHTML = '<div class="rv-empty">Завантажуємо відгуки…</div>';
+
+    // Клік на рядок рейтингу під назвою відкриває вкладку відгуків.
+    document.getElementById('detailRating').addEventListener('click', (e) => {
+      if (!e.target.closest('[data-rv="goto"]')) return;
+      activateDetailTab('reviews');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    panel.addEventListener('click', async (e) => {
+      const star = e.target.closest('.rv-pick-star');
+      if (star) { // зірки оновлюємо без перемальовування, щоб не губити введений текст
+        rv.rating = Number(star.dataset.v);
+        panel.querySelectorAll('.rv-pick-star').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) <= rv.rating));
+        return;
+      }
+      const act = e.target.closest('[data-rv]');
+      if (!act) return;
+      const a = act.dataset.rv;
+      if (a === 'write' || a === 'edit') openReviewForm();
+      else if (a === 'cancel') { rv.formOpen = false; renderReviews(); }
+      else if (a === 'more') { rv.page += 1; try { await loadReviews(false); } catch (err) { rv.page -= 1; showToast('Не вдалося завантажити ще відгуки', 'error'); } }
+      else if (a === 'delete') {
+        if (!confirm('Видалити ваш відгук?')) return;
+        const res = await fetch(`${API_BASE}/api/reviews/product/${rv.productId}`, { method: 'DELETE', headers: rvAuth() });
+        if (res.ok) { showToast('Відгук видалено'); rv.formOpen = false; loadReviews(true); } else showToast('Не вдалося видалити відгук', 'error');
+      }
+    });
+    panel.addEventListener('submit', (e) => { e.preventDefault(); submitReview(); });
+    panel.addEventListener('input', (e) => {
+      if (e.target.id !== 'rvText') return;
+      rv.draft = e.target.value;
+      document.getElementById('rvCounter').textContent = `${rv.draft.length}/2000`;
+    });
+
+    loadReviews(true).catch((err) => {
+      console.error(err);
+      panel.innerHTML = '<div class="rv-empty">Не вдалося завантажити відгуки.</div>';
+    });
   }
 
   function hideProductDetail() {
