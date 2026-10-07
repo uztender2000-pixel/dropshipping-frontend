@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>В Хату.UA — панель керування</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<meta name="theme-color" content="#050507">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
@@ -153,6 +155,28 @@
 
   /* ---------- Modals on white background ---------- */
   .modal-box.wide { max-width: 560px; max-height: 92vh; overflow-y: auto; }
+  .modal-box.xl { max-width: 960px; width: 96vw; max-height: 94vh; overflow-y: auto; }
+  .cat-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .cat-toolbar input[type="search"] { flex: 1; min-width: 180px; padding: 9px 12px; border: 1px solid #D7E1EE; border-radius: 6px; font-size: 14px; font-family: inherit; }
+  .cat-toolbar input[type="search"]:focus { outline: none; border-color: var(--blue); }
+  .cat-selected-chip { font-size: 12px; font-weight: 700; color: var(--blue); background: #E3EEFC; border-radius: 100px; padding: 5px 12px; white-space: nowrap; }
+  .cat-addtop { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 6px; }
+  .cat-addtop textarea, .cat-inline-add textarea {
+    flex: 1; padding: 9px 12px; border: 1px solid #D7E1EE; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 40px; box-sizing: border-box;
+  }
+  .cat-addtop textarea:focus, .cat-inline-add textarea:focus { outline: none; border-color: var(--blue); }
+  .cat-tree-box { height: 52vh; min-height: 260px; overflow-y: auto; border: 1px solid #D7E1EE; border-radius: 8px; padding: 6px 10px; background: #fff; }
+  .cat-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 7px 4px; border-bottom: 1px solid #EFF2F6; border-radius: 4px; }
+  .cat-row:hover { background: #F6F9FD; }
+  .cat-row .tree-toggle { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--muted); width: 22px; height: 22px; border-radius: 4px; }
+  .cat-row .tree-toggle:hover { background: #E3EEFC; color: var(--blue); }
+  .cat-row .tree-spacer { width: 22px; display: inline-block; }
+  .cat-row label.check-row { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; font-size: 14px; }
+  .cat-row .cat-name { font-size: 14px; }
+  .cat-row .cat-meta { font-size: 11px; color: var(--muted); }
+  .cat-row mark, .cat-name mark { background: #FFE9A8; color: inherit; border-radius: 2px; padding: 0 1px; }
+  .cat-inline-add { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0 8px 30px; padding: 10px; background: #F4F8FD; border: 1px dashed #B8CDE8; border-radius: 8px; }
+  .cat-empty { padding: 28px 10px; text-align: center; color: var(--muted); font-size: 14px; }
   .modal-box .field label { color: var(--muted); }
   .modal-box .field input[type="text"], .modal-box .field input[type="email"],
   .modal-box .field input[type="password"], .modal-box .field input[type="number"],
@@ -266,7 +290,8 @@
 <!-- ================= LOGIN ================= -->
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
-    <h1>В Хату<span style="color:#FF7A1A;">.UA</span> Панель керування</h1>
+    <div style="background:#050507;border-radius:14px;padding:12px 10px;margin-bottom:14px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 30px rgba(255,122,26,.12);"><img src="assets/logo.png" alt="В Хату.UA" style="height:110px;width:auto;max-width:100%;"></div>
+    <h1 style="font-size:20px;margin-top:0;">Панель керування</h1>
     <div class="sub">Вхід лише для власника й персоналу</div>
 
     <form id="loginForm">
@@ -296,7 +321,7 @@
 <!-- ================= APP ================= -->
 <div class="app" id="app">
   <aside class="sidebar" id="sidebar">
-    <div class="brand">В Хату<span>.UA</span></div>
+    <div class="brand"><img src="assets/logo-mark.png" alt="В Хату.UA" style="height:46px;width:auto;display:block;filter:drop-shadow(0 4px 12px rgba(255,122,26,.25));"></div>
     <a class="nav-item active" data-view="dashboard">📊 Дашборд</a>
     <a class="nav-item" data-view="orders">📦 Замовлення</a>
     <a class="nav-item" data-view="reviews" id="reviewsNavItem">⭐ Відгуки <span class="nav-badge" id="reviewsNavBadge" hidden></span></a>
@@ -868,7 +893,7 @@
 
 <!-- ================= Assign categories to selected products ================= -->
 <div class="modal-backdrop" id="assignCatModalBackdrop" hidden>
-  <div class="modal-box wide">
+  <div class="modal-box xl">
     <h3>Призначити категорію обраним товарам (<span id="assignCatCount">0</span>)</h3>
     <div class="field">
       <label>Дія</label>
@@ -878,11 +903,14 @@
         <option value="remove">Прибрати обрані категорії</option>
       </select>
     </div>
-    <div class="field">
-      <label>Категорії/підкатегорії</label>
-      <div id="assignCatTree" style="max-height:280px;overflow-y:auto;border:1px solid #D7E1EE;border-radius:6px;padding:10px;"></div>
-      <div class="hint" id="assignCatEmptyHint" hidden>Категорій ще немає — натисніть «Керувати категоріями», щоб створити першу.</div>
+    <div class="cat-toolbar">
+      <input type="search" id="assignCatSearch" placeholder="Пошук категорії…" autocomplete="off">
+      <button type="button" class="btn-sm" id="assignCatExpandAll">Розгорнути все</button>
+      <button type="button" class="btn-sm" id="assignCatCollapseAll">Згорнути все</button>
+      <span class="cat-selected-chip" id="assignCatSelected">Обрано: 0</span>
     </div>
+    <div id="assignCatTree" class="cat-tree-box"></div>
+    <div class="hint" id="assignCatEmptyHint" hidden>Категорій ще немає — натисніть «Керувати категоріями», щоб створити першу.</div>
     <div class="modal-actions">
       <button class="btn-sm" id="assignCatCancel" style="flex:1;">Скасувати</button>
       <button class="btn-sm primary" id="assignCatSave" style="flex:1;">Застосувати</button>
@@ -893,24 +921,23 @@
 
 <!-- ================= Category tree management ================= -->
 <div class="modal-backdrop" id="catManageModalBackdrop" hidden>
-  <div class="modal-box wide">
+  <div class="modal-box xl">
     <h3>Керування категоріями сайту</h3>
     <p class="hint">Це власне дерево категорій сайту — не залежить від категорій постачальника. Товари прив'язуються до підкатегорій окремо, у розділі «Товари».</p>
 
-    <div class="field-row">
-      <div class="field">
-        <label>Назва нової категорії</label>
-        <input type="text" id="catNewName" placeholder="напр. Навушники">
-      </div>
-      <div class="field" style="position:relative;">
-        <label>Батьківська категорія</label>
-        <button type="button" class="btn-sm" id="catNewParentBtn" style="width:100%;text-align:left;">— Категорія верхнього рівня —</button>
-        <div id="catNewParentPanel" hidden style="position:absolute;top:100%;left:0;right:0;z-index:15;background:#fff;border:1px solid #D7E1EE;border-radius:6px;padding:8px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.12);"></div>
-      </div>
+    <div class="cat-addtop">
+      <textarea id="catNewName" rows="1" placeholder="Нова категорія верхнього рівня. Можна вставити кілька назв — кожна з нового рядка. Enter — додати"></textarea>
+      <button class="btn-sm primary" id="catAddBtn">+ Додати</button>
     </div>
-    <button class="btn-sm primary" id="catAddBtn">+ Додати</button>
 
-    <div style="margin-top:16px;" id="catManageTree"></div>
+    <div class="cat-toolbar">
+      <input type="search" id="catManageSearch" placeholder="Пошук категорії…" autocomplete="off">
+      <button type="button" class="btn-sm" id="catExpandAll">Розгорнути все</button>
+      <button type="button" class="btn-sm" id="catCollapseAll">Згорнути все</button>
+    </div>
+    <p class="hint" style="margin:0 0 6px;">Щоб додати підкатегорію — натисніть «＋ Підкатегорія» біля потрібної категорії.</p>
+
+    <div id="catManageTree" class="cat-tree-box"></div>
     <div class="form-error" id="catManageError" hidden></div>
 
     <div class="modal-actions">
@@ -1521,6 +1548,23 @@
   // ----- supplier modal -----
   const supModalBackdrop = document.getElementById('supModalBackdrop');
 
+  // Підказки під вибором типу інтеграції. Для MyDrop ще й підставляємо шаблон налаштувань:
+  // кожен постачальник MyDrop — окремий рядок із власним посиланням на вигрузку.
+  const ADAPTER_HINTS = {
+    yml_feed: 'yml_feed — звичайний XML/YML-фід із товарами.',
+    mydrop: 'MyDrop: кожен постачальник MyDrop — окремий рядок тут. Потрібно: (1) посилання на YML-вигрузку цього постачальника — у полі «Посилання на фіди»; (2) ваш API-ключ дропшипера (MyDrop → Особистий кабінет → Інтеграції → API) — у полі «API ключ»; (3) у «Config» — точна назва постачальника в MyDrop, як вона написана в кабінеті. Для передачі замовлень потрібен тариф Premium. Після збереження натисніть «Синхронізувати»: товари з\'являться в розділі «Товари (відбір)», а на сайті будуть лише ті, які ви оберете.',
+  };
+  function applyAdapterHint(isNew) {
+    const key = document.getElementById('smAdapter').value;
+    document.getElementById('smAdapterHint').textContent = ADAPTER_HINTS[key] || `${key} — інтеграція через API постачальника.`;
+    if (isNew && key === 'mydrop') {
+      const cfg = document.getElementById('smConfig');
+      if (!cfg.value.trim()) cfg.value = '{\n  "vendorName": "Точна назва постачальника в MyDrop"\n}';
+      document.getElementById('smManualSelection').checked = true; // каталог MyDrop великий — відбираємо, що продавати, вручну
+    }
+  }
+  document.getElementById('smAdapter').addEventListener('change', () => applyAdapterHint(!editingSupplierId));
+
   async function openSupplierModal(s) {
     editingSupplierId = s ? s.id : null;
     const adapters = await loadAdapters();
@@ -1553,6 +1597,7 @@
     document.getElementById('smPaymentPrepaid').checked = paymentMethods.includes('prepaid');
     document.getElementById('smPaymentOnDelivery').checked = paymentMethods.includes('on_delivery');
     document.getElementById('supModalError').hidden = true;
+    applyAdapterHint(false);
     supModalBackdrop.hidden = false;
   }
 
@@ -2352,36 +2397,78 @@
     loadManualSuppliers();
   }
 
-  // ----- Assign-categories modal -----
-  // Expand/collapse state for the two tree UIs below — reset fresh each
-  // time a modal opens (per the request: main categories start collapsed,
-  // a subcategory is only visible after explicitly expanding its parent).
+  // ----- Дерево категорій: спільні допоміжні функції для двох вікон нижче -----
+
+  // Підсвічує збіг пошуку в назві (текст екранується частинами, тож HTML із назви не потрапляє в розмітку).
+  function highlightMatch(name, q) {
+    const text = String(name);
+    if (!q) return esc(text);
+    const i = text.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return esc(text);
+    return `${esc(text.slice(0, i))}<mark>${esc(text.slice(i, i + q.length))}</mark>${esc(text.slice(i + q.length))}`;
+  }
+
+  // Лишає гілки, де назва категорії або будь-якої її підкатегорії містить запит; такі гілки показуються розгорнутими.
+  function filterCategoryTree(nodes, q) {
+    if (!q) return nodes;
+    const ql = q.toLowerCase();
+    const walk = (list) => list.map((n) => {
+      const kids = walk(n.children);
+      const self = String(n.name).toLowerCase().includes(ql);
+      return (self || kids.length) ? { ...n, children: self ? n.children : kids, _open: kids.length > 0 } : null;
+    }).filter(Boolean);
+    return walk(nodes);
+  }
+
+  function idsWithChildren(nodes, out = new Set()) {
+    nodes.forEach((n) => { if (n.children.length) { out.add(n.id); idsWithChildren(n.children, out); } });
+    return out;
+  }
+
+  // Усі предки категорії (щоб розгорнути шлях до неї, а не лише безпосереднього батька).
+  function ancestorIds(catId) {
+    const out = [];
+    let cur = categoriesCache.find((c) => String(c.id) === String(catId));
+    while (cur && cur.parent_id) { out.push(cur.parent_id); cur = categoriesCache.find((c) => c.id === cur.parent_id); }
+    return out;
+  }
+
+  // ----- Вікно «Призначити категорію» -----
+  // Стан (обрані, розгорнуті, пошук) живе у змінних, а не в DOM: при розгортанні гілки дерево
+  // перемальовується, і раніше це скидало галочки та ігнорувало обране в згорнутих гілках.
   let assignCatExpanded = new Set();
-  let catManageExpanded = new Set();
+  let assignCatChecked = new Set();   // id обраних категорій (рядки)
+  let assignCatQuery = '';
+
+  function updateAssignCatCounter() {
+    document.getElementById('assignCatSelected').textContent = `Обрано: ${assignCatChecked.size}`;
+  }
 
   function renderAssignCatTree() {
-    const tree = buildCategoryTree(categoriesCache);
     const container = document.getElementById('assignCatTree');
     document.getElementById('assignCatEmptyHint').hidden = categoriesCache.length > 0;
     if (!categoriesCache.length) { container.innerHTML = ''; return; }
+    const tree = filterCategoryTree(buildCategoryTree(categoriesCache), assignCatQuery);
+    if (!tree.length) { container.innerHTML = '<div class="cat-empty">Нічого не знайдено</div>'; updateAssignCatCounter(); return; }
 
-    function renderList(nodes, depth) {
-      return nodes.map((n) => {
-        const hasChildren = n.children.length > 0;
-        const isOpen = assignCatExpanded.has(n.id);
-        return `
-        <div style="margin-left:${depth * 18}px;display:flex;align-items:center;gap:4px;">
-          ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
-          <label class="check-row" style="margin:0;">
-            <input type="checkbox" class="assign-cat-check" value="${esc(n.id)}" ${assignCatPrechecked.has(String(n.id)) ? 'checked' : ''}>
-            ${esc(n.name)} <span style="color:var(--muted);font-size:11px;">(${esc(n.product_count)})</span>
+    const scroll = container.scrollTop;
+    const renderList = (nodes, depth) => nodes.map((n) => {
+      const hasChildren = n.children.length > 0;
+      const isOpen = assignCatExpanded.has(n.id) || n._open;
+      return `
+        <div class="cat-row" style="margin-left:${depth * 22}px;">
+          ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" aria-label="Розгорнути">${isOpen ? '▼' : '▶'}</button>` : '<span class="tree-spacer"></span>'}
+          <label class="check-row">
+            <input type="checkbox" class="assign-cat-check" value="${esc(n.id)}" ${assignCatChecked.has(String(n.id)) ? 'checked' : ''}>
+            <span class="cat-name" style="font-weight:${depth === 0 ? 700 : 500};">${highlightMatch(n.name, assignCatQuery)}</span>
+            <span class="cat-meta">(${esc(n.product_count)})</span>
           </label>
         </div>
-        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
-      `;
-      }).join('');
-    }
+        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}`;
+    }).join('');
     container.innerHTML = renderList(tree, 0);
+    container.scrollTop = scroll;
+    updateAssignCatCounter();
   }
 
   document.getElementById('assignCatTree').addEventListener('click', (e) => {
@@ -2391,39 +2478,42 @@
     if (assignCatExpanded.has(id)) assignCatExpanded.delete(id); else assignCatExpanded.add(id);
     renderAssignCatTree();
   });
-
-  let assignCatPrechecked = new Set(); // ids already assigned — only meaningful when editing ONE product, so its current category can be preselected
+  document.getElementById('assignCatTree').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('assign-cat-check')) return;
+    if (e.target.checked) assignCatChecked.add(e.target.value); else assignCatChecked.delete(e.target.value);
+    updateAssignCatCounter();
+  });
+  document.getElementById('assignCatSearch').addEventListener('input', (e) => { assignCatQuery = e.target.value.trim(); renderAssignCatTree(); });
+  document.getElementById('assignCatExpandAll').addEventListener('click', () => { assignCatExpanded = idsWithChildren(buildCategoryTree(categoriesCache)); renderAssignCatTree(); });
+  document.getElementById('assignCatCollapseAll').addEventListener('click', () => { assignCatExpanded = new Set(); renderAssignCatTree(); });
 
   async function openAssignCategoriesModal(ids) {
     assignCatTargetIds = ids;
     document.getElementById('assignCatCount').textContent = ids.length;
     document.getElementById('assignCatError').hidden = true;
+    document.getElementById('assignCatSearch').value = '';
+    assignCatQuery = '';
     assignCatExpanded = new Set();
-    assignCatPrechecked = new Set();
+    assignCatChecked = new Set();
+    await loadCategoriesCache();
 
-    // Editing exactly one product: preselect its CURRENT category/ies and
-    // default to "replace" — this is the "I filed it under the wrong
-    // category, let me fix it" flow. Bulk edits stay on "add" (a sensible
-    // default across a mix of products with different existing categories).
+    // Редагування одного товару: заздалегідь обираємо його поточні категорії, розгортаємо шлях до них
+    // і ставимо режим «замінити» — типовий сценарій «товар потрапив не в ту категорію».
+    // Для кількох товарів режим «додати» — безпечніший за замовчуванням.
     if (ids.length === 1) {
       const product = productsCache.find((p) => String(p.id) === String(ids[0]));
-      if (product?.shop_categories?.length) {
-        assignCatPrechecked = new Set(product.shop_categories.map((c) => String(c.id)));
-        // Auto-expand whichever branch already holds the current category,
-        // so the admin sees it checked immediately instead of a collapsed tree.
-        product.shop_categories.forEach((c) => {
-          const cat = categoriesCache.find((x) => String(x.id) === String(c.id));
-          if (cat?.parent_id) assignCatExpanded.add(cat.parent_id);
-        });
-      }
+      (product?.shop_categories || []).forEach((c) => {
+        assignCatChecked.add(String(c.id));
+        ancestorIds(c.id).forEach((pid) => assignCatExpanded.add(pid));
+      });
       document.getElementById('assignCatMode').value = 'set';
     } else {
       document.getElementById('assignCatMode').value = 'add';
     }
 
-    await loadCategoriesCache();
     renderAssignCatTree();
     document.getElementById('assignCatModalBackdrop').hidden = false;
+    document.getElementById('assignCatSearch').focus();
   }
 
   document.getElementById('bulkCategoriesBtn').addEventListener('click', () => {
@@ -2435,7 +2525,7 @@
   document.getElementById('assignCatSave').addEventListener('click', async () => {
     const errorEl = document.getElementById('assignCatError');
     errorEl.hidden = true;
-    const category_ids = [...document.querySelectorAll('.assign-cat-check:checked')].map((c) => parseInt(c.value, 10));
+    const category_ids = [...assignCatChecked].map((v) => parseInt(v, 10));   // з набору, а не з DOM: враховує й згорнуті гілки
     const mode = document.getElementById('assignCatMode').value;
     if (!category_ids.length && mode !== 'set') {
       errorEl.textContent = 'Оберіть хоча б одну категорію';
@@ -2451,138 +2541,113 @@
     loadProducts();
   });
 
-  // ----- Category tree management modal -----
-  let catMoveOpenId = null; // which category currently shows its inline "move to…" picker (only one at a time)
+  // ----- Вікно «Керування категоріями» -----
+  // Швидке додавання: назви можна вставити списком (кожна з нового рядка), підкатегорія додається прямо
+  // біля батьківської категорії («＋ Підкатегорія»), вікно лишається відкритим для наступної.
+  let catManageExpanded = new Set();
+  let catManageQuery = '';
+  let catMoveOpenId = null;     // категорія, біля якої відкрито вибір нового батька
+  let catAddOpenId = null;      // категорія, біля якої відкрито поле «додати підкатегорії»
+  let catAddDraft = '';         // чернетка тексту в цьому полі (щоб не губилась при перемальовуванні)
 
   function renderCatManageTree() {
-    const tree = buildCategoryTree(categoriesCache);
     const container = document.getElementById('catManageTree');
-    if (!tree.length) { container.innerHTML = '<p class="empty-state">Категорій ще немає.</p>'; return; }
+    const fullTree = buildCategoryTree(categoriesCache);
+    if (!fullTree.length) { container.innerHTML = '<div class="cat-empty">Категорій ще немає. Додайте першу в полі вище.</div>'; return; }
+    const tree = filterCategoryTree(fullTree, catManageQuery);
+    if (!tree.length) { container.innerHTML = '<div class="cat-empty">Нічого не знайдено</div>'; return; }
 
-    // Every OTHER category except this one and its own descendants (moving
-    // a category under its own child would create a cycle — same rule the
-    // backend enforces, checked here too just so the picker doesn't even
-    // offer an option that would come back as an error).
-    function descendantIds(node, out = new Set()) {
-      node.children.forEach((c) => { out.add(c.id); descendantIds(c, out); });
-      return out;
-    }
+    const scroll = container.scrollTop;
+    // Категорія не може стати дочірньою для самої себе чи своїх нащадків (бекенд теж це забороняє).
+    const descendantIds = (node, out = new Set()) => { node.children.forEach((c) => { out.add(c.id); descendantIds(c, out); }); return out; };
+    const nodeById = new Map(); const index = (nodes) => nodes.forEach((n) => { nodeById.set(n.id, n); index(n.children); }); index(fullTree);
 
-    function renderList(nodes, depth) {
-      return nodes.map((n) => {
-        const hasChildren = n.children.length > 0;
-        const isOpen = catManageExpanded.has(n.id);
-        const blocked = new Set([n.id, ...descendantIds(n)]);
-        const moveOptions = flattenTreeForOptions(tree).filter((o) => !blocked.has(o.id));
-        return `
-        <div style="margin-left:${depth * 20}px;padding:6px 0;border-bottom:1px solid #EFF2F6;" data-cat-id="${esc(n.id)}">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
-            <span style="font-weight:${depth === 0 ? '700' : '500'};">${esc(n.name)}</span>
-            <span style="font-size:11px;color:var(--muted);">(${esc(n.product_count)} тов., ${esc(n.children.length)} підкат.)</span>
+    const renderList = (nodes, depth) => nodes.map((n) => {
+      const hasChildren = n.children.length > 0;
+      const isOpen = catManageExpanded.has(n.id) || n._open || catAddOpenId === n.id;
+      const full = nodeById.get(n.id);
+      const blocked = new Set([n.id, ...descendantIds(full)]);
+      const moveOptions = flattenTreeForOptions(fullTree).filter((o) => !blocked.has(o.id));
+      return `
+        <div data-cat-id="${esc(n.id)}">
+          <div class="cat-row" style="margin-left:${depth * 22}px;">
+            ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" aria-label="Розгорнути">${isOpen ? '▼' : '▶'}</button>` : '<span class="tree-spacer"></span>'}
+            <span class="cat-name" style="font-weight:${depth === 0 ? 700 : 500};">${highlightMatch(n.name, catManageQuery)}</span>
+            <span class="cat-meta">(${esc(n.product_count)} тов., ${esc(n.children.length)} підкат.)</span>
             <span style="flex:1;"></span>
+            <button class="btn-sm primary" data-cat-act="add">＋ Підкатегорія</button>
             <button class="btn-sm" data-cat-act="move">🔀 Перемістити</button>
             <button class="btn-sm" data-cat-act="rename">Перейменувати</button>
             <button class="btn-sm danger" data-cat-act="delete">Видалити</button>
           </div>
+          ${catAddOpenId === n.id ? `
+            <div class="cat-inline-add">
+              <textarea class="cat-add-input" rows="2" placeholder="Назви підкатегорій для «${esc(n.name)}» — кожна з нового рядка.&#10;Enter — додати, Shift+Enter — новий рядок">${esc(catAddDraft)}</textarea>
+              <button class="btn-sm primary" data-cat-act="add-confirm">Додати</button>
+              <button class="btn-sm" data-cat-act="add-cancel">Готово</button>
+            </div>` : ''}
           ${catMoveOpenId === n.id ? `
-            <div style="margin:8px 0 0 22px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <div style="margin:6px 0 8px ${depth * 22 + 30}px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
               <select class="cat-move-target">
                 <option value="" ${!n.parent_id ? 'selected' : ''}>— Категорія верхнього рівня —</option>
                 ${moveOptions.map((o) => `<option value="${esc(o.id)}" ${o.id === n.parent_id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
               </select>
               <button class="btn-sm primary" data-cat-act="move-confirm">Перемістити сюди</button>
               <button class="btn-sm" data-cat-act="move-cancel">Скасувати</button>
-            </div>
-          ` : ''}
+            </div>` : ''}
         </div>
-        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
-      `;
-      }).join('');
-    }
+        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}`;
+    }).join('');
+
     container.innerHTML = renderList(tree, 0);
+    container.scrollTop = scroll;
+    if (catAddOpenId !== null) {
+      const ta = container.querySelector('.cat-add-input');
+      if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    }
   }
 
+  // Додає кілька категорій по черзі; повертає, скільки створено, і помилки.
+  async function createCategories(namesText, parentId) {
+    const names = namesText.split('\n').map((x) => x.trim()).filter(Boolean);
+    const errors = []; const failed = []; let created = 0;
+    for (const name of names) {
+      const { ok, data } = await api('/api/admin/categories', { method: 'POST', body: { name, parent_id: parentId || null } });
+      if (ok) created += 1; else { errors.push(`«${name}»: ${data?.error || 'помилка'}`); failed.push(name); }
+    }
+    if (created) await loadCategoriesCache();
+    return { created, errors, failed, total: names.length };
+  }
+
+  document.getElementById('catManageTree').addEventListener('input', (e) => {
+    if (e.target.classList.contains('cat-add-input')) catAddDraft = e.target.value;
+  });
+  document.getElementById('catManageTree').addEventListener('keydown', (e) => {
+    if (e.target.classList.contains('cat-add-input') && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      e.target.closest('.cat-inline-add').querySelector('[data-cat-act="add-confirm"]').click();
+    }
+  });
   document.getElementById('catManageTree').addEventListener('click', (e) => {
     const toggle = e.target.closest('.tree-toggle');
-    if (toggle) {
-      const id = parseInt(toggle.dataset.toggleId, 10);
-      if (catManageExpanded.has(id)) catManageExpanded.delete(id); else catManageExpanded.add(id);
-      renderCatManageTree();
-    }
+    if (!toggle) return;
+    const id = parseInt(toggle.dataset.toggleId, 10);
+    if (catManageExpanded.has(id)) catManageExpanded.delete(id); else catManageExpanded.add(id);
+    renderCatManageTree();
   });
-
-  let catNewParentId = null;
-  let catNewParentExpanded = new Set();
-
-  function renderCatNewParentPanel() {
-    const tree = buildCategoryTree(categoriesCache);
-    const panel = document.getElementById('catNewParentPanel');
-    if (!tree.length) { panel.innerHTML = '<span class="empty-state">Категорій ще немає</span>'; return; }
-
-    function renderList(nodes, depth) {
-      return nodes.map((n) => {
-        const hasChildren = n.children.length > 0;
-        const isOpen = catNewParentExpanded.has(n.id);
-        const isSelected = catNewParentId === n.id;
-        return `
-        <div style="margin-left:${depth * 18}px;display:flex;align-items:center;gap:4px;">
-          ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
-          <button type="button" class="cat-pick-item" data-cat-id="${esc(n.id)}" style="background:${isSelected ? 'var(--blue)' : 'none'};color:${isSelected ? '#fff' : 'var(--ink)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;flex:1;font-size:13px;">${esc(n.name)}</button>
-        </div>
-        ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
-      `;
-      }).join('');
-    }
-    panel.innerHTML = `
-      <button type="button" class="cat-pick-item" data-cat-id="" style="background:${catNewParentId === null ? 'var(--blue)' : 'none'};color:${catNewParentId === null ? '#fff' : 'var(--muted)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;width:100%;font-size:13px;margin-bottom:4px;">— Категорія верхнього рівня —</button>
-      ${renderList(tree, 0)}
-    `;
-  }
-
-  function refreshCatParentSelect() {
-    catNewParentId = null;
-    catNewParentExpanded = new Set();
-    document.getElementById('catNewParentBtn').textContent = '— Категорія верхнього рівня —';
-    renderCatNewParentPanel();
-  }
-
-  document.getElementById('catNewParentBtn').addEventListener('click', () => {
-    const panel = document.getElementById('catNewParentPanel');
-    panel.hidden = !panel.hidden;
-  });
-
-  document.getElementById('catNewParentPanel').addEventListener('click', (e) => {
-    const toggle = e.target.closest('.tree-toggle');
-    if (toggle) {
-      const id = parseInt(toggle.dataset.toggleId, 10);
-      if (catNewParentExpanded.has(id)) catNewParentExpanded.delete(id); else catNewParentExpanded.add(id);
-      renderCatNewParentPanel();
-      return;
-    }
-    const pick = e.target.closest('.cat-pick-item');
-    if (pick) {
-      catNewParentId = pick.dataset.catId ? parseInt(pick.dataset.catId, 10) : null;
-      document.getElementById('catNewParentBtn').textContent = pick.dataset.catId ? pick.textContent : '— Категорія верхнього рівня —';
-      document.getElementById('catNewParentPanel').hidden = true;
-    }
-  });
-
-  document.addEventListener('click', (e) => {
-    const panel = document.getElementById('catNewParentPanel');
-    const btn = document.getElementById('catNewParentBtn');
-    if (!panel || panel.hidden) return;
-    if (!panel.contains(e.target) && e.target !== btn) panel.hidden = true;
-  });
+  document.getElementById('catManageSearch').addEventListener('input', (e) => { catManageQuery = e.target.value.trim(); renderCatManageTree(); });
+  document.getElementById('catExpandAll').addEventListener('click', () => { catManageExpanded = idsWithChildren(buildCategoryTree(categoriesCache)); renderCatManageTree(); });
+  document.getElementById('catCollapseAll').addEventListener('click', () => { catManageExpanded = new Set(); renderCatManageTree(); });
 
   async function openCategoriesManageModal() {
     document.getElementById('catManageError').hidden = true;
-    catManageExpanded = new Set();
-    catMoveOpenId = null;
+    document.getElementById('catManageSearch').value = '';
+    document.getElementById('catNewName').value = '';
+    catManageQuery = ''; catManageExpanded = new Set(); catMoveOpenId = null; catAddOpenId = null; catAddDraft = '';
     await loadCategoriesCache();
     renderCatManageTree();
-    refreshCatParentSelect();
     document.getElementById('catManageModalBackdrop').hidden = false;
+    document.getElementById('catNewName').focus();
   }
 
   document.getElementById('manageCategoriesBtn').addEventListener('click', openCategoriesManageModal);
@@ -2592,19 +2657,21 @@
     loadProducts();
   });
 
-  document.getElementById('catAddBtn').addEventListener('click', async () => {
+  // Верхній рівень: поле зверху (Enter — додати).
+  async function addTopLevelCategories() {
     const errorEl = document.getElementById('catManageError');
     errorEl.hidden = true;
-    const name = document.getElementById('catNewName').value.trim();
-    if (!name) { errorEl.textContent = 'Вкажіть назву категорії'; errorEl.hidden = false; return; }
-    const parent_id = catNewParentId || null;
-    const { ok, data } = await api('/api/admin/categories', { method: 'POST', body: { name, parent_id } });
-    if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
-    document.getElementById('catNewName').value = '';
-    await loadCategoriesCache();
-    renderCatManageTree();
-    refreshCatParentSelect();
-    toast('Категорію додано', 'ok');
+    const input = document.getElementById('catNewName');
+    if (!input.value.trim()) { errorEl.textContent = 'Вкажіть назву категорії'; errorEl.hidden = false; return; }
+    const { created, errors, failed } = await createCategories(input.value, null);
+    if (errors.length) { errorEl.textContent = errors.join('; '); errorEl.hidden = false; }
+    input.value = failed.join('\n');                    // у полі лишаються лише ті назви, що не вдалось додати
+    if (created) { renderCatManageTree(); toast(created > 1 ? `Додано категорій: ${created}` : 'Категорію додано', 'ok'); }
+    input.focus();
+  }
+  document.getElementById('catAddBtn').addEventListener('click', addTopLevelCategories);
+  document.getElementById('catNewName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addTopLevelCategories(); }
   });
 
   document.getElementById('catManageTree').addEventListener('click', async (e) => {
@@ -2617,34 +2684,40 @@
     const errorEl = document.getElementById('catManageError');
     errorEl.hidden = true;
 
-    if (act === 'move') {
-      catMoveOpenId = parseInt(id, 10);
+    if (act === 'add') {
+      catAddOpenId = parseInt(id, 10); catAddDraft = ''; catMoveOpenId = null;
       renderCatManageTree();
       return;
     }
-
-    if (act === 'move-cancel') {
-      catMoveOpenId = null;
+    if (act === 'add-cancel') { catAddOpenId = null; catAddDraft = ''; renderCatManageTree(); return; }
+    if (act === 'add-confirm') {
+      const text = row.querySelector('.cat-add-input').value;
+      if (!text.trim()) return;
+      btn.disabled = true;
+      const { created, errors, failed } = await createCategories(text, parseInt(id, 10));
+      catManageExpanded.add(parseInt(id, 10));         // батьківська гілка лишається розгорнутою — видно, що додалось
+      catAddDraft = failed.join('\n');                 // лишаються лише назви, які не вдалось додати — їх можна виправити
+      if (errors.length) { errorEl.textContent = errors.join('; '); errorEl.hidden = false; }
       renderCatManageTree();
+      if (created) toast(created > 1 ? `Додано підкатегорій: ${created}` : 'Підкатегорію додано', 'ok');
       return;
     }
 
+    if (act === 'move') { catMoveOpenId = parseInt(id, 10); catAddOpenId = null; renderCatManageTree(); return; }
+    if (act === 'move-cancel') { catMoveOpenId = null; renderCatManageTree(); return; }
     if (act === 'move-confirm') {
       const select = row.querySelector('.cat-move-target');
       const newParentId = select.value || null;
       const { ok, data } = await api(`/api/admin/categories/${id}`, { method: 'PATCH', body: { parent_id: newParentId } });
       if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
       catMoveOpenId = null;
-      // The category just followed its new parent, so make sure that
-      // branch is expanded — otherwise it'd look like it vanished.
-      if (newParentId) catManageExpanded.add(parseInt(newParentId, 10));
+      // Категорія пішла за новим батьком — розгортаємо ту гілку, інакше здалося б, що вона зникла.
+      if (newParentId) { catManageExpanded.add(parseInt(newParentId, 10)); ancestorIds(newParentId).forEach((pid) => catManageExpanded.add(pid)); }
       await loadCategoriesCache();
       renderCatManageTree();
-      refreshCatParentSelect();
       toast('Категорію переміщено', 'ok');
       return;
     }
-
     if (act === 'rename') {
       const name = prompt('Нова назва категорії:', cat?.name || '');
       if (!name || !name.trim()) return;
@@ -2652,10 +2725,8 @@
       if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
       await loadCategoriesCache();
       renderCatManageTree();
-      refreshCatParentSelect();
       return;
     }
-
     if (act === 'delete') {
       if (!confirm(`Видалити категорію «${cat?.name}»?`)) return;
       let { ok, data } = await api(`/api/admin/categories/${id}`, { method: 'DELETE' });
@@ -2666,7 +2737,6 @@
       if (!ok) { errorEl.textContent = data?.error || 'Помилка'; errorEl.hidden = false; return; }
       await loadCategoriesCache();
       renderCatManageTree();
-      refreshCatParentSelect();
       toast('Категорію видалено', 'ok');
       return;
     }
