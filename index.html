@@ -854,6 +854,85 @@
   .cab-nav-btn.active { background: linear-gradient(180deg, #FF9A3D, #F0620B); border-color: transparent; }
   .cab-chip.active { background: linear-gradient(180deg, #FF9A3D, #F0620B); border-color: transparent; }
   .cab-step.reached::before, .cab-step.reached::after { background: var(--rust); }
+
+  /* ---------- ШІ-помічник (віджет чату) ---------- */
+  .ai-fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; align-items: center; gap: 10px;
+    padding: 11px 20px 11px 12px; border: none; border-radius: 100px; cursor: pointer; color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; text-shadow: 0 1px 0 rgba(120, 40, 0, 0.5);
+    background: linear-gradient(180deg, #FF9A3D 0%, #FF7A1A 55%, #F0620B 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 5px 0 #B04A00, 0 16px 34px rgba(255, 122, 26, 0.45);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .ai-fab[hidden], .ai-panel[hidden] { display: none; }
+  .ai-fab:hover { filter: brightness(1.05); }
+  .ai-fab:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 1px 0 #B04A00; }
+  .ai-fab img { width: 30px; height: 30px; border-radius: 50%; background: #0c0c0f; padding: 2px; }
+  .ai-panel {
+    position: fixed; right: 20px; bottom: 92px; z-index: 56; width: 390px; height: min(640px, calc(100vh - 116px));
+    display: flex; flex-direction: column; overflow: hidden; border-radius: 18px;
+    background: linear-gradient(180deg, #1B1B22, #121217); border: 1px solid #2d2d38;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 122, 26, 0.22), 0 0 60px rgba(255, 122, 26, 0.1);
+  }
+  .ai-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: linear-gradient(180deg, #000, #0d0d11); border-bottom: 1px solid rgba(255, 122, 26, 0.5); }
+  .ai-avatar { width: 38px; height: 38px; border-radius: 50%; background: #0c0c0f; padding: 3px; flex-shrink: 0; box-shadow: 0 0 14px rgba(255, 122, 26, 0.4); }
+  .ai-title { flex: 1; min-width: 0; line-height: 1.25; }
+  .ai-title b { display: block; font-size: 14px; }
+  .ai-title small { color: var(--muted); font-size: 12px; }
+  .ai-head button { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+  .ai-head button:hover { color: #fff; background: #23232b; }
+  .ai-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+  .ai-msg { max-width: 88%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+  .ai-msg p { margin: 0 0 8px; } .ai-msg p:last-child { margin-bottom: 0; }
+  .ai-msg.user { align-self: flex-end; color: #fff; border-bottom-right-radius: 4px; background: linear-gradient(180deg, #FF8A2B, #F0620B); box-shadow: 0 4px 12px rgba(255, 122, 26, 0.25); }
+  .ai-msg.bot { align-self: flex-start; background: #22222a; border: 1px solid #2f2f3a; border-bottom-left-radius: 4px; }
+  .ai-msg.error { border-color: rgba(255, 100, 60, 0.5); color: #FFB09A; }
+  .ai-cards { display: flex; flex-direction: column; gap: 8px; align-self: stretch; max-width: 100%; }
+  .ai-card { display: flex; gap: 10px; align-items: center; text-align: left; background: #1A1A21; border: 1px solid #2f2f3a; border-radius: 12px; padding: 8px; cursor: pointer; color: var(--ink); font-family: 'Inter', sans-serif; transition: border-color 0.12s ease, transform 0.12s ease; }
+  .ai-card:hover { border-color: var(--rust); transform: translateY(-1px); }
+  .ai-card-img { width: 54px; height: 54px; border-radius: 8px; background: #fff center / contain no-repeat; flex-shrink: 0; }
+  .ai-card-name { flex: 1; min-width: 0; font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ai-card-price { display: block; margin-top: 3px; color: var(--rust-text); font-weight: 700; }
+  .ai-card-go { color: var(--rust-text); font-size: 20px; padding-right: 4px; }
+  .ai-ticket { align-self: flex-start; font-size: 12px; color: #5BE08D; background: rgba(52, 199, 120, 0.14); border-radius: 100px; padding: 4px 12px; }
+  .ai-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ai-chip { background: #1d1d25; color: var(--ink); border: 1px solid #34343f; border-radius: 100px; padding: 7px 12px; font-family: 'Inter', sans-serif; font-size: 13px; cursor: pointer; }
+  .ai-chip:hover { border-color: var(--rust); color: #fff; }
+  .ai-typing { align-self: flex-start; display: flex; gap: 4px; padding: 12px 14px; background: #22222a; border: 1px solid #2f2f3a; border-radius: 14px; }
+  .ai-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--rust); opacity: 0.35; animation: aiDot 1.1s infinite ease-in-out; }
+  .ai-typing i:nth-child(2) { animation-delay: 0.18s; } .ai-typing i:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes aiDot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
+  .ai-form { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px 6px; border-top: 1px solid #2a2a33; }
+  .ai-form textarea { flex: 1; resize: none; max-height: 110px; padding: 10px 12px; border-radius: 12px; border: 1px solid #343440; background: var(--surface-2); color: var(--ink); font-family: inherit; font-size: 14px; line-height: 1.4; }
+  .ai-form textarea:focus { outline: none; border-color: var(--rust); box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.2); }
+  .ai-form button { width: 42px; height: 42px; flex-shrink: 0; border: none; border-radius: 12px; cursor: pointer; color: #fff; font-size: 17px; background: linear-gradient(180deg, #FF9A3D, #F0620B); box-shadow: 0 3px 0 #B04A00; }
+  .ai-form button:disabled { filter: grayscale(0.7); opacity: 0.6; cursor: default; }
+  .ai-note { padding: 0 14px 10px; font-size: 11px; color: #70707e; text-align: center; }
+  @media (max-width: 640px) {
+    .ai-fab { right: 14px; bottom: 14px; padding: 10px 16px 10px 10px; }
+    .ai-panel { inset: 0; width: 100%; height: 100%; border-radius: 0; border: none; z-index: 70; }
+    .ai-msg { max-width: 92%; }
+  }
+
+  /* ---------- Згода з правилами та умовами ---------- */
+  .terms-field { gap: 8px; margin-top: 4px; }
+  .terms-check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 14px; line-height: 1.45; color: var(--ink); }
+  .terms-check input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; }
+  .terms-check a { color: var(--rust-text); font-weight: 600; }
+  .terms-field.invalid .terms-check { color: #FFB09A; }
+  .terms-field.invalid .terms-check input { outline: 2px solid #ff6a4a; outline-offset: 2px; border-radius: 3px; }
+  .terms-read { align-self: flex-start; background: none; border: none; padding: 0 0 0 28px; color: var(--rust-text); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+  .terms-modal { max-width: 920px; width: 100%; height: 88vh; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .terms-modal-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid #2d2d38; }
+  .terms-modal-head h2 { flex: 1; margin: 0; font-size: 18px; }
+  .terms-modal-head button { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+  .terms-frame { flex: 1; width: 100%; border: none; background: transparent; min-height: 0; }
+  .terms-modal-foot { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid #2d2d38; flex-wrap: wrap; }
+  .terms-modal-foot button { flex: none; padding: 10px 20px; }
+  @media (max-width: 640px) { .terms-modal { height: 100%; max-height: 100%; border-radius: 0; } #termsBackdrop { padding: 0; } }
+  .site-footer { max-width: 1280px; margin: 10px auto 0; padding: 18px 16px 90px; display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); border-top: 1px solid #1f1f27; }
+  .site-footer a { color: var(--muted); text-decoration: none; }
+  .site-footer a:hover { color: var(--rust-text); text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -954,6 +1033,12 @@
   </main>
 </div>
 
+<footer class="site-footer">
+  <span>© <span id="footerYear">2026</span> «В Хату.UA»</span>
+  <a href="terms.html" target="_blank" rel="noopener">Правила та умови</a>
+  <span>Сайт — майданчик для зв'язку між покупцем і продавцем</span>
+</footer>
+
 <!-- Auth modal: login + register in one, switchable -->
 <div class="modal-backdrop" id="authBackdrop" hidden>
   <div class="modal">
@@ -1020,6 +1105,10 @@
         <div class="field-hint">Телефон обов'язковий: на нього прийде SMS із кодом для підтвердження.</div>
       </div>
       <div class="field"><label for="regPassword">Пароль (мінімум 6 символів)</label><input type="password" id="regPassword" required minlength="6"></div>
+      <div class="field terms-field" id="termsField">
+        <label class="terms-check"><input type="checkbox" id="regTerms"><span>Я ознайомився(-лась) з <a href="terms.html" target="_blank" rel="noopener" data-open-terms>правилами та умовами</a> і приймаю їх</span></label>
+        <a href="terms.html" target="_blank" rel="noopener" class="terms-read" data-open-terms>Прочитати правила та умови</a>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="authCancel2">Скасувати</button>
         <button type="submit" class="btn-primary" id="registerSubmit">Зареєструватись</button>
@@ -1027,6 +1116,22 @@
       <p class="modal-status" id="registerStatus" hidden></p>
     </form>
     <p style="margin-top:14px;font-size:14px;">Вже є акаунт? <a href="#" id="showLogin" style="color: var(--rust-text);font-weight:700;">Увійти</a></p>
+  </div>
+</div>
+
+<!-- Повний текст правил та умов (відкривається з форми реєстрації; сама сторінка — terms.html) -->
+<div class="modal-backdrop" id="termsBackdrop" hidden>
+  <div class="modal terms-modal" role="dialog" aria-label="Правила та умови">
+    <div class="terms-modal-head">
+      <h2>Правила та умови користування</h2>
+      <a href="terms.html" target="_blank" rel="noopener" class="terms-read" style="padding:0;">Відкрити окремо ↗</a>
+      <button type="button" id="termsX" aria-label="Закрити">✕</button>
+    </div>
+    <iframe class="terms-frame" id="termsFrame" title="Правила та умови" loading="lazy"></iframe>
+    <div class="terms-modal-foot">
+      <button type="button" class="btn-secondary" id="termsClose">Закрити</button>
+      <button type="button" class="btn-primary" id="termsAccept">Ознайомився, приймаю</button>
+    </div>
   </div>
 </div>
 
@@ -1121,6 +1226,23 @@
     </div>
   </div>
 </div>
+
+<!-- ШІ-помічник: кнопка й вікно чату (показуються, лише якщо на сервері задано ключ API) -->
+<button class="ai-fab" id="aiFab" type="button" hidden aria-label="Відкрити чат із помічником"><img src="assets/favicon.png" alt=""><span>Помічник</span></button>
+<section class="ai-panel" id="aiPanel" role="dialog" aria-label="ШІ-помічник" hidden>
+  <header class="ai-head">
+    <img class="ai-avatar" src="assets/favicon.png" alt="">
+    <div class="ai-title"><b>Помічник «В Хату.UA»</b><small>ШІ-асистент · відповідає одразу</small></div>
+    <button type="button" id="aiClear" title="Почати нову розмову" aria-label="Почати нову розмову">↺</button>
+    <button type="button" id="aiClose" aria-label="Закрити">✕</button>
+  </header>
+  <div class="ai-msgs" id="aiMsgs" aria-live="polite"></div>
+  <form class="ai-form" id="aiForm">
+    <textarea id="aiInput" rows="1" maxlength="1000" placeholder="Напишіть питання…" aria-label="Повідомлення"></textarea>
+    <button type="submit" id="aiSend" aria-label="Надіслати">➤</button>
+  </form>
+  <div class="ai-note">Відповідає штучний інтелект і може помилятися. Важливе уточнюйте в магазині.</div>
+</section>
 
 <script>
   // ЗАМІНИ на адресу свого бекенду на Render.
@@ -1846,6 +1968,7 @@
   const productDetailEl = document.getElementById('productDetail');
 
   async function showProductDetail(id) {
+    currentDetailProductId = id;
     productDetailEl.hidden = false;
     window.scrollTo({ top: 0, behavior: 'instant' });
     productDetailEl.innerHTML = '<p class="state-message">Завантажуємо…</p>';
@@ -2150,8 +2273,147 @@
   }
 
   function hideProductDetail() {
+    currentDetailProductId = null;
     productDetailEl.hidden = true;
   }
+
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+  // ---------- Правила та умови: вікно з повним текстом і галочка при реєстрації ----------
+  const termsBackdrop = document.getElementById('termsBackdrop');
+  const termsFrame = document.getElementById('termsFrame');
+  const regTermsEl = document.getElementById('regTerms');
+  function openTerms() {
+    if (!termsFrame.getAttribute('src')) termsFrame.setAttribute('src', 'terms.html');   // вантажимо лише коли відкрили
+    termsBackdrop.hidden = false;
+  }
+  function closeTerms() { termsBackdrop.hidden = true; }
+  document.querySelectorAll('[data-open-terms]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); openTerms(); }));
+  document.getElementById('termsX').addEventListener('click', closeTerms);
+  document.getElementById('termsClose').addEventListener('click', closeTerms);
+  document.getElementById('termsAccept').addEventListener('click', () => {
+    regTermsEl.checked = true;
+    document.getElementById('termsField').classList.remove('invalid');
+    closeTerms();
+  });
+  termsBackdrop.addEventListener('click', (e) => { if (e.target === termsBackdrop) closeTerms(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !termsBackdrop.hidden) closeTerms(); });
+  regTermsEl.addEventListener('change', () => document.getElementById('termsField').classList.toggle('invalid', false));
+
+  // ---------- ШІ-помічник (чат на базі Claude) ----------
+  // Усе спілкування йде через наш сервер (/api/assistant/chat): ключ API на сайті ніколи не з'являється.
+  // Віджет показується лише якщо /api/config повідомив, що помічник увімкнено.
+  const ai = { enabled: false, open: false, busy: false, messages: [] }; // messages: { role, content, cards?, ticket?, error?, local? }
+  const aiEls = {
+    fab: document.getElementById('aiFab'), panel: document.getElementById('aiPanel'), msgs: document.getElementById('aiMsgs'),
+    form: document.getElementById('aiForm'), input: document.getElementById('aiInput'), send: document.getElementById('aiSend'),
+  };
+  let currentDetailProductId = null; // товар, який зараз відкрито, — передаємо помічнику як контекст
+
+  const AI_GREETING = 'Привіт! Я ШІ-помічник «В Хату.UA». Допоможу підібрати товар, розповім про доставку чи подивлюсь статус вашого замовлення. Що вас цікавить?';
+  const AI_CHIPS = ['Підібрати подарунок', 'Де моє замовлення?', 'Доставка й оплата', 'Поговорити з менеджером'];
+
+  function aiFormat(text) {
+    const html = catEsc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    return html.split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+  }
+  function aiSave() {
+    try { sessionStorage.setItem('aiChat', JSON.stringify(ai.messages.filter((m) => !m.error).slice(-30))); } catch (_) { /* приватний режим — не критично */ }
+  }
+  function aiLoad() {
+    try { const raw = JSON.parse(sessionStorage.getItem('aiChat') || '[]'); if (Array.isArray(raw)) ai.messages = raw; } catch (_) { ai.messages = []; }
+  }
+
+  function renderAi() {
+    const parts = ai.messages.map((m) => {
+      if (m.role === 'user') return `<div class="ai-msg user">${aiFormat(m.content)}</div>`;
+      const cards = (m.cards || []).map((c) => `
+        <button type="button" class="ai-card" data-ai-product="${c.id}">
+          <span class="ai-card-img" style="${c.picture_url ? `background-image:url('${cabImg(c.picture_url)}')` : ''}"></span>
+          <span class="ai-card-name">${catEsc(c.name)}<span class="ai-card-price">${money(c.price)}</span></span>
+          <span class="ai-card-go">›</span>
+        </button>`).join('');
+      return `<div class="ai-msg bot ${m.error ? 'error' : ''}">${aiFormat(m.content)}</div>
+              ${cards ? `<div class="ai-cards">${cards}</div>` : ''}
+              ${m.ticket ? '<div class="ai-ticket">✓ Звернення передано менеджеру</div>' : ''}`;
+    });
+    if (ai.messages.length <= 1) parts.push(`<div class="ai-chips">${AI_CHIPS.map((c) => `<button type="button" class="ai-chip" data-ai-chip="${catEsc(c)}">${catEsc(c)}</button>`).join('')}</div>`);
+    if (ai.busy) parts.push('<div class="ai-typing" aria-label="Помічник друкує"><i></i><i></i><i></i></div>');
+    aiEls.msgs.innerHTML = parts.join('');
+    aiEls.msgs.scrollTop = aiEls.msgs.scrollHeight;
+    aiEls.send.disabled = ai.busy;
+  }
+
+  function openAi() {
+    if (!ai.enabled) return;
+    if (!ai.messages.length) ai.messages.push({ role: 'assistant', content: AI_GREETING, local: true });
+    ai.open = true;
+    aiEls.panel.hidden = false;
+    aiEls.fab.hidden = window.innerWidth <= 640;     // на телефоні чат займає весь екран — кнопка зайва
+    renderAi();
+    aiEls.input.focus();
+  }
+  function closeAi() {
+    ai.open = false;
+    aiEls.panel.hidden = true;
+    aiEls.fab.hidden = !ai.enabled;
+  }
+  function resetAi() {
+    ai.messages = [{ role: 'assistant', content: AI_GREETING, local: true }];
+    aiSave(); renderAi();
+  }
+
+  async function sendAi(text) {
+    text = String(text || '').trim();
+    if (!text || ai.busy) return;
+    ai.messages.push({ role: 'user', content: text });
+    ai.busy = true; aiEls.input.value = ''; aiEls.input.style.height = ''; renderAi();
+    // До моделі йдуть лише справжні репліки: без вітання й повідомлень про помилки.
+    const history = ai.messages.filter((m) => !m.local && !m.error).map((m) => ({ role: m.role, content: m.content })).slice(-12);
+    try {
+      const res = await fetch(`${API_BASE}/api/assistant/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+        body: JSON.stringify({ messages: history, productId: currentDetailProductId || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Помічник тимчасово недоступний. Спробуйте ще раз за хвилину.');
+      ai.messages.push({ role: 'assistant', content: data.reply, cards: data.cards || [], ticket: Boolean(data.ticketCreated) });
+    } catch (err) {
+      ai.messages.push({ role: 'assistant', content: err.message || 'Не вдалося зв\'язатися з помічником.', error: true });
+    } finally {
+      ai.busy = false; aiSave(); renderAi();
+      if (window.innerWidth > 640) aiEls.input.focus();
+    }
+  }
+
+  aiEls.fab.addEventListener('click', openAi);
+  document.getElementById('aiClose').addEventListener('click', closeAi);
+  document.getElementById('aiClear').addEventListener('click', resetAi);
+  aiEls.form.addEventListener('submit', (e) => { e.preventDefault(); sendAi(aiEls.input.value); });
+  aiEls.input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendAi(aiEls.input.value); } });
+  aiEls.input.addEventListener('input', () => { aiEls.input.style.height = 'auto'; aiEls.input.style.height = `${Math.min(aiEls.input.scrollHeight, 110)}px`; });
+  aiEls.msgs.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-ai-chip]');
+    if (chip) { sendAi(chip.dataset.aiChip); return; }
+    const card = e.target.closest('[data-ai-product]');
+    if (card) {
+      if (window.innerWidth <= 640) closeAi();       // на телефоні чат закриває собою сторінку товару
+      showProductDetail(card.dataset.aiProduct);
+    }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ai.open) closeAi(); });
+
+  (async function initAssistant() {
+    try {
+      const res = await fetch(`${API_BASE}/api/config`);
+      if (!res.ok) return;
+      const cfg = await res.json();
+      ai.enabled = Boolean(cfg.assistantEnabled);
+    } catch (_) { return; }
+    if (!ai.enabled) return;
+    aiLoad();
+    aiEls.fab.hidden = false;
+  })();
 
   // ---------- Account page (customer cabinet) ----------
   const accountPageEl = document.getElementById('accountPage');
@@ -3013,6 +3275,13 @@
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     registerStatus.hidden = true;
+    if (!document.getElementById('regTerms').checked) {
+      document.getElementById('termsField').classList.add('invalid');
+      registerStatus.textContent = 'Підтвердіть, що ви ознайомились із правилами та умовами';
+      registerStatus.className = 'modal-status error';
+      registerStatus.hidden = false;
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
@@ -3022,6 +3291,7 @@
           email: document.getElementById('regEmail').value,
           phone: document.getElementById('regPhone').value,
           password: document.getElementById('regPassword').value,
+          acceptTerms: true,
         }),
       });
       const data = await res.json();

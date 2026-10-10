@@ -1172,6 +1172,32 @@
     }
   }
 
+  // Картка «Помічник ШІ» на дашборді: запити за сьогодні проти денного ліміту та орієнтовні витрати за 30 днів.
+  async function loadDashAssistantCard() {
+    if (!(isOwner || currentAdmin.permissions?.settings)) return;
+    const grid = document.getElementById('statGrid');
+    const draw = (html, warn) => {
+      const old = document.getElementById('dashAssistantCard');
+      if (old) old.remove();
+      grid.insertAdjacentHTML('beforeend', `<div class="stat-card" id="dashAssistantCard" style="${warn ? 'border-color:#F3C9C0;' : ''}">${html}</div>`);
+    };
+    try {
+      const { ok, data } = await api('/api/admin/assistant/usage');
+      if (!ok) return;
+      if (!data.enabled) {
+        draw('<div class="label">Помічник ШІ</div><div class="value" style="font-size:15px;color:var(--muted);">вимкнений (немає ключа)</div>');
+        return;
+      }
+      const near = data.today.requests >= data.dailyLimit * 0.8;
+      const cost = data.last30.cost_usd === null ? '' : ` · ≈ $${data.last30.cost_usd.toFixed(2)} за 30 днів`;
+      draw(`<div class="label"${near ? ' style="color:var(--red);"' : ''}>Помічник ШІ сьогодні${near ? ' — ліміт майже вичерпано' : ''}</div>
+            <div class="value" style="color:${near ? 'var(--red)' : 'inherit'};">${esc(data.today.requests)} <span style="font-size:14px;color:var(--muted);">з ${esc(data.dailyLimit)}</span></div>
+            <div class="label" style="margin-top:4px;">${esc(data.last30.requests)} запитів за 30 днів${esc(cost)}</div>`, near);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function loadDashboard() {
     try {
       const { ok, data } = await api('/api/admin/stats');
@@ -1190,6 +1216,7 @@
       `;
 
       loadDashSmsBalance();
+      loadDashAssistantCard();
 
       const days = data.last30Days.map((d) => d.day.slice(5));
       const counts = data.last30Days.map((d) => d.count);
