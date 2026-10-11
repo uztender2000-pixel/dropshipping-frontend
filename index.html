@@ -93,6 +93,8 @@
     font-size: 14px; cursor: pointer; position: relative;
   }
   .icon-btn:hover { border-color: var(--rust); }
+  /* .icon-btn має власний display і перебивав атрибут hidden — через це «Вхід» і «Вийти» світились одночасно. */
+  .icon-btn[hidden] { display: none !important; }
   .cart-badge {
     position: absolute; top: -6px; right: -6px; background: var(--rust); color: var(--white);
     font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 100px;
@@ -930,6 +932,32 @@
   .terms-modal-foot { display: flex; gap: 10px; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid #2d2d38; flex-wrap: wrap; }
   .terms-modal-foot button { flex: none; padding: 10px 20px; }
   @media (max-width: 640px) { .terms-modal { height: 100%; max-height: 100%; border-radius: 0; } #termsBackdrop { padding: 0; } }
+
+  /* ---------- Правила та умови: текст документа (вкладка кабінету і вікно обов'язкової згоди) ---------- */
+  .terms-doc { font-size: 15px; line-height: 1.65; color: #E4E4EA; overflow-wrap: anywhere; }
+  .terms-doc h2 { font-size: 19px; line-height: 1.3; margin: 26px 0 8px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--ink); }
+  .terms-doc h2:first-child { border-top: none; margin-top: 4px; padding-top: 0; }
+  .terms-doc p { margin: 8px 0; }
+  .terms-doc ul { margin: 6px 0 6px 22px; padding: 0; }
+  .terms-doc li { margin: 4px 0; }
+  .terms-doc strong { color: #fff; }
+  .terms-doc .lead { background: rgba(255,122,26,.10); border: 1px solid rgba(255,122,26,.35); border-radius: 10px; padding: 12px 14px; margin: 0 0 8px; }
+  .terms-doc .ph { background: rgba(255,122,26,.18); color: var(--rust-text); border-radius: 4px; padding: 0 5px; }
+  .terms-doc .owner { background: #101015; border: 1px dashed #3a3a47; border-radius: 10px; padding: 10px 14px; margin: 10px 0; }
+  .terms-doc .owner div { padding: 3px 0; }
+  .terms-doc .owner .k { color: var(--muted); display: inline-block; min-width: 200px; }
+  @media (max-width: 640px) { .terms-doc .owner .k { display: block; min-width: 0; } }
+  .terms-meta { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  .terms-changes { background: rgba(255,122,26,.10); border: 1px solid rgba(255,122,26,.35); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: 14px; }
+  .terms-changes b { display: block; margin-bottom: 4px; color: var(--rust-text); }
+  .terms-changes div { white-space: pre-line; }
+  .terms-gate-note { font-size: 14px; color: var(--muted); margin: 0 0 12px; }
+  #termsGateBackdrop { z-index: 300; }   /* вище за будь-які інші вікна: це вікно не можна закрити без вибору */
+  .terms-gate-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; }
+  .terms-gate-foot { display: flex; flex-direction: column; gap: 10px; padding: 12px 18px; border-top: 1px solid #2d2d38; }
+  .terms-gate-foot .modal-status { margin: 0; }
+  .terms-gate-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+  .terms-gate-actions button { flex: none; padding: 10px 20px; }
   .site-footer { max-width: 1280px; margin: 10px auto 0; padding: 18px 16px 90px; display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); border-top: 1px solid #1f1f27; }
   .site-footer a { color: var(--muted); text-decoration: none; }
   .site-footer a:hover { color: var(--rust-text); text-decoration: underline; }
@@ -950,9 +978,11 @@
     <div class="header-right">
       <button class="sidebar-toggle" id="sidebarToggle">☰ Розділи</button>
       <button class="icon-btn" id="contactBtn">✉️ Написати нам</button>
+      <!-- Одне й те саме місце: гість бачить «Вхід», авторизований — «Вийти», а поряд з'являється «Кабінет». -->
       <button class="icon-btn" id="loginBtn">👤 Вхід</button>
+      <button class="icon-btn" id="headerLogoutBtn" hidden>🚪 Вийти</button>
+      <button class="icon-btn" id="accountBtn" hidden>🏠 Кабінет</button>
       <button class="icon-btn" id="cartBtn">🛒 Кошик<span class="cart-badge" id="cartBadge" hidden>0</span></button>
-      <button class="icon-btn" id="headerLogoutBtn" hidden>🚪 Вийти з акаунту</button>
     </div>
   </div>
 </header>
@@ -1131,6 +1161,23 @@
     <div class="terms-modal-foot">
       <button type="button" class="btn-secondary" id="termsClose">Закрити</button>
       <button type="button" class="btn-primary" id="termsAccept">Ознайомився, приймаю</button>
+    </div>
+  </div>
+</div>
+
+<!-- Обов'язкове ознайомлення з правилами: показується після входу, якщо покупець ще не приймав
+     правил або вони змінились. Закрити без вибору не можна: або «Приймаю», або «Вийти». -->
+<div class="modal-backdrop" id="termsGateBackdrop" hidden>
+  <div class="modal terms-modal" role="dialog" aria-modal="true" aria-labelledby="termsGateTitle">
+    <div class="terms-modal-head"><h2 id="termsGateTitle">Правила та умови</h2></div>
+    <div class="terms-gate-body" id="termsGateBody"></div>
+    <div class="terms-gate-foot">
+      <label class="terms-check"><input type="checkbox" id="termsGateCheck"><span>Я ознайомився(-лась) з правилами та умовами й приймаю їх</span></label>
+      <div class="modal-status error" id="termsGateStatus" hidden></div>
+      <div class="terms-gate-actions">
+        <button type="button" class="btn-secondary" id="termsGateLogout">Вийти з акаунту</button>
+        <button type="button" class="btn-primary" id="termsGateAccept" disabled>Приймаю й продовжую</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2218,6 +2265,10 @@
         method: 'POST', headers: { 'Content-Type': 'application/json', ...rvAuth() }, body: JSON.stringify({ rating: rv.rating, text }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 403 && data.termsRequired) {
+        checkTermsAfterLogin();
+        throw new Error('Спершу ознайомтеся з правилами та умовами й підтвердьте згоду.');
+      }
       if (!res.ok) throw new Error(data.error || 'Не вдалося надіслати відгук');
       showToast(data.message || 'Відгук збережено');
       rv.formOpen = false; rv.draft = '';
@@ -2427,6 +2478,7 @@
     { id: 'delivery', icon: '🚚', label: 'Адреса доставки' },
     { id: 'security', icon: '🔒', label: 'Пароль' },
     { id: 'viewed', icon: '👁', label: 'Переглянуті' },
+    { id: 'terms', icon: '📜', label: 'Правила' },
   ];
 
   function cabEsc(s) {
@@ -2444,11 +2496,12 @@
   }
 
   async function loadAccountData() {
-    const [meRes, ordersRes, viewsRes, configRes] = await Promise.all([
+    const [meRes, ordersRes, viewsRes, configRes, termsRes] = await Promise.all([
       fetch(`${API_BASE}/api/auth/me`, { headers: cabAuth() }),
       fetch(`${API_BASE}/api/account/orders/grouped`, { headers: cabAuth() }),
       fetch(`${API_BASE}/api/account/views`, { headers: cabAuth() }),
       fetch(`${API_BASE}/api/config`),
+      fetch(`${API_BASE}/api/account/terms`, { headers: cabAuth() }),
     ]);
     if (!meRes.ok) throw new Error('Не вдалося завантажити профіль');
     const { user } = await meRes.json();
@@ -2457,12 +2510,14 @@
       orders: ordersRes.ok ? await ordersRes.json() : [],
       views: viewsRes.ok ? await viewsRes.json() : [],
       config: configRes.ok ? await configRes.json() : {},
+      terms: termsRes.ok ? await termsRes.json() : null,   // { needsAcceptance, current, accepted }
     };
   }
 
   // Відкрити кабінет (з потрібною вкладкою; за замовчуванням — «Огляд»).
   async function showAccountPage(tab) {
     accountTab = tab || 'overview';
+    cabTermsView = null;
     accountPageEl.hidden = false;
     accountPageEl.scrollTop = 0;
     accountPageEl.innerHTML = '<div class="product-detail-inner"><p class="state-message">Завантажуємо…</p></div>';
@@ -2590,6 +2645,7 @@
     const alerts = [];
     if (!user.phone_verified) alerts.push({ text: '📱 Підтвердіть номер телефону — так ми зможемо надсилати вам повідомлення про замовлення.', tab: 'profile' });
     if (!user.email_verified) alerts.push({ text: '✉️ Підтвердіть email, щоб не пропустити листи про замовлення.', tab: 'profile' });
+    if (accountData.terms && accountData.terms.needsAcceptance) alerts.push({ text: '📜 Правила та умови оновлено — ознайомтеся з ними й підтвердіть згоду.', tab: 'terms' });
     const alertsHtml = alerts.map((a) => `
       <div class="cab-alert"><span>${a.text}</span>
         <button type="button" class="btn-secondary cab-sm" data-go-tab="${a.tab}">Підтвердити</button></div>`).join('');
@@ -2737,6 +2793,66 @@
         </div>`).join('')}</div></div>`;
   }
 
+  // ---------- Вкладка «Правила»: з якою редакцією погодився покупець і чинна редакція ----------
+  let cabTermsView = null;   // 'accepted' | 'current'; null — за замовчуванням (прийнята, якщо вона відрізняється від чинної)
+
+  function termsDateUa(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : '—';
+  }
+  function termsDateTimeUa(iso) {
+    const d = iso ? new Date(iso) : null;
+    return d && !isNaN(d) ? d.toLocaleString('uk-UA', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+  }
+
+  function cabTabTerms() {
+    const t = accountData.terms;
+    if (!t) {
+      return `<div class="cab-card"><h3>Правила та умови</h3>
+        <div class="cab-empty">Не вдалося завантажити правила. Спробуйте оновити сторінку.</div></div>`;
+    }
+    const { current, accepted, needsAcceptance } = t;
+    const sameVersion = Boolean(accepted) && accepted.version === current.version;
+    const hasOlder = Boolean(accepted) && !sameVersion;
+    const view = hasOlder && cabTermsView !== 'current' ? 'accepted' : 'current';
+    const shown = view === 'accepted' ? accepted : current;
+
+    let notice = '';
+    if (needsAcceptance) {
+      const what = accepted
+        ? `<b>Правила та умови оновлено.</b>${current.change_summary ? `<br><span style="white-space:pre-line;">${cabEsc(current.change_summary)}</span>` : ''}`
+        : '<b>Ви ще не підтвердили згоду з правилами та умовами.</b>';
+      notice = `<div class="cab-alert"><span>${what}</span>
+        <button type="button" class="btn-primary cab-sm" data-open-terms-gate>Ознайомитися й прийняти</button></div>`;
+    } else if (hasOlder) {
+      notice = `<div class="cab-alert"><span>З'явилась нова редакція правил від ${termsDateUa(current.effective_date)}.
+        Повторна згода не потрібна — зміни незначні.</span></div>`;
+    }
+
+    const rows = `
+      <div class="cab-row"><span>Редакція, з якою ви погодилися</span><span>${accepted ? `від ${termsDateUa(accepted.effective_date)} · версія ${cabEsc(accepted.version)}` : 'ще не підтверджено'}</span></div>
+      <div class="cab-row"><span>Дата й час згоди</span><span>${accepted ? termsDateTimeUa(accepted.accepted_at) : '—'}</span></div>
+      <div class="cab-row"><span>Чинна редакція</span><span>від ${termsDateUa(current.effective_date)} · версія ${cabEsc(current.version)}</span></div>`;
+
+    const toggle = hasOlder
+      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px;">
+           <button type="button" class="cab-chip ${view === 'accepted' ? 'active' : ''}" data-terms-view="accepted">Редакція, з якою ви погодилися</button>
+           <button type="button" class="cab-chip ${view === 'current' ? 'active' : ''}" data-terms-view="current">Чинна редакція</button>
+         </div>`
+      : '';
+
+    return `
+      ${notice}
+      <div class="cab-card">
+        <h3>Правила та умови</h3>
+        ${rows}
+        ${toggle}
+        <div class="terms-meta" style="margin-top:14px;">${cabEsc(shown.title)} · редакція від ${termsDateUa(shown.effective_date)} · версія ${cabEsc(shown.version)}</div>
+        <div class="terms-doc">${shown.html}</div>
+        ${view === 'current' ? '<p style="margin:16px 0 0;font-size:13px;"><a class="cab-link-btn" href="terms.html" target="_blank" rel="noopener">Відкрити правила окремою сторінкою ↗</a></p>' : ''}
+      </div>`;
+  }
+
   function renderCabinet() {
     const { user, orders } = accountData;
     const initials = (user.name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -2747,13 +2863,14 @@
       let badge = '';
       if (t.id === 'orders' && activeCount) badge = `<span class="cab-nav-badge">${activeCount}</span>`;
       if (t.id === 'profile' && needsProfile) badge = '<span class="cab-nav-badge">!</span>';
+      if (t.id === 'terms' && accountData.terms && accountData.terms.needsAcceptance) badge = '<span class="cab-nav-badge">!</span>';
       return `<button type="button" class="cab-nav-btn ${accountTab === t.id ? 'active' : ''}" data-tab="${t.id}">
         <span>${t.icon}</span><span>${t.label}</span>${badge}</button>`;
     }).join('');
 
     const tabs = {
       overview: cabTabOverview, orders: cabTabOrders, profile: cabTabProfile,
-      delivery: cabTabDelivery, security: cabTabSecurity, viewed: cabTabViewed,
+      delivery: cabTabDelivery, security: cabTabSecurity, viewed: cabTabViewed, terms: cabTabTerms,
     };
     const body = (tabs[accountTab] || cabTabOverview)();
 
@@ -2817,6 +2934,13 @@
     root.querySelectorAll('[data-go-tab]').forEach((b) => b.addEventListener('click', () => setAccountTab(b.dataset.goTab)));
     root.querySelectorAll('[data-close-cabinet]').forEach((b) => b.addEventListener('click', hideAccountPage));
     root.querySelectorAll('[data-open-contact]').forEach((b) => b.addEventListener('click', () => $('contactBtn').click()));
+    root.querySelectorAll('[data-terms-view]').forEach((b) => b.addEventListener('click', () => {
+      const scroll = accountPageEl.scrollTop;
+      cabTermsView = b.dataset.termsView;
+      renderCabinet();
+      accountPageEl.scrollTop = scroll;
+    }));
+    root.querySelectorAll('[data-open-terms-gate]').forEach((b) => b.addEventListener('click', () => openTermsGate(accountData.terms)));
     root.querySelectorAll('[data-order-filter]').forEach((b) => b.addEventListener('click', () => {
       cabOrderFilter = b.dataset.orderFilter;
       renderCabinet();
@@ -3029,6 +3153,7 @@
 
   const loginBtn = document.getElementById('loginBtn');
   const headerLogoutBtn = document.getElementById('headerLogoutBtn');
+  const accountBtn = document.getElementById('accountBtn');
   const authBackdrop = document.getElementById('authBackdrop');
   const registerBackdrop = document.getElementById('registerBackdrop');
   const loginForm = document.getElementById('loginForm');
@@ -3037,9 +3162,15 @@
   const registerStatus = document.getElementById('registerStatus');
   const showForgotPasswordBtn = document.getElementById('showForgotPassword');
 
+  // У шапці на одному місці або «Вхід» (гість), або «Вийти» (авторизований); авторизованому ще й «Кабінет».
+  // Якщо токен збережено, а профіль ще вантажиться (restoreSession), одразу показуємо стан «увійшов»,
+  // щоб кнопка «Вхід» не блимала на мить.
   function setLoggedInUI() {
-    loginBtn.textContent = currentUser ? `👤 ${currentUser.name}` : '👤 Вхід';
-    headerLogoutBtn.hidden = !currentUser;
+    const signedIn = Boolean(currentUser || authToken);
+    loginBtn.hidden = signedIn;
+    headerLogoutBtn.hidden = !signedIn;
+    accountBtn.hidden = !signedIn;
+    accountBtn.title = currentUser && currentUser.name ? currentUser.name : '';
   }
 
   function openAuth() {
@@ -3070,12 +3201,105 @@
       currentUser = data.user;
       setLoggedInUI();
       refreshCartBadge();
+      checkTermsAfterLogin();
     } catch (err) {
       logout();
     }
   }
 
+  // ---------- Правила та умови: обов'язкове ознайомлення після входу ----------
+  // Якщо покупець ще не приймав правил або вони змінились (з вимогою повторної згоди), після входу
+  // показуємо вікно з текстом, описом змін і кнопками «Приймаю» / «Вийти». Сервер додатково не дає
+  // оформити замовлення й залишити відгук, поки згоди немає (відповідь 403 з termsRequired).
+  const termsGate = {
+    backdrop: document.getElementById('termsGateBackdrop'),
+    title: document.getElementById('termsGateTitle'),
+    body: document.getElementById('termsGateBody'),
+    check: document.getElementById('termsGateCheck'),
+    accept: document.getElementById('termsGateAccept'),
+    logout: document.getElementById('termsGateLogout'),
+    status: document.getElementById('termsGateStatus'),
+  };
+
+  async function fetchAccountTerms() {
+    const res = await fetch(`${API_BASE}/api/account/terms`, { headers: cabAuth(), cache: 'no-store' });
+    if (!res.ok) throw new Error('terms');
+    return res.json();
+  }
+
+  async function checkTermsAfterLogin() {
+    if (!authToken) return;
+    try {
+      const data = await fetchAccountTerms();
+      if (data.needsAcceptance) openTermsGate(data);
+    } catch (err) {
+      console.error('Не вдалося перевірити згоду з правилами', err);
+    }
+  }
+
+  function renderTermsGate(data) {
+    const cur = data.current;
+    const first = !data.accepted;
+    termsGate.title.textContent = first ? 'Ознайомтеся з правилами та умовами' : 'Правила та умови оновлено';
+    const intro = first
+      ? '<p class="terms-gate-note">Щоб оформлювати замовлення й залишати відгуки, ознайомтеся з правилами сайту та підтвердьте згоду.</p>'
+      : `<p class="terms-gate-note">Раніше ви приймали редакцію від ${termsDateUa(data.accepted.effective_date)}. Нижче — нова редакція: ознайомтеся зі змінами й підтвердьте згоду.</p>`;
+    const changes = !first && cur.change_summary
+      ? `<div class="terms-changes"><b>Що змінилось</b><div>${cabEsc(cur.change_summary)}</div></div>`
+      : '';
+    termsGate.body.innerHTML = `${intro}${changes}
+      <div class="terms-meta">${cabEsc(cur.title)} · редакція від ${termsDateUa(cur.effective_date)} · версія ${cabEsc(cur.version)}</div>
+      <div class="terms-doc">${cur.html}</div>`;
+    termsGate.body.scrollTop = 0;
+    termsGate.check.checked = false;
+    termsGate.accept.disabled = true;
+    termsGate.status.hidden = true;
+    termsGate.accept.dataset.version = cur.version;
+  }
+
+  function openTermsGate(data) {
+    if (!data || !data.current) return;
+    renderTermsGate(data);
+    termsGate.backdrop.hidden = false;
+  }
+
+  termsGate.check.addEventListener('change', () => { termsGate.accept.disabled = !termsGate.check.checked; });
+
+  termsGate.accept.addEventListener('click', async () => {
+    termsGate.accept.disabled = true;
+    termsGate.status.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/account/terms/accept`, {
+        method: 'POST', headers: cabJson(), body: JSON.stringify({ version: termsGate.accept.dataset.version }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.stale) {
+        // Поки вікно було відкрите, правила знову оновили — показуємо свіжу редакцію.
+        renderTermsGate(await fetchAccountTerms());
+        termsGate.status.textContent = 'Правила щойно оновили. Прочитайте актуальну редакцію й підтвердьте згоду.';
+        termsGate.status.hidden = false;
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || 'Не вдалося зберегти згоду');
+      termsGate.backdrop.hidden = true;
+      showToast('Дякуємо! Згоду з правилами збережено');
+      if (!accountPageEl.hidden) refreshAccount();
+    } catch (err) {
+      termsGate.status.textContent = err.message;
+      termsGate.status.hidden = false;
+      termsGate.accept.disabled = !termsGate.check.checked;
+    }
+  });
+
+  termsGate.logout.addEventListener('click', () => {
+    termsGate.backdrop.hidden = true;
+    logout();
+    hideAccountPage();
+    showToast('Ви вийшли з акаунту');
+  });
+
   loginBtn.addEventListener('click', openAuth);
+  accountBtn.addEventListener('click', () => showAccountPage());
   headerLogoutBtn.addEventListener('click', () => {
     logout();
     hideAccountPage();
@@ -3265,6 +3489,7 @@
       refreshCartBadge();
       syncGuestViews();
       authBackdrop.hidden = true;
+      checkTermsAfterLogin();
     } catch (err) {
       loginStatus.textContent = err.message;
       loginStatus.className = 'modal-status error';
@@ -3396,6 +3621,7 @@
       refreshCartBadge();
       syncGuestViews();
       closeVerify();
+      checkTermsAfterLogin();
     } catch (err) {
       showVerifyStatus(err.message, false);
     }
@@ -3558,6 +3784,10 @@
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+      if (res.status === 403 && data.termsRequired) {
+        checkTermsAfterLogin();   // покажемо вікно з правилами
+        throw new Error('Спершу ознайомтеся з правилами та умовами й підтвердьте згоду.');
+      }
       if (!res.ok) throw new Error(data.error || 'Помилка оформлення');
 
       cartStatus.textContent = 'Дякуємо! Замовлення оформлено.';
@@ -3787,6 +4017,7 @@
   loadProductCount();
   loadShopCategories();
   loadProducts(false); // homepage mode: personalised (or random for a guest with no history yet) picks
+  setLoggedInUI();
   restoreSession().then(syncGuestViews);
 </script>
 
