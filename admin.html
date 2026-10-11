@@ -2,6 +2,8 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://allshop-stjp.onrender.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>В Хату.UA — панель керування</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
@@ -256,6 +258,25 @@
   .terms-doc .owner { background: #F7F9FC; border: 1px dashed #C9D3E2; border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
   .terms-doc .owner .k { color: var(--muted); display: inline-block; min-width: 200px; }
 
+  /* ---------- Безпека: 2FA, журнал дій ---------- */
+  .mfa-qr { background: #fff; border-radius: 10px; padding: 8px; display: inline-block; }
+  .mfa-secret { font-family: ui-monospace, Consolas, monospace; font-size: 13px; letter-spacing: .08em; word-break: break-all; opacity: .9; }
+  .mfa-codes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-family: ui-monospace, Consolas, monospace; font-size: 15px; background: rgba(128,128,128,.14); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  .mfa-step { display: flex; flex-direction: column; gap: 10px; }
+  .mfa-ok { color: #1F7A47; font-weight: 600; }
+  .login-card .mfa-step p, .login-card .mfa-secret { color: #C9D1DD; }
+  .login-card .mfa-codes { color: #fff; }
+  .login-card .mfa-ok { color: #5BD18A; }
+  .sec-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #EEF1F6; color: var(--muted); margin-left: 6px; }
+  .sec-badge.good { background: #E8F5EE; color: #1F7A47; }
+  .sec-badge.bad { background: #FDECEC; color: #B3261E; }
+  .audit-status { font-weight: 700; }
+  .audit-status.fail { color: #B3261E; }
+  .audit-status.ok { color: #1F7A47; }
+  .audit-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .audit-filters input[type=text], .audit-filters select { background: #fff; border: 1px solid #D7E1EE; border-radius: 6px; padding: 7px 10px; font-size: 13px; }
+  .audit-detail { max-width: 320px; font-family: ui-monospace, Consolas, monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; color: var(--muted); }
+
   /* ---------- Suppliers ---------- */
   .sup-name { font-weight: 700; }
   .sup-code { font-size: 12px; color: var(--muted); }
@@ -349,6 +370,30 @@
   </div>
 </div>
 
+<!-- ================= КРОК 2 ВХОДУ: код двофакторної автентифікації ================= -->
+<div class="login-screen" id="mfaScreen" hidden>
+  <div class="login-card">
+    <h1>Підтвердіть вхід</h1>
+    <div class="sub">Введіть 6-значний код із застосунку-автентифікатора або один із резервних кодів</div>
+    <form id="mfaForm">
+      <div class="field"><label>Код</label><input type="text" id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="20" required></div>
+      <button type="submit" class="btn">Підтвердити</button>
+      <button type="button" class="btn secondary" id="mfaBack" style="margin-top:8px;">Назад</button>
+      <div class="form-error" id="mfaError" hidden></div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= ОБОВ'ЯЗКОВЕ НАЛАШТУВАННЯ 2FA (для ролі «Адміністратор») ================= -->
+<div class="login-screen" id="mfaSetupScreen" hidden>
+  <div class="login-card" style="max-width:460px;">
+    <h1>Увімкніть двофакторний захист</h1>
+    <div class="sub">Для вашої ролі це обов'язково: навіть якщо пароль витече, зайти в панель без вашого телефону не вийде.</div>
+    <div id="mfaSetupHost"></div>
+    <button type="button" class="btn secondary" id="mfaSetupLogout" style="margin-top:12px;">Вийти</button>
+  </div>
+</div>
+
 <!-- ================= FORCED PASSWORD CHANGE (тільки при першому вході) ================= -->
 <div class="login-screen" id="forcePasswordScreen" hidden>
   <div class="login-card">
@@ -356,7 +401,7 @@
     <div class="sub">Це перший вхід — потрібно встановити новий пароль перед продовженням</div>
     <form id="forcePasswordForm">
       <div class="field"><label>Поточний (тимчасовий) пароль</label><input type="password" id="fpCurrent" required></div>
-      <div class="field"><label>Новий пароль (мінімум 8 символів)</label><input type="password" id="fpNew" required minlength="8"></div>
+      <div class="field"><label>Новий пароль (мінімум 12 символів)</label><input type="password" id="fpNew" required minlength="12" autocomplete="new-password"></div>
       <button type="submit" class="btn">Зберегти й продовжити</button>
       <button type="button" class="btn secondary" id="fpLogout" style="margin-top:8px;">Вийти</button>
       <div class="form-error" id="fpError" hidden></div>
@@ -377,6 +422,7 @@
     <a class="nav-item" data-view="logs" id="logsNavItem">🪵 Логи</a>
     <a class="nav-item" data-view="sms" id="smsNavItem">✉️ SMS</a>
     <a class="nav-item" data-view="settings" id="settingsNavItem">⚙️ Налаштування</a>
+    <a class="nav-item" data-view="account" id="accountNavItem">🔐 Безпека</a>
     <div class="sidebar-footer">
       <div class="who" id="whoAmI"></div>
       <button id="logoutBtn">Вийти</button>
@@ -768,6 +814,11 @@
       </div>
     </div>
 
+    <div class="view" id="view-account">
+      <div class="page-head"><h1>Безпека облікового запису</h1></div>
+      <div id="accountRoot"><p class="empty-state">Завантаження…</p></div>
+    </div>
+
     <div class="view" id="view-settings">
       <div class="page-header"><h2>Налаштування</h2></div>
 
@@ -775,6 +826,7 @@
         <button class="tab-btn active" data-tab="users">Користувачі панелі</button>
         <button class="tab-btn" data-tab="owner" id="ownerTabBtn">🏢 Власник сайту</button>
         <button class="tab-btn" data-tab="terms" id="termsTabBtn">📜 Правила та умови</button>
+        <button class="tab-btn" data-tab="audit" id="auditTabBtn">🕵️ Журнал дій</button>
         <button class="tab-btn" data-tab="sql" id="sqlTabBtn">SQL-запит</button>
       </div>
 
@@ -791,6 +843,9 @@
 
       <!-- Tab: правила та умови (лише адміністратор) -->
       <div class="tab-panel" id="tab-terms"><div id="termsRoot"><p class="empty-state">Завантаження…</p></div></div>
+
+      <!-- Tab: журнал дій (лише адміністратор) -->
+      <div class="tab-panel" id="tab-audit"><div id="auditRoot"><p class="empty-state">Завантаження…</p></div></div>
 
       <!-- Tab: SQL (лише адміністратор) -->
       <div class="tab-panel" id="tab-sql">
@@ -1050,6 +1105,8 @@
       localStorage.removeItem('adminToken');
       location.reload();
     }
+    // Сервер не пускає в розділи, поки обов'язкова 2FA не налаштована.
+    if (res.status === 403 && data && data.mfaSetupRequired) { showMfaSetupScreen(); }
     return { ok: res.ok, status: res.status, data };
   }
 
@@ -1077,6 +1134,48 @@
     forcePasswordScreen.hidden = false;
   }
 
+  const mfaScreen = document.getElementById('mfaScreen');
+  const mfaSetupScreen = document.getElementById('mfaSetupScreen');
+  let pendingMfaToken = null;
+
+  function hideAuthScreens() {
+    loginScreen.hidden = true; forcePasswordScreen.hidden = true; mfaScreen.hidden = true; mfaSetupScreen.hidden = true;
+  }
+
+  function showMfaSetupScreen() {
+    hideAuthScreens();
+    appEl.classList.remove('active');
+    mfaSetupScreen.hidden = false;
+    const host = document.getElementById('mfaSetupHost');
+    if (!host.dataset.mounted) {
+      host.dataset.mounted = '1';
+      const inner = document.createElement('div');
+      host.appendChild(inner);
+      mountMfaSetup(inner, async () => {
+        // 2FA ввімкнено — оновлюємо профіль і заходимо в панель.
+        const res = await fetch(`${API_BASE}/api/admin/auth/me`, { headers: authHeaders() });
+        currentAdmin = (await res.json()).admin;
+        host.dataset.mounted = ''; host.innerHTML = '';
+        routeAfterAuth();
+      }, 'btn');
+    }
+  }
+
+  // Куди вести після успішної перевірки пароля / коду.
+  function routeAfterAuth() {
+    hideAuthScreens();
+    if (currentAdmin.mustChangePassword) showForcePasswordScreen();
+    else if (currentAdmin.mfaSetupRequired) showMfaSetupScreen();
+    else enterApp();
+  }
+
+  function acceptLogin(data) {
+    adminToken = data.token;
+    localStorage.setItem('adminToken', adminToken);
+    currentAdmin = data.admin;
+    routeAfterAuth();
+  }
+
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('loginError');
@@ -1092,17 +1191,43 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Помилка входу');
 
-      adminToken = data.token;
-      localStorage.setItem('adminToken', adminToken);
-      currentAdmin = data.admin;
-
-      if (currentAdmin.mustChangePassword) showForcePasswordScreen();
-      else enterApp();
+      if (data.mfaRequired) {            // пароль вірний, але потрібен код 2FA
+        pendingMfaToken = data.mfaToken;
+        document.getElementById('loginPassword').value = '';
+        loginScreen.hidden = true; mfaScreen.hidden = false;
+        document.getElementById('mfaCode').value = '';
+        document.getElementById('mfaCode').focus();
+        return;
+      }
+      acceptLogin(data);
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.hidden = false;
     }
   });
+
+  document.getElementById('mfaForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('mfaError');
+    errorEl.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/auth/login/mfa`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mfaToken: pendingMfaToken, code: document.getElementById('mfaCode').value }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.restart) { mfaScreen.hidden = true; loginScreen.hidden = false; }
+        throw new Error(data.error || 'Помилка');
+      }
+      pendingMfaToken = null;
+      acceptLogin(data);
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    }
+  });
+  document.getElementById('mfaBack').addEventListener('click', () => { pendingMfaToken = null; mfaScreen.hidden = true; loginScreen.hidden = false; });
 
   document.getElementById('forcePasswordForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1119,12 +1244,13 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Помилка');
 
-      // Пароль змінено — вікно більше не потрібне і не повернеться.
+      // Пароль змінено: усі старі сесії завершено, сервер видав свіжий токен.
+      if (data.token) { adminToken = data.token; localStorage.setItem('adminToken', adminToken); }
       currentAdmin.mustChangePassword = false;
       document.getElementById('fpCurrent').value = '';
       document.getElementById('fpNew').value = '';
       forcePasswordScreen.hidden = true;
-      enterApp();
+      routeAfterAuth();
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.hidden = false;
@@ -1137,6 +1263,7 @@
   }
   document.getElementById('logoutBtn').addEventListener('click', logout);
   document.getElementById('fpLogout').addEventListener('click', logout);
+  document.getElementById('mfaSetupLogout').addEventListener('click', logout);
 
   async function tryRestoreSession() {
     if (!adminToken) return;
@@ -1145,8 +1272,7 @@
       if (!res.ok) throw new Error();
       const data = await res.json();
       currentAdmin = data.admin;
-      if (currentAdmin.mustChangePassword) { showForcePasswordScreen(); return; }
-      enterApp();
+      routeAfterAuth();
     } catch (err) {
       localStorage.removeItem('adminToken');
     }
@@ -1165,7 +1291,8 @@
 
     const canSettings = isOwner || currentAdmin.permissions?.settings;
     const canStats = isOwner || currentAdmin.permissions?.stats;
-    document.getElementById('settingsNavItem').style.display = canSettings ? '' : 'none';
+    // «Налаштування» (користувачі панелі, власник, правила, журнал, SQL) — лише для адміністратора.
+    document.getElementById('settingsNavItem').style.display = isOwner ? '' : 'none';
     document.getElementById('suppliersNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('productsNavItem').style.display = canSettings ? '' : 'none';
     document.getElementById('sectionsNavItem').style.display = canSettings ? '' : 'none';
@@ -1179,6 +1306,7 @@
     // Власник сайту й правила та умови — юридичні розділи, лише для ролі «Адміністратор».
     document.getElementById('ownerTabBtn').style.display = isOwner ? '' : 'none';
     document.getElementById('termsTabBtn').style.display = isOwner ? '' : 'none';
+    document.getElementById('auditTabBtn').style.display = isOwner ? '' : 'none';
 
     // switchView сам підвантажує дані розділу
     switchView(canStats ? 'dashboard' : 'orders');
@@ -1191,6 +1319,7 @@
     document.querySelector(`[data-view="${name}"]`).classList.add('active');
     document.getElementById('sidebar').classList.remove('open');
     if (name === 'settings') switchTab(currentTab);
+    if (name === 'account') loadMyAccount();
     if (name === 'suppliers') loadSuppliers();
     if (name === 'products') initProductsView();
     if (name === 'sections') loadSectionTranslations();
@@ -3111,8 +3240,8 @@
   let currentTab = 'users';
 
   function switchTab(name) {
-    if (['sql', 'owner', 'terms'].includes(name) && !isOwner) name = 'users';
-    if (!['users', 'owner', 'terms', 'sql'].includes(name)) name = 'users';
+    if (!isOwner) name = 'users';
+    if (!['users', 'owner', 'terms', 'audit', 'sql'].includes(name)) name = 'users';
     currentTab = name;
     // Лише кнопки й панелі розділу «Налаштування»: у «Товарах» теж є .tab-btn (режими огляду),
     // і раніше їх клік скидав currentTab у undefined та ховав усі вкладки налаштувань.
@@ -3121,9 +3250,168 @@
     if (name === 'users') loadUsers();
     if (name === 'owner') loadOwner();
     if (name === 'terms') loadTermsAdmin();
+    if (name === 'audit') loadAudit(true);
     if (name === 'sql') { loadSqlHistory(); }
   }
   document.querySelectorAll('#view-settings .tab-btn').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+  // ---------- 2FA: віджет налаштування (екран обов'язкового налаштування і розділ «Безпека») ----------
+  function mountMfaSetup(host, onDone, btnClass) {
+    const btn = btnClass || 'btn-sm primary';
+    host.innerHTML = `
+      <div class="mfa-step" data-step="1">
+        <p style="margin:0;font-size:13px;line-height:1.5;">1. Встановіть на телефон застосунок-автентифікатор (Google Authenticator, Microsoft Authenticator, Authy або 1Password).<br>2. Введіть пароль, щоб згенерувати QR-код.</p>
+        <div class="field" style="margin:0;"><label>Ваш пароль</label><input type="password" data-f="pw" autocomplete="current-password"></div>
+        <button type="button" class="${btn}" data-act="start">Згенерувати QR-код</button>
+        <div class="form-error" data-f="err" hidden></div>
+      </div>`;
+    const q = (sel) => host.querySelector(sel);
+    const showErr = (m) => { const e = q('[data-f="err"]'); if (e) { e.textContent = m; e.hidden = false; } };
+
+    host.addEventListener('click', async (ev) => {
+      const act = ev.target.closest('[data-act]')?.dataset.act;
+      if (!act) return;
+      if (act === 'start') {
+        const { ok, data } = await api('/api/admin/auth/mfa/setup', { method: 'POST', body: { password: q('[data-f="pw"]').value } });
+        if (!ok) return showErr((data && data.error) || 'Не вдалося');
+        host.innerHTML = `
+          <div class="mfa-step">
+            <p style="margin:0;font-size:13px;line-height:1.5;">Відскануйте QR-код у застосунку (або введіть ключ вручну), а потім впишіть 6-значний код, який він покаже.</p>
+            <div style="text-align:center;"><span class="mfa-qr"><img src="${esc(data.qr)}" alt="QR-код для 2FA" width="200" height="200"></span></div>
+            <div class="mfa-secret">Ключ: ${esc(data.secret)}</div>
+            <div class="field" style="margin:0;"><label>Код із застосунку</label><input type="text" data-f="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7"></div>
+            <button type="button" class="${btn}" data-act="enable">Увімкнути 2FA</button>
+            <div class="form-error" data-f="err" hidden></div>
+          </div>`;
+      }
+      if (act === 'enable') {
+        const { ok, data } = await api('/api/admin/auth/mfa/enable', { method: 'POST', body: { code: q('[data-f="code"]').value } });
+        if (!ok) return showErr((data && data.error) || 'Не вдалося');
+        host.innerHTML = `
+          <div class="mfa-step">
+            <div class="mfa-ok">✅ Двофакторний захист увімкнено</div>
+            <p style="margin:0;font-size:13px;line-height:1.5;"><b>Збережіть резервні коди.</b> Кожен діє один раз і потрібен, якщо ви втратите телефон. Більше вони не покажуться.</p>
+            <div class="mfa-codes">${data.backupCodes.map((c) => `<span>${esc(c)}</span>`).join('')}</div>
+            <button type="button" class="${btn === 'btn' ? 'btn secondary' : 'btn-sm'}" data-act="copy">Скопіювати коди</button>
+            <button type="button" class="${btn}" data-act="done">Я зберіг(-ла) коди — продовжити</button>
+          </div>`;
+        host.dataset.codes = data.backupCodes.join('\n');
+      }
+      if (act === 'copy') {
+        try { await navigator.clipboard.writeText(host.dataset.codes || ''); toast('Коди скопійовано', 'ok'); } catch (_) { toast('Не вдалося скопіювати — перепишіть коди вручну', 'err'); }
+      }
+      if (act === 'done') { host.dataset.codes = ''; onDone(); }
+    });
+  }
+
+  // ---------- Розділ «Безпека» (власний акаунт кожного адміна) ----------
+  async function loadMyAccount() {
+    const root = document.getElementById('accountRoot');
+    const { ok, data } = await api('/api/admin/auth/mfa/status');
+    if (!ok) { root.innerHTML = '<p class="empty-state">Не вдалося завантажити</p>'; return; }
+    root.innerHTML = `
+      <div class="panel own-form">
+        <h3>Двофакторна автентифікація</h3>
+        <div id="mfaHost">
+          ${data.enabled
+            ? `<p class="mfa-ok" style="margin:0 0 6px;">✅ Увімкнено</p>
+               <p class="own-note">Резервних кодів залишилось: <b>${esc(data.backupCodesLeft)}</b>.${data.required ? ' Для вашої ролі 2FA обов\'язкова, вимкнути її не можна.' : ''}</p>
+               ${data.required ? '' : `<div class="own-grid"><div class="field"><label>Пароль</label><input type="password" id="mfaOffPw" autocomplete="current-password"></div>
+                 <div class="field"><label>Код із застосунку</label><input type="text" id="mfaOffCode" inputmode="numeric" maxlength="7"></div></div>
+                 <button type="button" class="btn-sm danger" id="mfaOffBtn">Вимкнути 2FA</button>`}`
+            : '<p class="own-note">2FA не увімкнена. Увімкніть її — це найкращий захист від входу сторонніх навіть після витоку пароля.</p><div id="mfaMount"></div>'}
+        </div>
+      </div>
+      <div class="panel own-form">
+        <h3>Змінити пароль</h3>
+        <p class="own-note">Мінімум 12 символів, без поширених паролів і без вашого email. Після зміни всі інші сесії завершаться.</p>
+        <div class="own-grid">
+          <div class="field"><label>Поточний пароль</label><input type="password" id="pwCur" autocomplete="current-password"></div>
+          <div class="field"><label>Новий пароль</label><input type="password" id="pwNew" minlength="12" autocomplete="new-password"></div>
+        </div>
+        <button type="button" class="btn-sm primary" id="pwSave" style="padding:9px 20px;font-size:13px;">Змінити пароль</button>
+        <div class="form-error" id="pwErr" hidden></div>
+      </div>
+      <div class="panel own-form">
+        <h3>Сесії</h3>
+        <p class="own-note">Якщо ви входили з чужого або загубленого пристрою — завершіть усі інші сесії. Поточна лишиться активною.</p>
+        <button type="button" class="btn-sm danger" id="logoutAllBtn">Вийти на всіх інших пристроях</button>
+      </div>`;
+
+    if (!data.enabled) mountMfaSetup(document.getElementById('mfaMount'), async () => {
+      const r = await api('/api/admin/auth/me'); if (r.ok) currentAdmin = r.data.admin; loadMyAccount();
+    });
+    const off = document.getElementById('mfaOffBtn');
+    if (off) off.addEventListener('click', async () => {
+      const r = await api('/api/admin/auth/mfa/disable', { method: 'POST', body: { password: document.getElementById('mfaOffPw').value, code: document.getElementById('mfaOffCode').value } });
+      if (!r.ok) return toast((r.data && r.data.error) || 'Не вдалося', 'err');
+      toast('2FA вимкнено. Увійдіть знову.', 'ok'); setTimeout(logout, 1200);
+    });
+    document.getElementById('pwSave').addEventListener('click', async () => {
+      const err = document.getElementById('pwErr'); err.hidden = true;
+      const r = await api('/api/admin/auth/change-password', { method: 'POST', body: { currentPassword: document.getElementById('pwCur').value, newPassword: document.getElementById('pwNew').value } });
+      if (!r.ok) { err.textContent = (r.data && r.data.error) || 'Не вдалося'; err.hidden = false; return; }
+      adminToken = r.data.token; localStorage.setItem('adminToken', adminToken);
+      document.getElementById('pwCur').value = ''; document.getElementById('pwNew').value = '';
+      toast('Пароль змінено, інші сесії завершено', 'ok');
+    });
+    document.getElementById('logoutAllBtn').addEventListener('click', async () => {
+      if (!confirm('Завершити всі інші сесії?')) return;
+      const r = await api('/api/admin/auth/logout-all', { method: 'POST' });
+      if (!r.ok) return toast('Не вдалося', 'err');
+      adminToken = r.data.token; localStorage.setItem('adminToken', adminToken);
+      toast('Інші сесії завершено', 'ok');
+    });
+  }
+
+  // ---------- Журнал дій ----------
+  let auditState = { offset: 0, q: '', status: '', logins: false, total: 0 };
+
+  async function loadAudit(reset) {
+    const root = document.getElementById('auditRoot');
+    if (reset) {
+      auditState = { offset: 0, q: auditState.q, status: auditState.status, logins: auditState.logins, total: 0 };
+      root.innerHTML = `
+        <div class="panel tm-form">
+          <h3>Журнал дій в адмінці</h3>
+          <p class="own-note">Усі зміни даних і всі спроби входу: хто, коли, з якої IP-адреси та з яким результатом. Паролі, коди й токени не записуються. Записи зберігаються рік.</p>
+          <div class="audit-filters">
+            <input type="text" id="auditQ" placeholder="Пошук: email, розділ, IP" value="${esc(auditState.q)}">
+            <select id="auditStatus"><option value="">Усі результати</option><option value="fail" ${auditState.status === 'fail' ? 'selected' : ''}>Лише помилки / відмови</option><option value="ok" ${auditState.status === 'ok' ? 'selected' : ''}>Лише успішні</option></select>
+            <label style="font-size:13px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="auditLogins" ${auditState.logins ? 'checked' : ''}> лише входи</label>
+            <button type="button" class="btn-sm primary" id="auditApply">Застосувати</button>
+          </div>
+          <div style="overflow-x:auto;"><table class="tm-table"><thead><tr><th>Час</th><th>Хто</th><th>Дія</th><th>Статус</th><th>IP</th><th>Дані</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+          <div style="margin-top:12px;display:flex;gap:12px;align-items:center;"><button type="button" class="btn-sm" id="auditMore" hidden>Показати ще</button><span class="own-note" id="auditCount" style="margin:0;"></span></div>
+        </div>`;
+      document.getElementById('auditApply').addEventListener('click', () => {
+        auditState.q = document.getElementById('auditQ').value.trim();
+        auditState.status = document.getElementById('auditStatus').value;
+        auditState.logins = document.getElementById('auditLogins').checked;
+        loadAudit(true);
+      });
+      document.getElementById('auditMore').addEventListener('click', () => loadAudit(false));
+    }
+    const params = new URLSearchParams({ limit: 50, offset: auditState.offset });
+    if (auditState.q) params.set('q', auditState.q);
+    if (auditState.status) params.set('status', auditState.status);
+    if (auditState.logins) params.set('logins', '1');
+    const { ok, data } = await api(`/api/admin/audit?${params}`);
+    if (!ok) { toast((data && data.error) || 'Не вдалося завантажити журнал', 'err'); return; }
+    auditState.total = data.total;
+    const body = document.getElementById('auditBody');
+    body.insertAdjacentHTML('beforeend', data.rows.map((r) => `<tr>
+        <td style="white-space:nowrap;">${esc(fmtDate(r.created_at))}</td>
+        <td>${esc(r.admin_email || '—')}</td>
+        <td><b>${esc(r.method)}</b> ${esc(r.path.replace('/api/admin', ''))}</td>
+        <td><span class="audit-status ${r.status >= 400 ? 'fail' : 'ok'}">${esc(r.status)}</span></td>
+        <td>${esc(r.ip || '')}</td>
+        <td>${r.detail && Object.keys(r.detail).length ? `<details><summary style="cursor:pointer;font-size:12px;">показати</summary><div class="audit-detail">${esc(JSON.stringify(r.detail, null, 1))}</div></details>` : ''}</td>
+      </tr>`).join(''));
+    auditState.offset += data.rows.length;
+    document.getElementById('auditMore').hidden = auditState.offset >= data.total;
+    document.getElementById('auditCount').textContent = `Показано ${auditState.offset} з ${data.total}`;
+  }
 
   // ---------- Settings: власник сайту (юридична особа / ФОП) ----------
   // Форму будуємо зі схеми, яку віддає сервер (GET /api/admin/owner), тому нові поля додаються лише на бекенді.
@@ -3480,8 +3768,15 @@
           <div class="info">
             <div class="name">${esc(u.name)} ${u.role === 'admin' ? '<span class="role-tag admin">Адміністратор</span>' : '<span class="role-tag">Персонал</span>'} ${!u.active ? '<span class="perm-tag">неактивний</span>' : ''}</div>
             <div class="email">${esc(u.email)}</div>
+            <div style="margin-top:4px;">
+              <span class="sec-badge ${u.mfa_enabled ? 'good' : ''}">2FA: ${u.mfa_enabled ? 'увімкнена' : 'немає'}</span>
+              ${u.locked_until && new Date(u.locked_until) > new Date() ? `<span class="sec-badge bad">🔒 заблоковано до ${esc(fmtDate(u.locked_until))}</span>` : ''}
+            </div>
             ${u.role !== 'admin' ? `<div style="margin-top:4px;">${Object.entries(u.permissions || {}).filter(([, v]) => v).map(([k]) => `<span class="perm-tag">${esc(k)}</span>`).join('')}</div>` : ''}
           </div>
+          ${u.locked_until && new Date(u.locked_until) > new Date() ? `<button class="btn-sm" data-unlock="${esc(u.id)}">Розблокувати</button>` : ''}
+          ${u.mfa_enabled ? `<button class="btn-sm" data-resetmfa="${esc(u.id)}">Скинути 2FA</button>` : ''}
+          <button class="btn-sm" data-revoke="${esc(u.id)}">Завершити сесії</button>
           <button class="btn-sm" data-reset="${esc(u.id)}">Скинути пароль</button>
           <button class="btn-sm ${u.active ? 'danger' : ''}" data-toggle="${esc(u.id)}" data-active="${u.active}">${u.active ? 'Деактивувати' : 'Активувати'}</button>
         </div>
@@ -3493,6 +3788,17 @@
           alert(data.emailSent ? 'Новий пароль надіслано на email.' : `Новий тимчасовий пароль: ${data.tempPassword}\n(email не налаштовано — передай пароль особисто)`);
         });
       });
+      const simple = (attr, url, okMsg, confirmMsg) => panel.querySelectorAll(`[${attr}]`).forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (confirmMsg && !confirm(confirmMsg)) return;
+          const r = await api(`/api/admin/users/${btn.getAttribute(attr)}/${url}`, { method: 'POST' });
+          toast(r.ok ? okMsg : ((r.data && r.data.error) || 'Не вдалося'), r.ok ? 'ok' : 'err');
+          loadUsers();
+        });
+      });
+      simple('data-unlock', 'unlock', 'Акаунт розблоковано');
+      simple('data-resetmfa', 'reset-mfa', '2FA скинуто, сесії завершено', 'Скинути двофакторну автентифікацію цього користувача? Його сесії буде завершено.');
+      simple('data-revoke', 'revoke-sessions', 'Сесії завершено', 'Завершити всі активні сесії цього користувача?');
       panel.querySelectorAll('[data-toggle]').forEach((btn) => {
         btn.addEventListener('click', async () => {
           const nowActive = btn.dataset.active === 'true';

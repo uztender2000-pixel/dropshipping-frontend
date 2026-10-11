@@ -2,6 +2,8 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://allshop-stjp.onrender.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>В Хату.UA — усе для дому, авто, дітей та не тільки</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
@@ -1160,7 +1162,7 @@
     <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">Ми надіслали код на <b id="resetEmailLabel"></b>. Введіть його разом із новим паролем.</p>
     <form id="resetForm">
       <div class="field"><label for="resetCode">Код з email</label><input type="text" id="resetCode" required></div>
-      <div class="field"><label for="resetNewPassword">Новий пароль (мінімум 6 символів)</label><input type="password" id="resetNewPassword" required minlength="6"></div>
+      <div class="field"><label for="resetNewPassword">Новий пароль (мінімум 10 символів)</label><input type="password" id="resetNewPassword" required minlength="10" autocomplete="new-password"></div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="resetCancel">Скасувати</button>
         <button type="submit" class="btn-primary" id="resetSubmit">Змінити пароль</button>
@@ -1183,7 +1185,7 @@
         <input type="tel" id="regPhone" placeholder="+380..." required>
         <div class="field-hint">Телефон обов'язковий: на нього прийде SMS із кодом для підтвердження.</div>
       </div>
-      <div class="field"><label for="regPassword">Пароль (мінімум 6 символів)</label><input type="password" id="regPassword" required minlength="6"></div>
+      <div class="field"><label for="regPassword">Пароль (мінімум 10 символів)</label><input type="password" id="regPassword" required minlength="10" autocomplete="new-password"></div>
       <div class="field terms-field" id="termsField">
         <label class="terms-check"><input type="checkbox" id="regTerms"><span>Я ознайомився(-лась) з <a href="terms.html" target="_blank" rel="noopener" data-open-terms>правилами та умовами</a> і приймаю їх</span></label>
         <a href="terms.html" target="_blank" rel="noopener" class="terms-read" data-open-terms>Прочитати правила та умови</a>
@@ -2868,12 +2870,18 @@
       <div class="cab-card">
         <h3>Змінити пароль</h3>
         <div class="field"><label for="acCurrentPassword">Поточний пароль</label><input type="password" id="acCurrentPassword" autocomplete="current-password"></div>
-        <div class="field"><label for="acNewPassword">Новий пароль (мінімум 6 символів)</label><input type="password" id="acNewPassword" autocomplete="new-password"></div>
+        <div class="field"><label for="acNewPassword">Новий пароль (мінімум 10 символів)</label><input type="password" id="acNewPassword" autocomplete="new-password"></div>
         <div class="field"><label for="acNewPassword2">Повторіть новий пароль</label><input type="password" id="acNewPassword2" autocomplete="new-password"></div>
         <label class="cab-hint" style="display:flex;gap:6px;align-items:center;margin-bottom:12px;cursor:pointer;">
           <input type="checkbox" id="acShowPasswords"> Показати паролі</label>
         <div class="cab-actions"><button type="button" class="btn-primary" id="changePasswordBtn">Змінити пароль</button></div>
         <p class="modal-status" id="passwordStatus" hidden></p>
+      </div>
+      <div class="cab-card">
+        <h3>Сесії</h3>
+        <p class="cab-hint">Користувалися чужим або загубленим пристроєм? Завершіть вхід на всіх інших пристроях — тут ви залишитесь у акаунті.</p>
+        <div class="cab-actions"><button type="button" class="btn-secondary" id="logoutAllBtn">Вийти на всіх інших пристроях</button></div>
+        <p class="modal-status" id="logoutAllStatus" hidden></p>
       </div>`;
   }
 
@@ -3177,6 +3185,26 @@
       else showToast('Невірний або прострочений код', 'error');
     }));
 
+    // Вихід на всіх інших пристроях
+    const laBtn = $('logoutAllBtn');
+    if (laBtn) {
+      laBtn.addEventListener('click', async () => {
+        const status = $('logoutAllStatus');
+        laBtn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/account/logout-all`, { method: 'POST', headers: cabJson() });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Не вдалося завершити сесії');
+          authToken = data.token; localStorage.setItem('authToken', authToken);
+          cabStatus(status, 'Готово: на інших пристроях вхід завершено', true);
+        } catch (err) {
+          cabStatus(status, err.message, false);
+        } finally {
+          laBtn.disabled = false;
+        }
+      });
+    }
+
     // Пароль
     const pwBtn = $('changePasswordBtn');
     if (pwBtn) {
@@ -3187,7 +3215,7 @@
         const cur = $('acCurrentPassword').value;
         const next = $('acNewPassword').value;
         if (!cur || !next) { cabStatus(status, 'Введіть поточний і новий пароль', false); return; }
-        if (next.length < 6) { cabStatus(status, 'Новий пароль — мінімум 6 символів', false); return; }
+        if (next.length < 10) { cabStatus(status, 'Новий пароль — мінімум 10 символів', false); return; }
         if (next !== $('acNewPassword2').value) { cabStatus(status, 'Паролі не збігаються', false); return; }
         pwBtn.disabled = true;
         try {
@@ -3197,7 +3225,9 @@
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Не вдалося змінити пароль');
           ids.forEach((id) => { $(id).value = ''; });
-          cabStatus(status, 'Пароль змінено', true);
+          // Сервер завершив усі інші сесії й видав свіжий токен для цього пристрою.
+          if (data.token) { authToken = data.token; localStorage.setItem('authToken', authToken); }
+          cabStatus(status, 'Пароль змінено. На інших пристроях потрібно буде увійти знову.', true);
         } catch (err) {
           cabStatus(status, err.message, false);
         } finally {
