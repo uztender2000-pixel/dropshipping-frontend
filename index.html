@@ -958,9 +958,19 @@
   .terms-gate-foot .modal-status { margin: 0; }
   .terms-gate-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
   .terms-gate-actions button { flex: none; padding: 10px 20px; }
-  .site-footer { max-width: 1280px; margin: 10px auto 0; padding: 18px 16px 90px; display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); border-top: 1px solid #1f1f27; }
-  .site-footer a { color: var(--muted); text-decoration: none; }
-  .site-footer a:hover { color: var(--rust-text); text-decoration: underline; }
+  /* ---------- Футер: колонки посилань (лише реалізовані розділи) ---------- */
+  .site-footer { margin: 10px 0 0; border-top: 1px solid #1f1f27; font-size: 13px; color: var(--muted); text-align: left; }
+  .footer-inner { max-width: 1280px; margin: 0 auto; padding: 28px 16px 90px; }
+  .footer-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px 24px; }
+  .footer-col h4 { margin: 0 0 12px; font-size: 14px; font-weight: 700; color: var(--ink); }
+  .footer-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .site-footer a, .site-footer .footer-link { color: var(--muted); text-decoration: none; background: none; border: none; padding: 0; font: inherit; text-align: left; cursor: pointer; }
+  .site-footer a:hover, .site-footer .footer-link:hover { color: var(--rust-text); text-decoration: underline; }
+  .footer-contact li { line-height: 1.45; }
+  .footer-contact .fc-k { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+  .footer-bottom { margin-top: 26px; padding-top: 16px; border-top: 1px solid #1f1f27; display: flex; flex-direction: column; gap: 6px; font-size: 12px; line-height: 1.5; }
+  @media (max-width: 900px) { .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .footer-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -1063,10 +1073,49 @@
   </main>
 </div>
 
+<!-- Футер за зразком великих маркетплейсів. Тут лише те, що вже працює на сайті; соцмережі, застосунки,
+     «Про нас», вакансії, бонуси, партнерські розділи тощо додамо, коли вони з'являться. -->
 <footer class="site-footer">
-  <span>© <span id="footerYear">2026</span> «В Хату.UA»</span>
-  <a href="terms.html" target="_blank" rel="noopener">Правила та умови</a>
-  <span>Сайт — майданчик для зв'язку між покупцем і продавцем</span>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Інформація про компанію</h4>
+        <ul>
+          <li><a href="terms.html" target="_blank" rel="noopener">Умови використання сайту</a></li>
+          <li><a href="terms.html" target="_blank" rel="noopener" data-help="реквізит">Реквізити власника сайту</a></li>
+          <li><button type="button" class="footer-link" data-footer="categories">Усі категорії</button></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Допомога</h4>
+        <ul>
+          <li><a href="terms.html" target="_blank" rel="noopener" data-help="доставк|оплат">Доставка та оплата</a></li>
+          <li><a href="terms.html" target="_blank" rel="noopener" data-help="поверненн|гаранті">Повернення, обмін, гарантія</a></li>
+          <li><a href="terms.html" target="_blank" rel="noopener" data-help="персональн">Персональні дані</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Мій кабінет</h4>
+        <ul>
+          <li><button type="button" class="footer-link" data-footer="account">Особистий кабінет</button></li>
+          <li><button type="button" class="footer-link" data-footer="orders">Мої замовлення</button></li>
+          <li><button type="button" class="footer-link" data-footer="viewed">Переглянуті товари</button></li>
+          <li><button type="button" class="footer-link" data-footer="cart">Кошик</button></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Контакти</h4>
+        <ul class="footer-contact" id="footerContacts">
+          <li><button type="button" class="footer-link" data-footer="contact">✉️ Написати нам</button></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="footerYear">2026</span> Інтернет-магазин «В Хату.UA»</span>
+      <span id="footerOwnerLine" hidden></span>
+      <span>Сайт — майданчик для зв'язку між покупцем і продавцем</span>
+    </div>
+  </div>
 </footer>
 
 <!-- Auth modal: login + register in one, switchable -->
@@ -2329,6 +2378,60 @@
   }
 
   document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+  // ---------- Футер: дії посилань та дані з бекенду ----------
+  document.querySelectorAll('[data-footer]').forEach((el) => el.addEventListener('click', () => {
+    const act = el.dataset.footer;
+    if (act === 'categories') {
+      hideAccountPage(); hideProductDetail();
+      selectShopCategory(null, '');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (act === 'contact') {
+      document.getElementById('contactBtn').click();
+    } else if (act === 'cart') {
+      cartBtn.click();
+    } else if (!authToken) {
+      openAuth();   // кабінет доступний лише після входу
+    } else {
+      showAccountPage(act === 'account' ? undefined : act);
+    }
+  }));
+
+  // Зміст правил → точні посилання на розділи (за ключовими словами в заголовках, бо адмін може
+  // міняти порядок розділів); реквізити власника → блок «Контакти». Якщо дані не завантажились,
+  // посилання просто ведуть на початок сторінки правил.
+  (async function initFooterFromServer() {
+    try {
+      const res = await fetch(`${API_BASE}/api/terms/summary`);
+      if (!res.ok) return;
+      const d = await res.json();
+      document.querySelectorAll('[data-help]').forEach((a) => {
+        const re = new RegExp(a.dataset.help, 'i');
+        const item = (d.toc || []).find((t) => re.test(t.title));
+        if (item) a.href = `terms.html#${item.id}`;
+        else if (a.dataset.help !== 'реквізит') return;
+        else a.hidden = true;
+      });
+      const o = d.owner || {};
+      const ul = document.getElementById('footerContacts');
+      const row = (k, html) => `<li><span class="fc-k">${k}</span>${html}</li>`;
+      const e = cabEsc;
+      let html = '';
+      if (o.phone) html += row('Телефон', `<a href="tel:${e(o.phone.replace(/[^\d+]/g, ''))}">${e(o.phone)}</a>${o.phone_extra ? `<br><a href="tel:${e(o.phone_extra.replace(/[^\d+]/g, ''))}">${e(o.phone_extra)}</a>` : ''}`);
+      if (o.email) html += row('Електронна пошта', `<a href="mailto:${e(o.email)}">${e(o.email)}</a>`);
+      if (o.work_hours) html += row('Графік роботи', e(o.work_hours));
+      const addr = o.actual_address || o.legal_address;
+      if (addr) html += row('Адреса', e(addr));
+      ul.insertAdjacentHTML('afterbegin', html);
+      if (o.name) {
+        const line = document.getElementById('footerOwnerLine');
+        line.textContent = `Власник сайту: ${o.name}${o.edrpou ? `, код ${o.edrpou}` : ''}`;
+        line.hidden = false;
+      }
+    } catch (err) {
+      console.error('Футер: не вдалося завантажити реквізити', err);
+    }
+  })();
   // ---------- Правила та умови: вікно з повним текстом і галочка при реєстрації ----------
   const termsBackdrop = document.getElementById('termsBackdrop');
   const termsFrame = document.getElementById('termsFrame');
