@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://allshop-stjp.onrender.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://allshop-stjp.onrender.com; frame-src 'self' https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>В Хату.UA — усе для дому, авто, дітей та не тільки</title>
@@ -953,6 +953,8 @@
   .terms-changes { background: rgba(255,122,26,.10); border: 1px solid rgba(255,122,26,.35); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: 14px; }
   .terms-changes b { display: block; margin-bottom: 4px; color: var(--rust-text); }
   .terms-changes div { white-space: pre-line; }
+  .captcha-box { display: flex; justify-content: center; margin: 8px 0 4px; }
+  .captcha-box:empty { display: none; }
   .terms-gate-note { font-size: 14px; color: var(--muted); margin: 0 0 12px; }
   #termsGateBackdrop { z-index: 300; }   /* вище за будь-які інші вікна: це вікно не можна закрити без вибору */
   .terms-gate-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; }
@@ -1128,6 +1130,7 @@
     <form id="loginForm">
       <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" required></div>
       <div class="field"><label for="loginPassword">Пароль</label><input type="password" id="loginPassword" required></div>
+      <div class="captcha-box" data-captcha-for="loginForm"></div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="authCancel1">Скасувати</button>
         <button type="submit" class="btn-primary" id="loginSubmit">Увійти</button>
@@ -1146,6 +1149,7 @@
     <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">Вкажіть email — ми надішлемо код для скидання пароля.</p>
     <form id="forgotForm">
       <div class="field"><label for="forgotEmail">Email</label><input type="email" id="forgotEmail" required></div>
+      <div class="captcha-box" data-captcha-for="forgotForm"></div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="forgotCancel">Скасувати</button>
         <button type="submit" class="btn-primary" id="forgotSubmit">Надіслати код</button>
@@ -1168,6 +1172,7 @@
         <button type="submit" class="btn-primary" id="resetSubmit">Змінити пароль</button>
       </div>
       <p class="modal-status" id="resetStatus" hidden></p>
+      <div class="captcha-box" data-captcha-for="resetForm"></div>
       <button type="button" class="btn-secondary" id="resetResendCode" style="width:100%;margin-top:10px;">Надіслати код ще раз</button>
     </form>
   </div>
@@ -1190,6 +1195,7 @@
         <label class="terms-check"><input type="checkbox" id="regTerms"><span>Я ознайомився(-лась) з <a href="terms.html" target="_blank" rel="noopener" data-open-terms>правилами та умовами</a> і приймаю їх</span></label>
         <a href="terms.html" target="_blank" rel="noopener" class="terms-read" data-open-terms>Прочитати правила та умови</a>
       </div>
+      <div class="captcha-box" data-captcha-for="registerForm"></div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="authCancel2">Скасувати</button>
         <button type="submit" class="btn-primary" id="registerSubmit">Зареєструватись</button>
@@ -1345,6 +1351,80 @@
 <script>
   // ЗАМІНИ на адресу свого бекенду на Render.
   const API_BASE = 'https://allshop-stjp.onrender.com';
+
+  // ---------- Безпека запитів до API ----------
+  // Якщо сервер працює в режимі cookie-сесій (COOKIE_SESSIONS=true), токен живе в httpOnly-cookie,
+  // недоступній для JavaScript, а браузер додає її до запитів сам. Тут ми лише вмикаємо
+  // credentials і CSRF-заголовок для запитів до API. Літерал 'cookie' у localStorage — не секрет,
+  // а позначка «сесія в cookie».
+  const COOKIE_SENTINEL = 'cookie';
+  let cookieMode = localStorage.getItem('cookieMode') === '1';
+  let turnstileSiteKey = null;
+  const nativeFetch = window.fetch.bind(window);
+  const configReady = Promise.race([
+    nativeFetch(`${API_BASE}/api/config`).then((r) => r.json()).then((c) => {
+      cookieMode = Boolean(c.cookieSessions);
+      localStorage.setItem('cookieMode', cookieMode ? '1' : '0');
+      turnstileSiteKey = c.turnstileSiteKey || null;
+    }).catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
+
+  // ---------- Капча (Cloudflare Turnstile): вмикається, коли на сервері задано TURNSTILE_SECRET ----------
+  const CAPTCHA_FORMS = { '/api/auth/login': ['loginForm'], '/api/auth/register': ['registerForm'], '/api/auth/forgot-password': ['forgotForm', 'resetForm'] };
+  const captchaState = {};   // formId -> { id, token }
+
+  function loadTurnstile() {
+    if (window.turnstile) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.async = true; s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  configReady.then(async () => {
+    if (!turnstileSiteKey) return;
+    try { await loadTurnstile(); } catch (e) { console.error('Не вдалося завантажити капчу'); return; }
+    document.querySelectorAll('[data-captcha-for]').forEach((box) => {
+      const state = { id: null, token: null };
+      captchaState[box.dataset.captchaFor] = state;
+      state.id = window.turnstile.render(box, {
+        sitekey: turnstileSiteKey, theme: 'dark', language: 'uk',
+        callback: (t) => { state.token = t; },
+        'expired-callback': () => { state.token = null; },
+        'error-callback': () => { state.token = null; },
+      });
+    });
+  });
+
+  window.fetch = async function (url, opts) {
+    if (!String(url).startsWith(API_BASE)) return nativeFetch(url, opts);
+    await configReady;
+    opts = { ...(opts || {}) };
+    let usedCaptcha = null;
+    const apiPath = String(url).slice(API_BASE.length).split('?')[0];
+    if (turnstileSiteKey && CAPTCHA_FORMS[apiPath] && typeof opts.body === 'string') {
+      usedCaptcha = CAPTCHA_FORMS[apiPath].map((f) => captchaState[f]).find((st) => st && st.token) || null;
+      if (usedCaptcha) {
+        try { opts.body = JSON.stringify({ ...JSON.parse(opts.body), captchaToken: usedCaptcha.token }); } catch (e) { /* не JSON */ }
+      }
+    }
+    if (cookieMode) {
+      opts.credentials = 'include';
+      const h = new Headers(opts.headers || {});
+      if (h.get('Authorization') === `Bearer ${COOKIE_SENTINEL}`) h.delete('Authorization');
+      if (!['GET', 'HEAD'].includes(String(opts.method || 'GET').toUpperCase())) h.set('X-Requested-With', 'shop');
+      opts.headers = h;
+    }
+    try {
+      return await nativeFetch(url, opts);
+    } finally {
+      // токен капчі одноразовий: після кожної спроби просимо новий
+      if (usedCaptcha) { usedCaptcha.token = null; try { window.turnstile.reset(usedCaptcha.id); } catch (e) { /* ignore */ } }
+    }
+  };
 
   const state = { shopCategoryId: '', shopCategoryName: '', sort: 'newest', query: '', page: 1, limit: 50, loading: false, reloadQueued: false, homepage: true,
     filters: {}, priceMin: '', priceMax: '', facets: null, lastTotal: 0 };
@@ -3195,7 +3275,7 @@
           const res = await fetch(`${API_BASE}/api/account/logout-all`, { method: 'POST', headers: cabJson() });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Не вдалося завершити сесії');
-          authToken = data.token; localStorage.setItem('authToken', authToken);
+          setAuthToken(data.token);
           cabStatus(status, 'Готово: на інших пристроях вхід завершено', true);
         } catch (err) {
           cabStatus(status, err.message, false);
@@ -3226,7 +3306,7 @@
           if (!res.ok) throw new Error(data.error || 'Не вдалося змінити пароль');
           ids.forEach((id) => { $(id).value = ''; });
           // Сервер завершив усі інші сесії й видав свіжий токен для цього пристрою.
-          if (data.token) { authToken = data.token; localStorage.setItem('authToken', authToken); }
+          setAuthToken(data.token);
           cabStatus(status, 'Пароль змінено. На інших пристроях потрібно буде увійти знову.', true);
         } catch (err) {
           cabStatus(status, err.message, false);
@@ -3249,6 +3329,11 @@
 
   // ---------- Auth ----------
   let authToken = localStorage.getItem('authToken') || null;
+  // Зберігає токен сесії; у cookie-режимі сервер токен не віддає — тоді лишається позначка 'cookie'.
+  function setAuthToken(token) {
+    authToken = token || COOKIE_SENTINEL;
+    localStorage.setItem('authToken', authToken);
+  }
   let currentUser = null;
 
   // ---------- Browsing history ----------
@@ -3318,6 +3403,7 @@
   }
 
   function logout() {
+    if (cookieMode) fetch(`${API_BASE}/api/auth/logout`, { method: 'POST' }).catch(() => {});   // прибирає httpOnly-cookie
     authToken = null;
     currentUser = null;
     localStorage.removeItem('authToken');
@@ -3615,7 +3701,7 @@
         throw new Error(data.error || 'Помилка входу');
       }
 
-      authToken = data.token;
+      setAuthToken(data.token);
       currentUser = data.user;
       localStorage.setItem('authToken', authToken);
       setLoggedInUI();
@@ -3659,7 +3745,7 @@
         return;
       }
 
-      authToken = data.token;
+      setAuthToken(data.token);
       currentUser = data.user;
       localStorage.setItem('authToken', authToken);
       setLoggedInUI();
@@ -3747,7 +3833,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Не вдалося підтвердити номер');
 
-      authToken = data.token;
+      setAuthToken(data.token);
       currentUser = data.user;
       localStorage.setItem('authToken', authToken);
       setLoggedInUI();

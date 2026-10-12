@@ -861,6 +861,7 @@
             </label>
             <div class="pw" id="sqlPwRow" hidden>
               <input type="password" id="sqlPassword" placeholder="Ваш пароль адміністратора" autocomplete="current-password">
+              <input type="text" id="sqlCode" placeholder="Код 2FA з застосунку" inputmode="numeric" autocomplete="one-time-code" maxlength="7" style="max-width:190px;">
               <span class="warn-text">Зміни не можна скасувати. Якщо один із запитів впаде — жоден не застосується.</span>
             </div>
           </div>
@@ -1072,6 +1073,41 @@
   // ЗАМІНИ на адресу свого бекенду.
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
+  // ---------- Безпека запитів до API ----------
+  // Якщо сервер працює в режимі cookie-сесій (COOKIE_SESSIONS=true), токен живе в httpOnly-cookie,
+  // недоступній для JavaScript, а браузер додає її до запитів сам. Тут ми лише вмикаємо
+  // credentials і CSRF-заголовок для запитів до API. Літерал 'cookie' у localStorage — не секрет,
+  // а позначка «сесія в cookie».
+  const COOKIE_SENTINEL = 'cookie';
+  let cookieMode = localStorage.getItem('cookieMode') === '1';
+  let turnstileSiteKey = null;
+  const nativeFetch = window.fetch.bind(window);
+  const configReady = Promise.race([
+    nativeFetch(`${API_BASE}/api/config`).then((r) => r.json()).then((c) => {
+      cookieMode = Boolean(c.cookieSessions);
+      localStorage.setItem('cookieMode', cookieMode ? '1' : '0');
+      turnstileSiteKey = c.turnstileSiteKey || null;
+    }).catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
+
+  window.fetch = async function (url, opts) {
+    if (!String(url).startsWith(API_BASE)) return nativeFetch(url, opts);
+    await configReady;
+    opts = { ...(opts || {}) };
+    
+    if (cookieMode) {
+      opts.credentials = 'include';
+      const h = new Headers(opts.headers || {});
+      if (h.get('Authorization') === `Bearer ${COOKIE_SENTINEL}`) h.delete('Authorization');
+      if (!['GET', 'HEAD'].includes(String(opts.method || 'GET').toUpperCase())) h.set('X-Requested-With', 'shop');
+      opts.headers = h;
+    }
+    
+    return nativeFetch(url, opts);
+    
+  };
+
   let adminToken = localStorage.getItem('adminToken') || null;
   let currentAdmin = null;
 
@@ -1170,7 +1206,7 @@
   }
 
   function acceptLogin(data) {
-    adminToken = data.token;
+    adminToken = data.token || COOKIE_SENTINEL;
     localStorage.setItem('adminToken', adminToken);
     currentAdmin = data.admin;
     routeAfterAuth();
@@ -1245,7 +1281,7 @@
       if (!res.ok) throw new Error(data.error || 'Помилка');
 
       // Пароль змінено: усі старі сесії завершено, сервер видав свіжий токен.
-      if (data.token) { adminToken = data.token; localStorage.setItem('adminToken', adminToken); }
+      adminToken = data.token || COOKIE_SENTINEL; localStorage.setItem('adminToken', adminToken);
       currentAdmin.mustChangePassword = false;
       document.getElementById('fpCurrent').value = '';
       document.getElementById('fpNew').value = '';
@@ -1257,7 +1293,8 @@
     }
   });
 
-  function logout() {
+  async function logout() {
+    if (cookieMode) { try { await fetch(`${API_BASE}/api/admin/auth/logout`, { method: 'POST' }); } catch (e) { /* ignore */ } }   // прибирає httpOnly-cookie
     localStorage.removeItem('adminToken');
     location.reload();
   }
@@ -3351,7 +3388,7 @@
       const err = document.getElementById('pwErr'); err.hidden = true;
       const r = await api('/api/admin/auth/change-password', { method: 'POST', body: { currentPassword: document.getElementById('pwCur').value, newPassword: document.getElementById('pwNew').value } });
       if (!r.ok) { err.textContent = (r.data && r.data.error) || 'Не вдалося'; err.hidden = false; return; }
-      adminToken = r.data.token; localStorage.setItem('adminToken', adminToken);
+      adminToken = r.data.token || COOKIE_SENTINEL; localStorage.setItem('adminToken', adminToken);
       document.getElementById('pwCur').value = ''; document.getElementById('pwNew').value = '';
       toast('Пароль змінено, інші сесії завершено', 'ok');
     });
@@ -3359,7 +3396,7 @@
       if (!confirm('Завершити всі інші сесії?')) return;
       const r = await api('/api/admin/auth/logout-all', { method: 'POST' });
       if (!r.ok) return toast('Не вдалося', 'err');
-      adminToken = r.data.token; localStorage.setItem('adminToken', adminToken);
+      adminToken = r.data.token || COOKIE_SENTINEL; localStorage.setItem('adminToken', adminToken);
       toast('Інші сесії завершено', 'ok');
     });
   }
@@ -3868,6 +3905,7 @@
   const sqlAllowWrite = document.getElementById('sqlAllowWrite');
   const sqlPwRow = document.getElementById('sqlPwRow');
   const sqlPassword = document.getElementById('sqlPassword');
+  const sqlCode = document.getElementById('sqlCode');
   const sqlWriteBox = document.getElementById('sqlWriteBox');
   const sqlRunBtn = document.getElementById('sqlRunBtn');
   const sqlOutput = document.getElementById('sqlOutput');
@@ -3964,9 +4002,9 @@
     const query = sqlEditor.value.trim();
     if (!query) return showSqlMessage('info', 'Введіть SQL-запит.');
     const write = sqlAllowWrite.checked;
-    if (write && !sqlPassword.value) {
-      sqlPassword.focus();
-      return showSqlMessage('err', 'Для зміни даних введіть пароль адміністратора.');
+    if (write && (!sqlPassword.value || !sqlCode.value)) {
+      (sqlPassword.value ? sqlCode : sqlPassword).focus();
+      return showSqlMessage('err', 'Для зміни даних введіть пароль адміністратора та код 2FA із застосунку.');
     }
 
     sqlRunBtn.disabled = true;
@@ -3975,14 +4013,14 @@
     try {
       const { ok, status, data } = await api('/api/admin/sql', {
         method: 'POST',
-        body: write ? { query, allowWrite: true, password: sqlPassword.value } : { query },
+        body: write ? { query, allowWrite: true, password: sqlPassword.value, code: sqlCode.value } : { query },
       });
 
       if (ok) {
         renderSqlResults(data);
         if (write) {
           // після успішної зміни знову вмикаємо безпечний режим
-          sqlAllowWrite.checked = false; sqlPassword.value = ''; syncWriteUi();
+          sqlAllowWrite.checked = false; sqlPassword.value = ''; sqlCode.value = ''; syncWriteUi();
           loadSqlHistory();
         }
         return;
@@ -3992,8 +4030,8 @@
         showSqlMessage('info', data.error);
         sqlWriteBox.classList.remove('flash'); void sqlWriteBox.offsetWidth; sqlWriteBox.classList.add('flash');
         sqlWriteBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (data?.code === 'bad_password') {
-        sqlPassword.value = ''; sqlPassword.focus();
+      } else if (data?.code === 'bad_password' || data?.code === 'bad_code') {
+        sqlPassword.value = ''; sqlCode.value = ''; sqlPassword.focus();
         showSqlMessage('err', 'Невірний пароль. Дані не змінено.');
         loadSqlHistory();
       } else {
@@ -4031,6 +4069,7 @@
     box.innerHTML = data.map((h, i) => {
       const badge = h.outcome === 'ok' ? '<span class="badge on">виконано</span>'
         : h.outcome === 'bad_password' ? '<span class="badge warn">невірний пароль</span>'
+        : h.outcome === 'bad_code' ? '<span class="badge warn">невірний код 2FA</span>'
         : '<span class="badge fail">помилка</span>';
       const oneLine = String(h.query).replace(/\s+/g, ' ').trim();
       return `<div class="hist-row" data-i="${i}">
