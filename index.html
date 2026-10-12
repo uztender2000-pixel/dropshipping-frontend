@@ -1353,21 +1353,30 @@
   const API_BASE = 'https://allshop-stjp.onrender.com';
 
   // ---------- Безпека запитів до API ----------
-  // Якщо сервер працює в режимі cookie-сесій (COOKIE_SESSIONS=true), токен живе в httpOnly-cookie,
+  // Якщо сервер підтримує cookie-сесії (COOKIE_SESSIONS=true) і браузер їх приймає, токен живе в httpOnly-cookie,
   // недоступній для JavaScript, а браузер додає її до запитів сам. Тут ми лише вмикаємо
   // credentials і CSRF-заголовок для запитів до API. Літерал 'cookie' у localStorage — не секрет,
   // а позначка «сесія в cookie».
   const COOKIE_SENTINEL = 'cookie';
-  let cookieMode = localStorage.getItem('cookieMode') === '1';
+  // Режим cookie визначається ПЕРЕВІРКОЮ БРАУЗЕРА при кожному завантаженні: якщо сервер підтримує cookie-сесії,
+  // питаємо його (probe → check), чи доходять cookie саме в цьому браузері. Safari/iOS та інші, що блокують
+  // сторонні cookie, автоматично лишаються на токені в заголовку — вхід не ламається ніде.
+  let cookieMode = false;
   let turnstileSiteKey = null;
   const nativeFetch = window.fetch.bind(window);
   const configReady = Promise.race([
-    nativeFetch(`${API_BASE}/api/config`).then((r) => r.json()).then((c) => {
-      cookieMode = Boolean(c.cookieSessions);
-      localStorage.setItem('cookieMode', cookieMode ? '1' : '0');
-      turnstileSiteKey = c.turnstileSiteKey || null;
-    }).catch(() => {}),
-    new Promise((resolve) => setTimeout(resolve, 3000)),
+    (async () => {
+      try {
+        const c = await (await nativeFetch(`${API_BASE}/api/config`)).json();
+        turnstileSiteKey = c.turnstileSiteKey || null;
+        if (c.cookieSessions) {
+          await nativeFetch(`${API_BASE}/api/session/probe`, { credentials: 'include' });
+          const r = await (await nativeFetch(`${API_BASE}/api/session/check`, { credentials: 'include' })).json();
+          cookieMode = Boolean(r.cookie);
+        }
+      } catch (e) { /* лишаємось на токені */ }
+    })(),
+    new Promise((resolve) => setTimeout(resolve, 4000)),
   ]);
 
   // ---------- Капча (Cloudflare Turnstile): вмикається, коли на сервері задано TURNSTILE_SECRET ----------
@@ -1401,10 +1410,13 @@
 
   window.fetch = async function (url, opts) {
     if (!String(url).startsWith(API_BASE)) return nativeFetch(url, opts);
-    await configReady;
+    const apiPath = String(url).slice(API_BASE.length).split('?')[0];
+    const reqMethod = String(opts && opts.method || 'GET').toUpperCase();
+    // Чекаємо визначення режиму лише там, де це важливо (авторизація, зміни даних);
+    // публічний каталог вантажиться без затримки.
+    if (reqMethod !== 'GET' || /^\/api\/(auth|account|admin|cart)\b/.test(apiPath)) await configReady;
     opts = { ...(opts || {}) };
     let usedCaptcha = null;
-    const apiPath = String(url).slice(API_BASE.length).split('?')[0];
     if (turnstileSiteKey && CAPTCHA_FORMS[apiPath] && typeof opts.body === 'string') {
       usedCaptcha = CAPTCHA_FORMS[apiPath].map((f) => captchaState[f]).find((st) => st && st.token) || null;
       if (usedCaptcha) {
@@ -1415,7 +1427,7 @@
       opts.credentials = 'include';
       const h = new Headers(opts.headers || {});
       if (h.get('Authorization') === `Bearer ${COOKIE_SENTINEL}`) h.delete('Authorization');
-      if (!['GET', 'HEAD'].includes(String(opts.method || 'GET').toUpperCase())) h.set('X-Requested-With', 'shop');
+      if (!['GET', 'HEAD'].includes(reqMethod)) { h.set('X-Requested-With', 'shop'); h.set('X-Session-Mode', 'cookie'); }
       opts.headers = h;
     }
     try {
