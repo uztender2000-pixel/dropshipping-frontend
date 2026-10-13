@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://allshop-stjp.onrender.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Інформація — В Хату.UA</title>
+<meta name="description" content="Інформація для покупців: доставка, повернення, про нас, конфіденційність">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<meta name="theme-color" content="#050507">
+<style>
+  :root { --bg: #0B0B0E; --surface: #15151A; --line: #2C2C36; --ink: #F3F3F6; --muted: #A0A0B0; --rust: #FF7A1A; --rust-text: #FF9142; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; color-scheme: dark; }
+  body { margin: 0; background: radial-gradient(1000px 480px at 10% -8%, rgba(255,122,26,.10), transparent 60%), var(--bg); color: var(--ink);
+         font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.65; font-size: 16px; }
+  a { color: var(--rust-text); }
+  header.top { background: linear-gradient(180deg, #000, #0A0A0D); box-shadow: 0 1px 0 rgba(255,122,26,.55), 0 10px 34px rgba(255,122,26,.12); position: sticky; top: 0; z-index: 10; }
+  header.top .in { max-width: 1180px; margin: 0 auto; padding: 8px 16px; display: flex; align-items: center; gap: 16px; }
+  header.top img { height: 46px; width: auto; display: block; filter: drop-shadow(0 4px 14px rgba(255,122,26,.28)); }
+  header.top .sp { flex: 1; }
+  .btn { display: inline-block; text-decoration: none; color: #fff; font-weight: 700; font-size: 14px; padding: 9px 16px; border-radius: 8px; cursor: pointer; border: none;
+         background: linear-gradient(180deg, #FF9A3D, #F0620B); box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 3px 0 #B04A00, 0 8px 16px rgba(255,122,26,.25); }
+  .btn.ghost { background: linear-gradient(180deg, #2B2C36, #1E1F27); border: 1px solid #3a3b48; box-shadow: 0 3px 0 #0a0a0d; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 60px; display: grid; grid-template-columns: 260px 1fr; gap: 32px; align-items: start; }
+  nav.toc { position: sticky; top: 74px; background: linear-gradient(180deg, #17171d, #121217); border: 1px solid #2a2a33; border-radius: 14px; padding: 14px 8px; max-height: calc(100vh - 100px); overflow-y: auto; }
+  nav.toc b { display: block; padding: 4px 12px 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  nav.toc a { display: block; text-decoration: none; color: var(--ink); font-size: 14px; padding: 6px 12px; border-radius: 8px; line-height: 1.35; }
+  nav.toc a:hover { background: #20202a; color: var(--rust-text); }
+  article { min-width: 0; background: linear-gradient(180deg, #17171d, #121217); border: 1px solid #2a2a33; border-radius: 16px; padding: 30px 34px; box-shadow: 0 16px 40px rgba(0,0,0,.45); }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; text-shadow: 0 2px 0 rgba(0,0,0,.55); }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+  .lead { background: rgba(255,122,26,.10); border: 1px solid rgba(255,122,26,.35); border-radius: 12px; padding: 14px 16px; margin: 0 0 24px; font-size: 15px; }
+  h2 { font-size: 21px; margin: 34px 0 10px; padding-top: 6px; scroll-margin-top: 80px; border-top: 1px solid var(--line); }
+  h2:first-of-type { border-top: none; margin-top: 8px; }
+  p, li { color: #E4E4EA; }
+  p { margin: 8px 0; }
+  ol.cl { list-style: none; padding-left: 0; counter-reset: sec; margin: 8px 0; }
+  ol.cl > li { margin: 8px 0; padding-left: 0; }
+  ul { margin: 6px 0 6px 22px; padding: 0; }
+  li { margin: 4px 0; }
+  strong { color: #fff; }
+  .ph { background: rgba(255,122,26,.18); color: var(--rust-text); border-radius: 4px; padding: 0 5px; white-space: nowrap; }
+  .owner { background: #101015; border: 1px dashed #3a3a47; border-radius: 12px; padding: 12px 16px; margin: 10px 0; }
+  .owner div { padding: 3px 0; }
+  .owner span.k { color: var(--muted); display: inline-block; min-width: 190px; }
+  .state { color: var(--muted); padding: 20px 0; }
+  .state button { margin-top: 10px; }
+  footer.end { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } nav.toc { position: static; max-height: none; } article { padding: 20px 16px; } h1 { font-size: 24px; } .owner span.k { display: block; min-width: 0; } }
+  /* Сторінка відкрита всередині вікна на сайті (при реєстрації): без шапки й змісту */
+  body.embedded header.top, body.embedded nav.toc { display: none; }
+  body.embedded .wrap { display: block; padding: 8px 6px 20px; }
+  body.embedded article { border: none; box-shadow: none; background: transparent; padding: 10px 14px; }
+  @media print { header.top, nav.toc { display: none; } .wrap { display: block; } body { background: #fff; color: #000; } article { border: none; box-shadow: none; background: #fff; color: #000; } p, li, strong, h1, h2 { color: #000; text-shadow: none; } .ph { color: #000; background: #eee; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="in">
+    <a href="./" aria-label="В Хату.UA — на головну"><img src="assets/logo-mark.png" alt="В Хату.UA"></a>
+    <span class="sp"></span>
+    <a class="btn ghost" href="./">← Повернутися в магазин</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Сторінки">
+    <b>Інформація</b>
+    <div id="tocList"></div>
+    <div id="otherPages" style="margin-top:14px;"></div>
+  </nav>
+
+  <article>
+    <h1 id="pageTitle">Завантаження…</h1>
+    <div id="pageBody"><div class="state">Завантажуємо сторінку…</div></div>
+
+    <footer class="end">© <span id="year">2026</span> «В Хату.UA». Усі права захищено. <a href="terms.html">Правила та умови</a> · <a href="#" onclick="window.print();return false;">Роздрукувати</a></footer>
+  </article>
+</div>
+
+<script>
+  // ЗАМІНИ на адресу свого бекенду (та сама, що в index.html).
+  const API_BASE = 'https://allshop-stjp.onrender.com';
+
+  // Тексти цих сторінок (доставка, повернення, про нас, конфіденційність) веде адміністратор в адмінці:
+  // Налаштування → «Сторінки сайту». Ця сторінка лише показує їх. Адреса: info.html?p=delivery
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const slug = (new URLSearchParams(location.search).get('p') || 'about').toLowerCase().replace(/[^a-z0-9-]/g, '');
+
+  async function loadPage() {
+    const body = document.getElementById('pageBody');
+    body.innerHTML = '<div class="state">Завантажуємо сторінку…</div>';
+    try {
+      const [pageRes, listRes] = await Promise.all([
+        fetch(`${API_BASE}/api/pages/${encodeURIComponent(slug)}`),
+        fetch(`${API_BASE}/api/pages`),
+      ]);
+      const list = listRes.ok ? (await listRes.json()).pages : [];
+      document.getElementById('otherPages').innerHTML = list
+        .map((p) => `<a href="info.html?p=${esc(p.slug)}"${p.slug === slug ? ' style="color:var(--rust-text);font-weight:700;"' : ''}>${esc(p.title)}</a>`).join('');
+      if (pageRes.status === 404) {
+        document.getElementById('pageTitle').textContent = 'Сторінку не знайдено';
+        body.innerHTML = '<div class="state">Такої сторінки немає або її приховано. <a href="./">Повернутися в магазин</a></div>';
+        return;
+      }
+      if (!pageRes.ok) throw new Error('HTTP ' + pageRes.status);
+      const p = await pageRes.json();
+      document.getElementById('pageTitle').textContent = p.title;
+      document.title = `${p.title} — В Хату.UA`;
+      body.innerHTML = p.html;   // HTML будує й екранує сервер
+      document.getElementById('tocList').innerHTML = (p.toc || []).map((i) => `<a href="#${esc(i.id)}">${esc(i.title)}</a>`).join('');
+    } catch (err) {
+      console.error(err);
+      body.innerHTML = '<div class="state">Не вдалося завантажити сторінку. Перевірте з\'єднання й спробуйте ще раз.<br><button type="button" class="btn ghost" id="retryPage">Спробувати ще раз</button></div>';
+      document.getElementById('retryPage').addEventListener('click', loadPage);
+    }
+  }
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+  if (window.self !== window.top) document.body.classList.add('embedded');
+  loadPage();
+</script>
+</body>
+</html>

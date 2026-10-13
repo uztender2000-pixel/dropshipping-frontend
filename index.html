@@ -953,6 +953,12 @@
   .terms-changes { background: rgba(255,122,26,.10); border: 1px solid rgba(255,122,26,.35); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: 14px; }
   .terms-changes b { display: block; margin-bottom: 4px; color: var(--rust-text); }
   .terms-changes div { white-space: pre-line; }
+  .cookie-notice { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 250; max-width: 720px; margin: 0 auto; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    background: #1a1a22; border: 1px solid #34343f; border-radius: 14px; padding: 12px 16px; font-size: 13px; color: var(--muted); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .cookie-notice[hidden] { display: none; }
+  .cookie-notice span { flex: 1; min-width: 200px; line-height: 1.5; }
+  .cookie-notice a { color: var(--rust-text); }
+  .cookie-notice button { flex: none; padding: 8px 18px; }
   .captcha-box { display: flex; justify-content: center; margin: 8px 0 4px; }
   .captcha-box:empty { display: none; }
   .terms-gate-note { font-size: 14px; color: var(--muted); margin: 0 0 12px; }
@@ -1085,6 +1091,7 @@
       <div class="footer-col">
         <h4>Інформація про компанію</h4>
         <ul>
+          <li><a href="info.html?p=about" data-page="about">Про нас</a></li>
           <li><a href="terms.html" target="_blank" rel="noopener">Умови використання сайту</a></li>
           <li><a href="terms.html" target="_blank" rel="noopener" data-help="реквізит">Реквізити власника сайту</a></li>
           <li><button type="button" class="footer-link" data-footer="categories">Усі категорії</button></li>
@@ -1093,9 +1100,9 @@
       <div class="footer-col">
         <h4>Допомога</h4>
         <ul>
-          <li><a href="terms.html" target="_blank" rel="noopener" data-help="доставк|оплат">Доставка та оплата</a></li>
-          <li><a href="terms.html" target="_blank" rel="noopener" data-help="поверненн|гаранті">Повернення, обмін, гарантія</a></li>
-          <li><a href="terms.html" target="_blank" rel="noopener" data-help="персональн">Персональні дані</a></li>
+          <li><a href="info.html?p=delivery" data-page="delivery">Доставка та оплата</a></li>
+          <li><a href="info.html?p=returns" data-page="returns">Повернення, обмін, гарантія</a></li>
+          <li><a href="info.html?p=privacy" data-page="privacy">Конфіденційність і персональні дані</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -1220,6 +1227,13 @@
       <button type="button" class="btn-primary" id="termsAccept">Ознайомився, приймаю</button>
     </div>
   </div>
+</div>
+
+<!-- Повідомлення про cookie: сайт використовує лише технічні cookie та локальне сховище (вхід, кошик) — без реклами й відстеження. -->
+<div class="cookie-notice" id="cookieNotice" role="region" aria-label="Повідомлення про cookie" hidden>
+  <span>Сайт використовує лише необхідні технічні cookie та локальне сховище браузера — для входу й кошика. Реклами й відстеження немає.
+    <a href="info.html?p=privacy" target="_blank" rel="noopener">Докладніше</a></span>
+  <button type="button" class="btn-primary" id="cookieNoticeOk">Зрозуміло</button>
 </div>
 
 <!-- Обов'язкове ознайомлення з правилами: показується після входу, якщо покупець ще не приймав
@@ -2473,6 +2487,18 @@
 
   document.getElementById('footerYear').textContent = new Date().getFullYear();
 
+  // ---------- Повідомлення про cookie ----------
+  (function initCookieNotice() {
+    const box = document.getElementById('cookieNotice');
+    let seen = false;
+    try { seen = localStorage.getItem('cookieNoticeAck') === '1'; } catch (e) { /* сховище недоступне */ }
+    if (!seen) box.hidden = false;
+    document.getElementById('cookieNoticeOk').addEventListener('click', () => {
+      box.hidden = true;
+      try { localStorage.setItem('cookieNoticeAck', '1'); } catch (e) { /* ignore */ }
+    });
+  })();
+
   // ---------- Футер: дії посилань та дані з бекенду ----------
   document.querySelectorAll('[data-footer]').forEach((el) => el.addEventListener('click', () => {
     const act = el.dataset.footer;
@@ -2494,6 +2520,16 @@
   // Зміст правил → точні посилання на розділи (за ключовими словами в заголовках, бо адмін може
   // міняти порядок розділів); реквізити власника → блок «Контакти». Якщо дані не завантажились,
   // посилання просто ведуть на початок сторінки правил.
+  // Посилання на інформаційні сторінки: показуємо лише ті, що опубліковані (їх веде адміністратор).
+  (async function initFooterPages() {
+    try {
+      const res = await fetch(`${API_BASE}/api/pages`);
+      if (!res.ok) return;
+      const slugs = new Set((await res.json()).pages.map((p) => p.slug));
+      document.querySelectorAll('[data-page]').forEach((a) => { if (!slugs.has(a.dataset.page)) a.closest('li').hidden = true; });
+    } catch (err) { /* лишаємо посилання як є */ }
+  })();
+
   (async function initFooterFromServer() {
     try {
       const res = await fetch(`${API_BASE}/api/terms/summary`);
@@ -2504,7 +2540,7 @@
         const item = (d.toc || []).find((t) => re.test(t.title));
         if (item) a.href = `terms.html#${item.id}`;
         else if (a.dataset.help !== 'реквізит') return;
-        else a.hidden = true;
+        else a.closest('li').hidden = true;
       });
       const o = d.owner || {};
       const ul = document.getElementById('footerContacts');
@@ -2974,6 +3010,21 @@
         <p class="cab-hint">Користувалися чужим або загубленим пристроєм? Завершіть вхід на всіх інших пристроях — тут ви залишитесь у акаунті.</p>
         <div class="cab-actions"><button type="button" class="btn-secondary" id="logoutAllBtn">Вийти на всіх інших пристроях</button></div>
         <p class="modal-status" id="logoutAllStatus" hidden></p>
+      </div>
+      <div class="cab-card">
+        <h3>Мої дані</h3>
+        <p class="cab-hint">Ви можете завантажити всі свої дані одним файлом або видалити обліковий запис. Дані замовлень, які ми за законом мусимо зберігати, залишаються, але без зв'язку з вашим акаунтом.</p>
+        <div class="cab-actions"><button type="button" class="btn-secondary" id="exportDataBtn">Завантажити мої дані</button></div>
+        <p class="modal-status" id="exportStatus" hidden></p>
+        <details style="margin-top:16px;">
+          <summary style="cursor:pointer;color:var(--rust-text);font-size:14px;">Видалити обліковий запис…</summary>
+          <p class="cab-hint" style="margin-top:10px;">Видалення незворотне: зникнуть кошик, історія переглядів, відгуки й звернення. Щоб підтвердити, введіть пароль.</p>
+          <div class="field"><label for="acDeletePassword">Пароль</label><input type="password" id="acDeletePassword" autocomplete="current-password"></div>
+          <label class="cab-hint" style="display:flex;gap:6px;align-items:center;margin-bottom:12px;cursor:pointer;">
+            <input type="checkbox" id="acDeleteConfirm"> Я розумію, що це незворотно</label>
+          <div class="cab-actions"><button type="button" class="btn-secondary" id="deleteAccountBtn" style="border-color:#b3261e;color:#ff8a80;">Видалити назавжди</button></div>
+          <p class="modal-status" id="deleteStatus" hidden></p>
+        </details>
       </div>`;
   }
 
@@ -3276,6 +3327,51 @@
       if (res.ok) { showToast(kind === 'phone' ? 'Телефон підтверджено ✓' : 'Email підтверджено ✓'); refreshAccount(); }
       else showToast('Невірний або прострочений код', 'error');
     }));
+
+    // Мої дані: експорт і видалення акаунта
+    const exBtn = $('exportDataBtn');
+    if (exBtn) {
+      exBtn.addEventListener('click', async () => {
+        const status = $('exportStatus');
+        exBtn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/account/export`, { headers: cabAuth() });
+          if (!res.ok) throw new Error('Не вдалося підготувати файл');
+          const blob = await res.blob();
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'my-data.json';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+          cabStatus(status, 'Файл завантажено', true);
+        } catch (err) {
+          cabStatus(status, err.message, false);
+        } finally {
+          exBtn.disabled = false;
+        }
+      });
+    }
+    const delBtn = $('deleteAccountBtn');
+    if (delBtn) {
+      delBtn.addEventListener('click', async () => {
+        const status = $('deleteStatus');
+        if (!$('acDeleteConfirm').checked) { cabStatus(status, 'Поставте позначку, що розумієте наслідки', false); return; }
+        if (!$('acDeletePassword').value) { cabStatus(status, 'Введіть пароль', false); return; }
+        if (!confirm('Видалити обліковий запис назавжди?')) return;
+        delBtn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/api/account/delete`, { method: 'POST', headers: cabJson(), body: JSON.stringify({ password: $('acDeletePassword').value, confirm: true }) });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Не вдалося видалити');
+          hideAccountPage();
+          logout();
+          showToast('Обліковий запис видалено');
+        } catch (err) {
+          cabStatus(status, err.message, false);
+          delBtn.disabled = false;
+        }
+      });
+    }
 
     // Вихід на всіх інших пристроях
     const laBtn = $('logoutAllBtn');
