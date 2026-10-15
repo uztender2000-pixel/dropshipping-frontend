@@ -953,6 +953,14 @@
   .terms-changes { background: rgba(255,122,26,.10); border: 1px solid rgba(255,122,26,.35); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: 14px; }
   .terms-changes b { display: block; margin-bottom: 4px; color: var(--rust-text); }
   .terms-changes div { white-space: pre-line; }
+  .card { position: relative; }
+  .wish-btn { position: absolute; top: 8px; right: 8px; z-index: 3; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18);
+    background: rgba(12,12,16,.72); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: transform .12s; }
+  .wish-btn:hover { transform: scale(1.1); border-color: var(--rust); }
+  .wish-btn.on { color: #ff5a5f; border-color: #ff5a5f; }
+  .wish-text { padding: 9px 16px; border-radius: 10px; border: 1px solid #3a3a47; background: #1c1c24; color: var(--ink); cursor: pointer; font-size: 14px; margin: 10px 0 4px; }
+  .wish-text:hover { border-color: var(--rust); }
+  .wish-text.on { color: #ff8a8d; border-color: #ff5a5f; }
   .cookie-notice { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 250; max-width: 720px; margin: 0 auto; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
     background: #1a1a22; border: 1px solid #34343f; border-radius: 14px; padding: 12px 16px; font-size: 13px; color: var(--muted); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
   .cookie-notice[hidden] { display: none; }
@@ -1393,6 +1401,58 @@
     new Promise((resolve) => setTimeout(resolve, 4000)),
   ]);
 
+  // ---------- Список бажаного («обране») ----------
+  const wishIds = new Set();   // id товарів (рядки) у списку бажаного поточного покупця
+
+  function syncWishButtons() {
+    document.querySelectorAll('[data-wish-id]').forEach((el) => {
+      const on = wishIds.has(String(el.dataset.wishId));
+      el.classList.toggle('on', on);
+      if (el.classList.contains('wish-text')) el.textContent = on ? '♥ В обраному' : '♡ В обране';
+      else el.textContent = on ? '♥' : '♡';
+      el.title = on ? 'Прибрати з обраного' : 'Додати в обране';
+    });
+  }
+
+  async function loadWishIds() {
+    if (!authToken) { wishIds.clear(); syncWishButtons(); return; }
+    try {
+      const res = await fetch(`${API_BASE}/api/account/wishlist/ids`, { headers: { Authorization: `Bearer ${authToken}` } });
+      if (!res.ok) return;
+      wishIds.clear();
+      (await res.json()).ids.forEach((id) => wishIds.add(String(id)));
+      syncWishButtons();
+    } catch (err) { /* обране — необов'язкова функція */ }
+  }
+
+  async function toggleWish(id, forceRemove) {
+    if (!authToken) { showToast('Увійдіть, щоб додавати товари в обране'); openAuth(); return; }
+    id = String(id);
+    if (forceRemove) wishIds.add(id);   // у кабінеті кнопка «✕» завжди ПРИБИРАЄ, навіть якщо список ще не встиг завантажитись
+    const was = wishIds.has(id);
+    if (was) wishIds.delete(id); else wishIds.add(id);   // одразу показуємо результат, потім підтверджуємо запитом
+    syncWishButtons();
+    try {
+      const res = await fetch(`${API_BASE}/api/account/wishlist/${encodeURIComponent(id)}`, { method: was ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${authToken}` } });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Не вдалося'); }
+      if (typeof accountData !== 'undefined' && accountData && accountData.wishlist) {
+        accountData.wishlist = was ? accountData.wishlist.filter((p) => String(p.id) !== id) : accountData.wishlist;
+        if (typeof accountTab !== 'undefined' && accountTab === 'wishlist' && !accountPageEl.hidden) renderCabinet();
+      }
+    } catch (err) {
+      if (was) wishIds.add(id); else wishIds.delete(id);   // відкат
+      syncWishButtons();
+      showToast(err.message);
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const r = e.target.closest('[data-wish-remove]');
+    if (r) { e.preventDefault(); toggleWish(r.dataset.wishRemove, true); return; }
+    const b = e.target.closest('[data-wish-id]');
+    if (b) { e.preventDefault(); toggleWish(b.dataset.wishId); }
+  });
+
   // ---------- Капча (Cloudflare Turnstile): вмикається, коли на сервері задано TURNSTILE_SECRET ----------
   const CAPTCHA_FORMS = { '/api/auth/login': ['loginForm'], '/api/auth/register': ['registerForm'], '/api/auth/forgot-password': ['forgotForm', 'resetForm'] };
   const captchaState = {};   // formId -> { id, token }
@@ -1559,13 +1619,14 @@
       card.className = 'card';
       const price = p.retail_price ? money(p.retail_price) : 'Ціна уточнюється';
       card.innerHTML = `
-        <div class="card-image" style="${p.picture_url ? `background-image:url('${p.picture_url}')` : ''}">
+        <button type="button" class="wish-btn" data-wish-id="${cabEsc(p.id)}" aria-label="В обране"></button>
+        <div class="card-image" style="${p.picture_url ? `background-image:url('${cabImg(p.picture_url)}')` : ''}">
           ${p.picture_url ? '' : 'Фото скоро'}
         </div>
         <div class="card-body">
-          <div class="card-name">${p.name}</div>
-          ${p.vendor_code ? `<div class="card-vendor">Артикул: ${p.vendor_code}</div>` : ''}
-          ${p.vendor ? `<div class="card-vendor">${p.vendor}</div>` : ''}
+          <div class="card-name">${cabEsc(p.name)}</div>
+          ${p.vendor_code ? `<div class="card-vendor">Артикул: ${cabEsc(p.vendor_code)}</div>` : ''}
+          ${p.vendor ? `<div class="card-vendor">${cabEsc(p.vendor)}</div>` : ''}
           ${p.rating_count ? `<div class="card-rating">${rvStars(p.rating_avg)} <span>${Number(p.rating_avg).toFixed(1)} · ${p.rating_count}</span></div>` : ''}
           <div class="card-stock">✓ В наявності</div>
           <div class="card-price">${price}</div>
@@ -1574,6 +1635,7 @@
       `;
       grid.appendChild(card);
     }
+    syncWishButtons();
   }
 
   async function loadProducts(append) {
@@ -2187,13 +2249,13 @@
       const mainImage = images[0] || '';
 
       const thumbsHtml = images.length > 1 ? images.map((url, i) => `
-        <button class="gallery-thumb ${i === 0 ? 'active' : ''}" data-img="${url}" style="background-image:url('${url}')"></button>
+        <button class="gallery-thumb ${i === 0 ? 'active' : ''}" data-img="${cabEsc(url)}" style="background-image:url('${cabImg(url)}')"></button>
       `).join('') : '';
 
       const specsRows = p.params && Object.keys(p.params).length
         ? Object.entries(p.params)
             .filter(([k, v]) => k && v != null && String(v).trim() && !String(v).includes('[object Object]'))
-            .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')
+            .map(([k, v]) => `<tr><td>${cabEsc(k)}</td><td>${cabEsc(v)}</td></tr>`).join('')
         : '';
 
       const PAYMENT_LABELS = { prepaid: 'Передоплата', on_delivery: 'Оплата при отриманні' };
@@ -2208,9 +2270,9 @@
         <div class="product-detail-inner">
         <div class="breadcrumb">
           <a id="breadcrumbAll">Усі товари</a>
-          ${parentCat ? `<span>›</span><a id="breadcrumbParentCategory" data-category-id="${parentCat.id}">${parentCat.name}</a>` : ''}
-          ${cat ? `<span>›</span><a id="breadcrumbCategory" data-category-id="${cat.id}">${cat.name}</a>` : ''}
-          <span>›</span><span class="current">${p.name}</span>
+          ${parentCat ? `<span>›</span><a id="breadcrumbParentCategory" data-category-id="${cabEsc(parentCat.id)}">${cabEsc(parentCat.name)}</a>` : ''}
+          ${cat ? `<span>›</span><a id="breadcrumbCategory" data-category-id="${cabEsc(cat.id)}">${cabEsc(cat.name)}</a>` : ''}
+          <span>›</span><span class="current">${cabEsc(p.name)}</span>
         </div>
 
         <button class="btn-back" id="detailBackBtn" style="margin-bottom:18px;position:sticky;top:0;z-index:2;">← Повернутися</button>
@@ -2218,15 +2280,16 @@
         <div class="detail-layout">
           <div class="gallery">
             ${thumbsHtml ? `<div class="gallery-thumbs">${thumbsHtml}</div>` : ''}
-            <div class="gallery-main" id="galleryMain" style="${mainImage ? `background-image:url('${mainImage}')` : ''}"></div>
+            <div class="gallery-main" id="galleryMain" style="${mainImage ? `background-image:url('${cabImg(mainImage)}')` : ''}"></div>
           </div>
           <div class="detail-info">
-            <h2>${p.name}</h2>
+            <h2>${cabEsc(p.name)}</h2>
+            <button type="button" class="wish-text" data-wish-id="${cabEsc(p.id)}"></button>
             <div class="detail-rating" id="detailRating"></div>
             <div class="detail-meta">
-              ${p.vendor_code ? `<div>Артикул: <b>${p.vendor_code}</b></div>` : ''}
-              ${p.vendor ? `<div>Бренд: <b>${p.vendor}</b></div>` : ''}
-              ${p.seller_name ? `<div>Продавець: <b>${p.seller_name}</b></div>` : ''}
+              ${p.vendor_code ? `<div>Артикул: <b>${cabEsc(p.vendor_code)}</b></div>` : ''}
+              ${p.vendor ? `<div>Бренд: <b>${cabEsc(p.vendor)}</b></div>` : ''}
+              ${p.seller_name ? `<div>Продавець: <b>${cabEsc(p.seller_name)}</b></div>` : ''}
             </div>
             <div class="card-stock">✓ В наявності</div>
             <div class="card-price" style="font-size:26px;">${p.retail_price ? money(p.retail_price) : 'Ціна уточнюється'}</div>
@@ -2277,6 +2340,7 @@
         qtyInput.value = (parseInt(qtyInput.value, 10) || 1) + 1;
       });
 
+      syncWishButtons();
       document.getElementById('detailBackBtn').addEventListener('click', hideProductDetail);
       document.getElementById('breadcrumbAll').addEventListener('click', () => { hideProductDetail(); selectShopCategory('', ''); });
       const parentCategoryCrumb = document.getElementById('breadcrumbParentCategory');
@@ -2710,6 +2774,7 @@
     { id: 'profile', icon: '👤', label: 'Особисті дані' },
     { id: 'delivery', icon: '🚚', label: 'Адреса доставки' },
     { id: 'security', icon: '🔒', label: 'Пароль' },
+    { id: 'wishlist', icon: '❤️', label: 'Бажане' },
     { id: 'viewed', icon: '👁', label: 'Переглянуті' },
     { id: 'terms', icon: '📜', label: 'Правила' },
   ];
@@ -2729,12 +2794,13 @@
   }
 
   async function loadAccountData() {
-    const [meRes, ordersRes, viewsRes, configRes, termsRes] = await Promise.all([
+    const [meRes, ordersRes, viewsRes, configRes, termsRes, wishRes] = await Promise.all([
       fetch(`${API_BASE}/api/auth/me`, { headers: cabAuth() }),
       fetch(`${API_BASE}/api/account/orders/grouped`, { headers: cabAuth() }),
       fetch(`${API_BASE}/api/account/views`, { headers: cabAuth() }),
       fetch(`${API_BASE}/api/config`),
       fetch(`${API_BASE}/api/account/terms`, { headers: cabAuth() }),
+      fetch(`${API_BASE}/api/account/wishlist`, { headers: cabAuth() }),
     ]);
     if (!meRes.ok) throw new Error('Не вдалося завантажити профіль');
     const { user } = await meRes.json();
@@ -2743,6 +2809,7 @@
       orders: ordersRes.ok ? await ordersRes.json() : [],
       views: viewsRes.ok ? await viewsRes.json() : [],
       config: configRes.ok ? await configRes.json() : {},
+      wishlist: wishRes.ok ? (await wishRes.json()).items : [],
       terms: termsRes.ok ? await termsRes.json() : null,   // { needsAcceptance, current, accepted }
     };
   }
@@ -3028,6 +3095,24 @@
       </div>`;
   }
 
+  function cabTabWishlist() {
+    const items = accountData.wishlist || [];
+    if (!items.length) {
+      return `<div class="cab-card"><h3>Бажане</h3><div class="cab-empty">У списку бажаного поки порожньо.<br>Натискайте ♡ на картці товару, щоб зберегти його на потім.<br>
+        <button type="button" class="btn-primary" data-close-cabinet>Перейти до каталогу</button></div></div>`;
+    }
+    return `<div class="cab-card"><h3>Бажане · ${items.length}</h3>
+      <div class="viewed-grid">${items.map((p) => `
+        <div style="position:relative;">
+          <button type="button" class="viewed-card" data-detail-id="${cabEsc(p.id)}">
+            <div class="viewed-thumb" style="${p.picture_url ? `background-image:url('${cabImg(p.picture_url)}')` : ''}"></div>
+            <div class="viewed-name">${cabEsc(p.name)}</div>
+            <div class="viewed-price">${p.available === false ? 'Немає в наявності' : (p.retail_price ? money(p.retail_price) : 'Ціна уточнюється')}</div>
+          </button>
+          <button type="button" class="viewed-remove" data-wish-remove="${cabEsc(p.id)}" title="Прибрати з обраного">✕</button>
+        </div>`).join('')}</div></div>`;
+  }
+
   function cabTabViewed() {
     const views = accountData.views;
     if (!views.length) {
@@ -3124,7 +3209,7 @@
 
     const tabs = {
       overview: cabTabOverview, orders: cabTabOrders, profile: cabTabProfile,
-      delivery: cabTabDelivery, security: cabTabSecurity, viewed: cabTabViewed, terms: cabTabTerms,
+      delivery: cabTabDelivery, security: cabTabSecurity, wishlist: cabTabWishlist, viewed: cabTabViewed, terms: cabTabTerms,
     };
     const body = (tabs[accountTab] || cabTabOverview)();
 
@@ -3515,6 +3600,7 @@
     authToken = null;
     currentUser = null;
     localStorage.removeItem('authToken');
+    wishIds.clear(); syncWishButtons();
     setLoggedInUI();
     updateCartBadge(0);
   }
@@ -3556,6 +3642,7 @@
 
   async function checkTermsAfterLogin() {
     if (!authToken) return;
+    loadWishIds();   // після кожного входу підтягуємо «серденька»
     try {
       const data = await fetchAccountTerms();
       if (data.needsAcceptance) openTermsGate(data);
@@ -4057,7 +4144,7 @@
         row.style.cssText = 'display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);';
         row.innerHTML = `
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:500;">${item.name}</div>
+            <div style="font-size:14px;font-weight:500;">${cabEsc(item.name)}</div>
             <div style="font-size:13px;color:var(--muted);">${item.retail_price ? money(item.retail_price) : 'Ціна уточнюється'} × ${item.quantity}</div>
           </div>
           <button data-remove="${item.product_id}" style="background:none;border:none;color: var(--rust-text);cursor:pointer;font-size:13px;">Видалити</button>
@@ -4226,7 +4313,7 @@
           for (const c of cities) {
             const item = document.createElement('div');
             item.className = 'city-suggestion-item';
-            item.innerHTML = `${c.name} <span class="area">${c.area || ''}</span>`;
+            item.innerHTML = `${cabEsc(c.name)} <span class="area">${cabEsc(c.area || '')}</span>`;
             item.addEventListener('click', () => {
               cityInput.value = c.name;
               cityRefInput.value = c.ref;

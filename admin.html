@@ -469,6 +469,12 @@
     <!-- ---- Orders ---- -->
     <div class="view" id="view-orders">
       <div class="page-header"><h2>Замовлення</h2></div>
+      <div class="panel" style="padding:12px 16px;margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:13px;color:var(--muted);">Експорт у Excel (враховує вибраний нижче фільтр):</span>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;">з <input type="date" id="exportFrom" style="border:1px solid #D7E1EE;border-radius:6px;padding:5px 8px;"></label>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;">по <input type="date" id="exportTo" style="border:1px solid #D7E1EE;border-radius:6px;padding:5px 8px;"></label>
+        <button type="button" class="btn-sm primary" id="exportOrdersBtn">⬇ Завантажити файл</button>
+      </div>
       <div class="filter-row" id="orderFilters">
         <button data-status="" class="active">Усі</button>
         <button data-status="new">Нові</button>
@@ -1620,6 +1626,35 @@
     document.querySelectorAll('#orderFilters button').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     loadOrders(btn.dataset.status);
+  });
+
+  // Експорт замовлень у CSV (відкривається в Excel подвійним кліком).
+  document.getElementById('exportOrdersBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('exportOrdersBtn');
+    const active = document.querySelector('#orderFilters button.active');
+    const status = active ? active.dataset.status : '';
+    const params = new URLSearchParams();
+    if (status === '__failed') params.set('failed', 'true'); else if (status) params.set('status', status);
+    const from = document.getElementById('exportFrom').value;
+    const to = document.getElementById('exportTo').value;
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/orders-export?${params}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Не вдалося підготувати файл');
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      toast('Файл завантажено', 'ok');
+    } catch (err) {
+      toast(err.message, 'err');
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // ---------- Section translations ----------
