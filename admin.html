@@ -290,6 +290,11 @@
   .st-detail { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
   .err-stack { max-width: 460px; font-family: ui-monospace, Consolas, monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; color: var(--muted); }
 
+  .sr-delta { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .sr-delta.up { color: #1F7A47; }
+  .sr-delta.down { color: #B3261E; }
+  @media (max-width: 900px) { .sales-grid { grid-template-columns: 1fr !important; } }
+
   /* ---------- Suppliers ---------- */
   .sup-name { font-weight: 700; }
   .sup-code { font-size: 12px; color: var(--muted); }
@@ -449,6 +454,30 @@
     <div class="view active" id="view-dashboard">
       <div class="page-header"><h2>Дашборд</h2></div>
       <div class="stat-grid" id="statGrid"></div>
+
+      <!-- Звіт продажів: період + порівняння з попереднім -->
+      <div class="panel" id="salesReportPanel">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <h3 style="margin:0;">📈 Звіт продажів</h3>
+          <div class="filter-row" id="salesPeriods" style="margin:0;">
+            <button data-days="7">7 днів</button>
+            <button data-days="30" class="active">30 днів</button>
+            <button data-days="90">90 днів</button>
+            <button data-days="365">Рік</button>
+          </div>
+        </div>
+        <p class="own-note" id="salesNote" style="margin:0 0 12px;"></p>
+        <div class="stat-grid" id="salesKpi"></div>
+        <div class="chart-wrap" style="margin-top:14px;"><canvas id="salesChart"></canvas></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:18px;margin-top:18px;" class="sales-grid">
+          <div><h4 style="margin:0 0 8px;">Статуси позицій</h4><div style="height:230px;position:relative;"><canvas id="statusChart"></canvas></div></div>
+          <div style="overflow-x:auto;"><h4 style="margin:0 0 8px;">Топ товарів за прибутком</h4>
+            <table id="salesTopTable"><thead><tr><th>Товар</th><th style="text-align:right;">Шт.</th><th style="text-align:right;">Виручка</th><th style="text-align:right;">Прибуток</th><th style="text-align:right;">Маржа</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div style="overflow-x:auto;margin-top:18px;"><h4 style="margin:0 0 8px;">Постачальники за період</h4>
+          <table id="salesSupplierTable"><thead><tr><th>Постачальник</th><th style="text-align:right;">Замовлень</th><th style="text-align:right;">Виручка</th><th style="text-align:right;">Прибуток</th><th style="text-align:right;">Маржа</th></tr></thead><tbody></tbody></table></div>
+      </div>
+
       <div class="panel">
         <h3>Замовлення за останні 30 днів</h3>
         <div class="chart-wrap"><canvas id="ordersChart"></canvas></div>
@@ -1477,7 +1506,86 @@
     }
   }
 
+  // ---------- Звіт продажів ----------
+  let salesDays = 30;
+  let salesChartInstance = null;
+  let statusChartInstance = null;
+  const nf0 = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 });
+  const nf1 = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 1 });
+
+  // Зміна відносно попереднього періоду такої ж тривалості: ▲ зростання, ▼ падіння.
+  function deltaHtml(cur, prev, { pp = false, invert = false } = {}) {
+    if (prev === null || prev === undefined) return '';
+    const c = Number(cur) || 0, pr = Number(prev) || 0;
+    if (pp) {   // різниця у відсоткових пунктах (для маржі)
+      const d = c - pr;
+      if (Math.abs(d) < 0.05) return '<span class="sr-delta">без змін</span>';
+      return `<span class="sr-delta ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${nf1.format(Math.abs(d))} п.п.</span>`;
+    }
+    if (pr === 0) return c > 0 ? '<span class="sr-delta up">новий показник</span>' : '<span class="sr-delta">—</span>';
+    const pct = ((c - pr) / pr) * 100;
+    if (Math.abs(pct) < 0.05) return '<span class="sr-delta">без змін</span>';
+    const good = invert ? pct < 0 : pct > 0;
+    return `<span class="sr-delta ${good ? 'up' : 'down'}">${pct > 0 ? '▲' : '▼'} ${nf1.format(Math.abs(pct))}%</span>`;
+  }
+
+  async function loadSalesReport(days) {
+    if (days) salesDays = days;
+    document.querySelectorAll('#salesPeriods button').forEach((b) => b.classList.toggle('active', Number(b.dataset.days) === salesDays));
+    const panel = document.getElementById('salesReportPanel');
+    const { ok, data } = await api(`/api/admin/sales-report?days=${salesDays}`);
+    if (!ok) { panel.hidden = true; return; }   // немає права «Статистика» або збій — просто ховаємо блок
+    panel.hidden = false;
+    const k = data.kpi;
+    document.getElementById('salesNote').textContent = `Останні ${data.days} дн. у порівнянні з попередніми ${data.days} дн. Виручка й прибуток — за цінами, збереженими в замовленнях.`;
+    const card = (label, value, cur, prev, opt) => `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div>${deltaHtml(cur, prev, opt)}</div>`;
+    document.getElementById('salesKpi').innerHTML = [
+      card('Замовлень (оформлень)', esc(k.checkouts.cur), k.checkouts.cur, k.checkouts.prev),
+      card('Виручка', money(k.revenue.cur), k.revenue.cur, k.revenue.prev),
+      card('Прибуток', `<span style="color:var(--green);">${money(k.profit.cur)}</span>`, k.profit.cur, k.profit.prev),
+      card('Середній чек', money(k.avg_check.cur), k.avg_check.cur, k.avg_check.prev),
+      card('Маржа', `${nf1.format(k.margin_pct.cur)}%`, k.margin_pct.cur, k.margin_pct.prev, { pp: true }),
+      card('Покупців', esc(k.buyers.cur), k.buyers.cur, k.buyers.prev),
+      card('Нових клієнтів', esc(k.new_customers.cur), k.new_customers.cur, k.new_customers.prev),
+      card('Повторних покупців', esc(k.repeat_buyers.cur), 0, null),
+    ].join('');
+
+    const rowsTop = data.topProducts.map((p) => `<tr><td>${esc(p.name)}</td><td style="text-align:right;">${esc(p.units)}</td><td style="text-align:right;">${money(p.revenue)}</td>
+      <td style="text-align:right;color:var(--green);">${money(p.profit)}</td><td style="text-align:right;">${p.revenue ? nf1.format((p.profit / p.revenue) * 100) + '%' : '—'}</td></tr>`).join('');
+    document.querySelector('#salesTopTable tbody').innerHTML = rowsTop || '<tr><td colspan="5" class="empty-state">За цей період продажів не було</td></tr>';
+    const rowsSup = data.bySupplier.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td style="text-align:right;">${esc(s.checkouts)}</td><td style="text-align:right;">${money(s.revenue)}</td>
+      <td style="text-align:right;color:var(--green);">${money(s.profit)}</td><td style="text-align:right;">${s.revenue ? nf1.format((s.profit / s.revenue) * 100) + '%' : '—'}</td></tr>`).join('');
+    document.querySelector('#salesSupplierTable tbody').innerHTML = rowsSup || '<tr><td colspan="5" class="empty-state">За цей період продажів не було</td></tr>';
+
+    if (typeof Chart === 'undefined') return;   // бібліотека графіків не завантажилась — таблиці вже показані
+    const labels = data.series.map((p) => (data.bucket === 'week' ? `тиж. ${p.day.slice(5)}` : p.day.slice(5)));
+    if (salesChartInstance) salesChartInstance.destroy();
+    salesChartInstance = new Chart(document.getElementById('salesChart').getContext('2d'), {
+      data: {
+        labels,
+        datasets: [
+          { type: 'bar', label: 'Виручка, грн', data: data.series.map((p) => p.revenue), backgroundColor: '#1B4B8F', borderRadius: 4, order: 2 },
+          { type: 'line', label: 'Прибуток, грн', data: data.series.map((p) => p.profit), borderColor: '#1F9D55', backgroundColor: '#1F9D55', tension: 0.25, pointRadius: 2, order: 1 },
+        ],
+      },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },
+    });
+    if (statusChartInstance) statusChartInstance.destroy();
+    const palette = ['#1B4B8F', '#1F9D55', '#E8A317', '#8B5CF6', '#D64545', '#6B7A93'];
+    statusChartInstance = new Chart(document.getElementById('statusChart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: data.byStatus.map((x) => STATUS_LABELS[x.status] || x.status), datasets: [{ data: data.byStatus.map((x) => x.count), backgroundColor: palette }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } },
+    });
+  }
+  document.getElementById('salesPeriods').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-days]');
+    if (b) loadSalesReport(Number(b.dataset.days));
+  });
+
   async function loadDashboard() {
+    loadSalesReport();
     try {
       const { ok, data } = await api('/api/admin/stats');
       if (!ok) return;
