@@ -3725,8 +3725,27 @@
         </div>
         ${items.map((c) => `<div class="st-item"><span class="st-icon">${icon[c.status] || '•'}</span>
           <div><div class="st-title">${esc(c.title)}</div>${c.detail ? `<div class="st-detail">${esc(c.detail)}</div>` : ''}</div></div>`).join('')}
+      </div>
+      <div class="panel tm-form">
+        <h3>🤖 Помічник ШІ</h3>
+        <p class="own-note">Надсилає на Anthropic мінімальний тестовий запит (кілька токенів, копійки) і показує, чи працює помічник. Якщо ні — пише точну причину й що виправити.</p>
+        <button type="button" class="btn-sm primary" id="assistantTestBtn" style="padding:9px 20px;font-size:13px;">Перевірити зв'язок</button>
+        <div id="assistantTestResult" style="margin-top:12px;"></div>
       </div>`;
     document.getElementById('statusRefresh').addEventListener('click', loadSystemStatus);
+    document.getElementById('assistantTestBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('assistantTestBtn');
+      const out = document.getElementById('assistantTestResult');
+      btn.disabled = true; out.innerHTML = '<p class="own-note">Перевіряємо…</p>';
+      const r = await api('/api/admin/assistant/test', { method: 'POST' });
+      btn.disabled = false;
+      if (!r.ok) { out.innerHTML = `<div class="form-error">${esc((r.data && r.data.error) || 'Не вдалося виконати перевірку')}</div>`; return; }
+      const d = r.data;
+      out.innerHTML = d.ok
+        ? `<div class="mfa-ok">✅ Помічник працює</div><div class="st-detail">Модель: ${esc(d.model)} · відповідь за ${esc(d.ms)} мс${d.temperatureOmitted ? ' · модель не приймає параметр temperature (вимкнено автоматично)' : ''}</div>`
+        : `<div class="form-error" style="display:block;"><b>❌ Помічник не працює</b><br>${esc(d.message || '')}</div>
+           ${d.hint ? `<div class="st-detail" style="margin-top:8px;"><b>Що робити:</b> ${esc(d.hint)}</div>` : ''}`;
+    });
   }
 
   // ---------- Помилки сервера ----------
