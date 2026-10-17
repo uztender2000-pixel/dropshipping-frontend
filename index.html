@@ -2804,12 +2804,14 @@
     ]);
     if (!meRes.ok) throw new Error('Не вдалося завантажити профіль');
     const { user } = await meRes.json();
+    const wishData = wishRes.ok ? await wishRes.json() : { items: [] };
     accountData = {
       user,
       orders: ordersRes.ok ? await ordersRes.json() : [],
       views: viewsRes.ok ? await viewsRes.json() : [],
       config: configRes.ok ? await configRes.json() : {},
-      wishlist: wishRes.ok ? (await wishRes.json()).items : [],
+      wishlist: wishData.items || [],
+      wishlistMeta: { alerts: wishData.alerts !== false, email_verified: Boolean(wishData.email_verified) },
       terms: termsRes.ok ? await termsRes.json() : null,   // { needsAcceptance, current, accepted }
     };
   }
@@ -3101,13 +3103,21 @@
       return `<div class="cab-card"><h3>Бажане</h3><div class="cab-empty">У списку бажаного поки порожньо.<br>Натискайте ♡ на картці товару, щоб зберегти його на потім.<br>
         <button type="button" class="btn-primary" data-close-cabinet>Перейти до каталогу</button></div></div>`;
     }
-    return `<div class="cab-card"><h3>Бажане · ${items.length}</h3>
-      <div class="viewed-grid">${items.map((p) => `
+    const meta = accountData.wishlistMeta || { alerts: true, email_verified: false };
+    const alertsBox = `
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer;margin:6px 0 4px;">
+        <input type="checkbox" id="wishAlertsToggle" ${meta.alerts ? 'checked' : ''} style="margin-top:3px;">
+        <span>Сповіщати листом, коли товар подешевшав або знову з'явився в наявності</span></label>
+      ${meta.alerts && !meta.email_verified ? '<p class="cab-hint" style="margin:0 0 6px 24px;">Щоб листи надходили, підтвердіть email у розділі «Особисті дані».</p>' : ''}`;
+    return `<div class="cab-card"><h3>Бажане · ${items.length}</h3>${alertsBox}
+      <div class="viewed-grid" style="margin-top:12px;">${items.map((p) => `
         <div style="position:relative;">
           <button type="button" class="viewed-card" data-detail-id="${cabEsc(p.id)}">
             <div class="viewed-thumb" style="${p.picture_url ? `background-image:url('${cabImg(p.picture_url)}')` : ''}"></div>
             <div class="viewed-name">${cabEsc(p.name)}</div>
-            <div class="viewed-price">${p.available === false ? 'Немає в наявності' : (p.retail_price ? money(p.retail_price) : 'Ціна уточнюється')}</div>
+            <div class="viewed-price">${p.available === false ? 'Немає в наявності' : (p.retail_price ? money(p.retail_price) : 'Ціна уточнюється')}
+              ${p.available !== false && p.retail_price && p.price_at_add && Number(p.retail_price) < Number(p.price_at_add)
+                ? `<div style="font-size:11px;color:#6FD39B;font-weight:600;">↓ було ${money(p.price_at_add)}, −${Math.round((1 - Number(p.retail_price) / Number(p.price_at_add)) * 100)}%</div>` : ''}</div>
           </button>
           <button type="button" class="viewed-remove" data-wish-remove="${cabEsc(p.id)}" title="Прибрати з обраного">✕</button>
         </div>`).join('')}</div></div>`;
@@ -3279,6 +3289,17 @@
       renderCabinet();
       accountPageEl.scrollTop = scroll;
     }));
+    const wa = root.querySelector('#wishAlertsToggle');
+    if (wa) wa.addEventListener('change', async () => {
+      const enabled = wa.checked;
+      try {
+        const res = await fetch(`${API_BASE}/api/account/wishlist/alerts`, { method: 'PUT', headers: cabJson(), body: JSON.stringify({ enabled }) });
+        if (!res.ok) throw new Error();
+        accountData.wishlistMeta = { ...(accountData.wishlistMeta || {}), alerts: enabled };
+        showToast(enabled ? 'Сповіщення увімкнено' : 'Сповіщення вимкнено');
+        const sc = accountPageEl.scrollTop; renderCabinet(); accountPageEl.scrollTop = sc;
+      } catch (err) { wa.checked = !enabled; showToast('Не вдалося зберегти'); }
+    });
     root.querySelectorAll('[data-open-terms-gate]').forEach((b) => b.addEventListener('click', () => openTermsGate(accountData.terms)));
     root.querySelectorAll('[data-order-filter]').forEach((b) => b.addEventListener('click', () => {
       cabOrderFilter = b.dataset.orderFilter;
