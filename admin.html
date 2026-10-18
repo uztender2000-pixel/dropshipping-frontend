@@ -455,6 +455,15 @@
       <div class="page-header"><h2>Дашборд</h2></div>
       <div class="stat-grid" id="statGrid"></div>
 
+      <!-- Розмір бази даних -->
+      <div class="panel" id="dbSizePanel" hidden>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+          <h3 style="margin:0;">🗄 База даних</h3>
+          <button type="button" class="btn-sm" id="dbSizeManage" style="display:none;">Резервні копії →</button>
+        </div>
+        <div id="dbSizeBody"></div>
+      </div>
+
       <!-- Звіт продажів: період + порівняння з попереднім -->
       <div class="panel" id="salesReportPanel">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
@@ -875,6 +884,7 @@
         <button class="tab-btn" data-tab="owner" id="ownerTabBtn">🏢 Власник сайту</button>
         <button class="tab-btn" data-tab="terms" id="termsTabBtn">📜 Правила та умови</button>
         <button class="tab-btn" data-tab="pages" id="pagesTabBtn">📄 Сторінки сайту</button>
+        <button class="tab-btn" data-tab="backups" id="backupsTabBtn">💾 Резервні копії</button>
         <button class="tab-btn" data-tab="status" id="statusTabBtn">🩺 Стан системи</button>
         <button class="tab-btn" data-tab="errors" id="errorsTabBtn">🚨 Помилки сервера</button>
         <button class="tab-btn" data-tab="audit" id="auditTabBtn">🕵️ Журнал дій</button>
@@ -897,6 +907,9 @@
 
       <!-- Tab: сторінки сайту (лише адміністратор) -->
       <div class="tab-panel" id="tab-pages"><div id="pagesRoot"><p class="empty-state">Завантаження…</p></div></div>
+
+      <!-- Tab: резервні копії (лише адміністратор) -->
+      <div class="tab-panel" id="tab-backups"><div id="backupsRoot"><p class="empty-state">Завантаження…</p></div></div>
 
       <!-- Tab: стан системи / помилки (лише адміністратор) -->
       <div class="tab-panel" id="tab-status"><div id="statusRoot"><p class="empty-state">Завантаження…</p></div></div>
@@ -1417,6 +1430,8 @@
     document.getElementById('auditTabBtn').style.display = isOwner ? '' : 'none';
     document.getElementById('statusTabBtn').style.display = isOwner ? '' : 'none';
     document.getElementById('pagesTabBtn').style.display = isOwner ? '' : 'none';
+    document.getElementById('backupsTabBtn').style.display = isOwner ? '' : 'none';
+    document.getElementById('dbSizeManage').style.display = isOwner ? '' : 'none';
     document.getElementById('errorsTabBtn').style.display = isOwner ? '' : 'none';
 
     // switchView сам підвантажує дані розділу
@@ -1585,6 +1600,7 @@
   });
 
   async function loadDashboard() {
+    loadDbSizePanel();
     loadSalesReport();
     try {
       const { ok, data } = await api('/api/admin/stats');
@@ -3460,7 +3476,7 @@
 
   function switchTab(name) {
     if (!isOwner) name = 'users';
-    if (!['users', 'owner', 'terms', 'pages', 'status', 'errors', 'audit', 'sql'].includes(name)) name = 'users';
+    if (!['users', 'owner', 'terms', 'pages', 'backups', 'status', 'errors', 'audit', 'sql'].includes(name)) name = 'users';
     currentTab = name;
     // Лише кнопки й панелі розділу «Налаштування»: у «Товарах» теж є .tab-btn (режими огляду),
     // і раніше їх клік скидав currentTab у undefined та ховав усі вкладки налаштувань.
@@ -3471,6 +3487,7 @@
     if (name === 'terms') loadTermsAdmin();
     if (name === 'audit') loadAudit(true);
     if (name === 'pages') loadPagesAdmin();
+    if (name === 'backups') loadBackups();
     if (name === 'status') loadSystemStatus();
     if (name === 'errors') loadErrors();
     if (name === 'sql') { loadSqlHistory(); }
@@ -3596,6 +3613,161 @@
       adminToken = r.data.token || COOKIE_SENTINEL; localStorage.setItem('adminToken', adminToken);
       toast('Інші сесії завершено', 'ok');
     });
+  }
+
+  // ---------- Розмір бази даних і резервні копії ----------
+  function fmtBytes(n) {
+    n = Number(n) || 0;
+    if (n >= 1073741824) return `${(n / 1073741824).toFixed(2).replace('.', ',')} ГБ`;
+    if (n >= 1048576) return `${(n / 1048576).toFixed(1).replace('.', ',')} МБ`;
+    if (n >= 1024) return `${Math.round(n / 1024)} КБ`;
+    return `${Math.round(n)} Б`;
+  }
+  function fmtAgeUa(iso) {
+    const h = (Date.now() - new Date(iso).getTime()) / 3600000;
+    if (h < 1) return 'щойно';
+    if (h < 48) return `${Math.round(h)} год тому`;
+    return `${Math.round(h / 24)} діб тому`;
+  }
+
+  // Смужка заповнення: зелена до 70%, помаранчева до 90%, далі червона.
+  function dbUsageHtml(db) {
+    if (db.used_pct === null || db.used_pct === undefined) {
+      return '<p class="own-note" style="margin:6px 0 0;">Щоб бачити, скільки місця зайнято від ліміту тарифу, додайте на сервері змінну <code>DB_SIZE_LIMIT_MB</code> (ліміт вашої бази в МБ; дивіться на Render у картці бази, напр. 1024 для 1 ГБ).</p>';
+    }
+    const pct = db.used_pct;
+    const color = pct >= 90 ? '#B3261E' : pct >= 70 ? '#E8A317' : '#1F9D55';
+    return `<div style="margin-top:10px;max-width:520px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Зайнято <b>${pct.toFixed(1).replace('.', ',')}%</b> від ліміту ${fmtBytes(db.limit_bytes)}</span>
+        <span style="color:var(--muted);">залишилось ${fmtBytes(Math.max(0, db.limit_bytes - db.bytes))}</span></div>
+      <div style="height:10px;border-radius:6px;background:#E9EEF5;overflow:hidden;"><div style="height:100%;width:${Math.max(2, pct)}%;background:${color};"></div></div>
+      ${pct >= 90 ? '<p class="form-error" style="display:block;margin:8px 0 0;">База майже заповнена: збільште тариф на Render або видаліть непотрібні дані, інакше сайт може зупинитись.</p>'
+        : pct >= 70 ? '<p class="own-note" style="margin:8px 0 0;color:#B04A00;">Місця лишається небагато — заплануйте збільшення тарифу.</p>' : ''}</div>`;
+  }
+
+  async function loadDbSizePanel() {
+    const panel = document.getElementById('dbSizePanel');
+    const { ok, data } = await api('/api/admin/db-size');
+    if (!ok) { panel.hidden = true; return; }
+    panel.hidden = false;
+    document.getElementById('dbSizeBody').innerHTML = `
+      <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-end;">
+        <div><div style="font-family:'Manrope',sans-serif;font-size:30px;font-weight:800;">${fmtBytes(data.bytes)}</div>
+          <div class="own-note" style="margin:0;">база «${esc(data.name)}» · PostgreSQL ${esc(data.pg_version)}</div></div>
+        <div style="font-size:13px;color:var(--muted);">Найбільші таблиці:<br>${data.tables.slice(0, 4).map((t) => `${esc(t.name)} — <b style="color:var(--text);">${fmtBytes(t.bytes)}</b>`).join(' · ')}</div>
+      </div>${dbUsageHtml(data)}`;
+  }
+  document.getElementById('dbSizeManage').addEventListener('click', () => { currentTab = 'backups'; switchView('settings'); });
+
+  let backupsBusy = false;
+
+  async function loadBackups() {
+    const root = document.getElementById('backupsRoot');
+    root.innerHTML = '<p class="empty-state">Завантаження…</p>';
+    const { ok, data } = await api('/api/admin/backups');
+    if (!ok) {
+      root.innerHTML = `<div class="panel"><h3>💾 Резервні копії</h3><div class="form-error" style="display:block;">${esc((data && data.error) || 'Не вдалося завантажити')}</div>
+        <p class="own-note" style="margin-top:10px;">${data && data.code === 'forbidden' ? 'Створіть токен із правом <b>Actions: Read and write</b> (інструкція нижче в налаштуванні).' : 'Перевірте змінні GITHUB_BACKUP_REPO та GITHUB_BACKUP_TOKEN на сервері.'}</p>
+        <button type="button" class="btn-sm" id="backupsRetry">↻ Спробувати ще раз</button></div>`;
+      document.getElementById('backupsRetry').addEventListener('click', loadBackups);
+      return;
+    }
+
+    const dbPanel = data.db ? `
+      <div class="panel"><h3>🗄 Розмір бази даних</h3>
+        <div style="font-family:'Manrope',sans-serif;font-size:28px;font-weight:800;">${fmtBytes(data.db.bytes)}</div>
+        <div class="own-note" style="margin:0;">база «${esc(data.db.name)}» · PostgreSQL ${esc(data.db.pg_version)}</div>
+        ${dbUsageHtml(data.db)}
+        <div style="overflow-x:auto;margin-top:14px;"><table class="tm-table"><thead><tr><th>Таблиця</th><th style="text-align:right;">Рядків (≈)</th><th style="text-align:right;">Розмір</th></tr></thead><tbody>
+          ${data.db.tables.map((t) => `<tr><td>${esc(t.name)}</td><td style="text-align:right;">${t.rows > 0 ? esc(Math.round(t.rows).toLocaleString('uk-UA')) : '—'}</td><td style="text-align:right;">${fmtBytes(t.bytes)}</td></tr>`).join('')}</tbody></table></div>
+      </div>` : '';
+
+    if (!data.configured) {
+      root.innerHTML = dbPanel + `
+        <div class="panel tm-form"><h3>💾 Керування резервними копіями</h3>
+          <p class="own-note">Тут ви побачите всі копії бази, їхній розмір, зможете створити нову й видалити непотрібні. Для цього сайту потрібен доступ до репозиторію копій на GitHub (лише до нього). Налаштування один раз, ≈5 хвилин:</p>
+          ${data.repoInvalid ? '<div class="form-error" style="display:block;margin-bottom:10px;">Змінна GITHUB_BACKUP_REPO вказана неправильно. Формат: власник/репозиторій, напр. <b>uztender2000-pixel/shop-backups</b>.</div>' : ''}
+          <ol style="line-height:1.8;padding-left:20px;margin:0 0 10px;font-size:14px;">
+            <li>GitHub → ваше фото угорі справа → <b>Settings</b> → унизу ліворуч <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Fine-grained tokens</b> → <b>Generate new token</b>.</li>
+            <li>Token name: <code>shop-backups</code>. Expiration: <b>1 year</b> (за рік токен треба буде створити заново).</li>
+            <li><b>Repository access</b> → <b>Only select repositories</b> → оберіть <b>лише репозиторій копій</b> (не основний!).</li>
+            <li><b>Permissions → Repository permissions → Actions: Read and write</b>. Інших прав не потрібно.</li>
+            <li><b>Generate token</b> і скопіюйте його (він показується один раз).</li>
+            <li>Render → ваш сервіс → <b>Environment</b> → додайте дві змінні:<br>
+              <code>GITHUB_BACKUP_TOKEN</code> = скопійований токен ${data.hasToken ? '✅ (вже задано)' : ''}<br>
+              <code>GITHUB_BACKUP_REPO</code> = <code>власник/назва-репозиторію-копій</code> ${data.repo && !data.repoInvalid ? `✅ (${esc(data.repo)})` : ''}</li>
+            <li>Збережіть, дочекайтесь перезапуску й оновіть цю сторінку.</li>
+          </ol>
+          <button type="button" class="btn-sm" id="backupsRetry">↻ Оновити</button>
+        </div>`;
+      document.getElementById('backupsRetry').addEventListener('click', loadBackups);
+      return;
+    }
+
+    const active = data.backups.filter((b) => !b.expired);
+    const icon = (r) => (r.status !== 'completed' ? '⏳' : r.conclusion === 'success' ? '✅' : r.conclusion === 'failure' ? '❌' : '⚪');
+    const runLabel = (r) => (r.status !== 'completed' ? 'виконується' : r.conclusion === 'success' ? 'успішно' : r.conclusion === 'failure' ? 'помилка' : esc(r.conclusion || ''));
+    root.innerHTML = dbPanel + `
+      <div class="panel tm-form">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div><h3 style="margin:0 0 4px;">💾 Резервні копії</h3>
+            <p class="own-note" style="margin:0;">Репозиторій: <b>${esc(data.repo)}</b> · активних копій: <b>${active.length}</b> · разом <b>${fmtBytes(data.total_bytes)}</b></p></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn-sm primary" id="backupRunBtn" style="padding:9px 16px;font-size:13px;">➕ Створити копію зараз</button>
+            <button type="button" class="btn-sm" id="backupsRefresh">↻ Оновити</button>
+          </div>
+        </div>
+        <p class="own-note" id="backupRunNote" style="margin:10px 0 0;"></p>
+
+        <h4 style="margin:18px 0 8px;">Усі копії</h4>
+        ${data.backups.length ? `<div style="overflow-x:auto;"><table class="tm-table"><thead><tr><th>Створена</th><th>Вік</th><th style="text-align:right;">Розмір</th><th>Діє до</th><th></th></tr></thead><tbody>
+          ${data.backups.map((b, i) => `<tr style="${b.expired ? 'opacity:.55;' : ''}">
+            <td>${esc(fmtDate(b.created_at))}${!b.expired && i === data.backups.findIndex((x) => !x.expired) ? ' <span class="tm-badge cur">остання</span>' : ''}</td>
+            <td>${esc(fmtAgeUa(b.created_at))}</td>
+            <td style="text-align:right;">${fmtBytes(b.size)}</td>
+            <td>${b.expired ? '<span class="tm-badge minor">прострочена</span>' : esc(fmtDate(b.expires_at))}</td>
+            <td style="white-space:nowrap;text-align:right;">
+              ${b.expired ? '' : `<button type="button" class="btn-sm" data-bk-dl="${esc(b.id)}">⬇ Завантажити</button>`}
+              <button type="button" class="btn-sm danger" data-bk-del="${esc(b.id)}" data-bk-last="${!b.expired && active.length === 1 ? '1' : ''}" data-bk-date="${esc(fmtDate(b.created_at))}">🗑 Видалити</button></td>
+          </tr>`).join('')}</tbody></table></div>`
+          : '<p class="empty-state" style="padding:20px;">Копій немає. Натисніть «Створити копію зараз», або дочекайтесь нічного запуску.</p>'}
+        <p class="own-note" style="margin:10px 0 0;">Копії зберігаються 30 днів, потім GitHub видаляє їх автоматично. Файл зашифровано паролем <code>BACKUP_PASSPHRASE</code>: без цього пароля його не відкрити.</p>
+
+        <h4 style="margin:18px 0 8px;">Останні запуски</h4>
+        ${data.runs.length ? `<table class="tm-table"><tbody>${data.runs.map((r) => `<tr><td style="width:30px;">${icon(r)}</td><td>${esc(fmtDate(r.created_at))}</td><td>${r.event === 'schedule' ? 'за розкладом' : 'вручну'}</td><td>${runLabel(r)}</td><td style="text-align:right;"><a href="${esc(r.url)}" target="_blank" rel="noopener">відкрити ↗</a></td></tr>`).join('')}</tbody></table>`
+          : '<p class="own-note">Запусків ще не було.</p>'}
+      </div>`;
+
+    document.getElementById('backupsRefresh').addEventListener('click', loadBackups);
+    document.getElementById('backupRunBtn').addEventListener('click', async () => {
+      if (backupsBusy) return;
+      backupsBusy = true;
+      const note = document.getElementById('backupRunNote');
+      note.textContent = 'Запускаємо…';
+      const r = await api('/api/admin/backups/run', { method: 'POST' });
+      backupsBusy = false;
+      note.innerHTML = r.ok
+        ? '✅ Копію запущено. Вона створюється 1–3 хвилини: натисніть «Оновити» трохи згодом.'
+        : `<span style="color:#B3261E;">${esc((r.data && r.data.error) || 'Не вдалося запустити')}</span>`;
+    });
+    root.querySelectorAll('[data-bk-dl]').forEach((b) => b.addEventListener('click', async () => {
+      const r = await api(`/api/admin/backups/${b.dataset.bkDl}/download`);
+      if (!r.ok) return toast((r.data && r.data.error) || 'Не вдалося отримати посилання', 'err');
+      window.open(r.data.url, '_blank', 'noopener');
+      toast('Завантаження почалось. Посилання діє близько хвилини', 'ok');
+    }));
+    root.querySelectorAll('[data-bk-del]').forEach((b) => b.addEventListener('click', async () => {
+      const last = b.dataset.bkLast === '1';
+      const q = last
+        ? `Це ЄДИНА активна копія від ${b.dataset.bkDate}. Після видалення резервних копій не лишиться.\n\nВидалити назавжди?`
+        : `Видалити копію від ${b.dataset.bkDate}?\n\nВідновити її буде неможливо.`;
+      if (!confirm(q)) return;
+      b.disabled = true;
+      const r = await api(`/api/admin/backups/${b.dataset.bkDel}`, { method: 'DELETE' });
+      if (!r.ok) { b.disabled = false; return toast((r.data && r.data.error) || 'Не вдалося видалити', 'err'); }
+      toast('Копію видалено', 'ok');
+      loadBackups();
+    }));
   }
 
   // ---------- Сторінки сайту (Доставка, Повернення, Про нас, Конфіденційність…) ----------
