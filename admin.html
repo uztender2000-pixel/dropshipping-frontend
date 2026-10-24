@@ -3802,6 +3802,7 @@
             <p class="own-note" style="margin:0;">Репозиторій: <b>${esc(data.repo)}</b> · активних копій: <b>${active.length}</b> · разом <b>${fmtBytes(data.total_bytes)}</b></p></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button type="button" class="btn-sm primary" id="backupRunBtn" style="padding:9px 16px;font-size:13px;">➕ Створити копію зараз</button>
+            <button type="button" class="btn-sm" id="backupTestBtn" title="Відновлює останню копію в тимчасову базу й порівнює з робочою; робочу базу не змінює">🧪 Перевірити відновлення</button>
             <button type="button" class="btn-sm" id="backupsRefresh">↻ Оновити</button>
           </div>
         </div>
@@ -3837,6 +3838,17 @@
       backupsBusy = false;
       note.innerHTML = r.ok
         ? '✅ Копію запущено. Вона створюється 1–3 хвилини: натисніть «Оновити» трохи згодом.'
+        : `<span style="color:#B3261E;">${esc((r.data && r.data.error) || 'Не вдалося запустити')}</span>`;
+    });
+    document.getElementById('backupTestBtn').addEventListener('click', async () => {
+      if (backupsBusy) return;
+      backupsBusy = true;
+      const note = document.getElementById('backupRunNote');
+      note.textContent = 'Запускаємо перевірку…';
+      const r = await api('/api/admin/backups/test-restore', { method: 'POST' });
+      backupsBusy = false;
+      note.innerHTML = r.ok
+        ? '✅ Перевірку відновлення запущено. Вона триває кілька хвилин; результат з\'явиться в Налаштування → «Стан системи». Робоча база не змінюється.'
         : `<span style="color:#B3261E;">${esc((r.data && r.data.error) || 'Не вдалося запустити')}</span>`;
     });
     root.querySelectorAll('[data-bk-dl]').forEach((b) => b.addEventListener('click', async () => {
