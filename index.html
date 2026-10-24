@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://allshop-stjp.onrender.com; frame-src 'self' https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://allshop-stjp.onrender.com https://accounts.google.com; frame-src 'self' https://challenges.cloudflare.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>В Хату.UA — усе для дому, авто, дітей та не тільки</title>
@@ -1002,6 +1002,12 @@
   .pw-match.ok { color: #2e9e5b; }
   .pw-match.bad { color: #e5533d; }
 </style>
+<style id="social-login-css">
+  .social-box { margin-top: 16px; }
+  .social-sep { display: flex; align-items: center; gap: 10px; font-size: 13px; opacity: .7; margin-bottom: 12px; }
+  .social-sep::before, .social-sep::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .25; }
+  .social-btn { display: flex; justify-content: center; min-height: 44px; }
+</style>
 </head>
 <body>
 
@@ -1165,6 +1171,7 @@
       <p class="modal-status" id="loginStatus" hidden></p>
       <button type="button" class="btn-secondary" id="showForgotPassword" hidden style="width:100%;margin-top:10px;">Скинути пароль</button>
     </form>
+    <div class="social-box" id="googleLoginBox" hidden><div class="social-sep"><span>або</span></div><div class="social-btn" id="googleBtnLogin"></div></div>
     <p style="margin-top:14px;font-size:14px;">Немає акаунту? <a href="#" id="showRegister" style="color: var(--rust-text);font-weight:700;">Зареєструватись</a></p>
   </div>
 </div>
@@ -1231,7 +1238,24 @@
       </div>
       <p class="modal-status" id="registerStatus" hidden></p>
     </form>
+    <div class="social-box" id="googleRegisterBox" hidden><div class="social-sep"><span>або</span></div><div class="social-btn" id="googleBtnRegister"></div></div>
     <p style="margin-top:14px;font-size:14px;">Вже є акаунт? <a href="#" id="showLogin" style="color: var(--rust-text);font-weight:700;">Увійти</a></p>
+  </div>
+</div>
+
+<!-- Вхід через Google: новий користувач підтверджує згоду з правилами -->
+<div class="modal-backdrop" id="googleTermsBackdrop" hidden>
+  <div class="modal">
+    <h2>Майже готово</h2>
+    <p id="googleTermsText" style="font-size:14px;line-height:1.55;margin:0 0 12px;"></p>
+    <div class="field terms-field" id="googleTermsField">
+      <label class="terms-check"><input type="checkbox" id="googleTermsCheck"><span>Я ознайомився(-лась) з <a href="terms.html" target="_blank" rel="noopener">правилами та умовами</a> і приймаю їх</span></label>
+    </div>
+    <p class="modal-status" id="googleTermsStatus" hidden></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="googleTermsCancel">Скасувати</button>
+      <button type="button" class="btn-primary" id="googleTermsOk">Продовжити</button>
+    </div>
   </div>
 </div>
 
@@ -3080,7 +3104,9 @@
     return `
       <div class="cab-card">
         <h3>Змінити пароль</h3>
-        <div class="field"><label for="acCurrentPassword">Поточний пароль</label><input type="password" id="acCurrentPassword" autocomplete="current-password" data-no-eye></div>
+        ${currentUser && currentUser.has_password === false
+          ? '<p class="cab-hint">Ви входите через Google, власного пароля поки немає. Задайте його, щоб можна було входити й за email.</p>'
+          : '<div class="field"><label for="acCurrentPassword">Поточний пароль</label><input type="password" id="acCurrentPassword" autocomplete="current-password" data-no-eye></div>'}
         <div class="field"><label for="acNewPassword">Новий пароль (мінімум 10 символів)</label><input type="password" id="acNewPassword" autocomplete="new-password" data-no-eye></div>
         <div class="field"><label for="acNewPassword2">Повторіть новий пароль</label><input type="password" id="acNewPassword2" autocomplete="new-password" data-no-eye></div>
         <label class="cab-hint" style="display:flex;gap:6px;align-items:center;margin-bottom:12px;cursor:pointer;">
@@ -3101,8 +3127,10 @@
         <p class="modal-status" id="exportStatus" hidden></p>
         <details style="margin-top:16px;">
           <summary style="cursor:pointer;color:var(--rust-text);font-size:14px;">Видалити обліковий запис…</summary>
-          <p class="cab-hint" style="margin-top:10px;">Видалення незворотне: зникнуть кошик, історія переглядів, відгуки й звернення. Щоб підтвердити, введіть пароль.</p>
-          <div class="field"><label for="acDeletePassword">Пароль</label><input type="password" id="acDeletePassword" autocomplete="current-password"></div>
+          <p class="cab-hint" style="margin-top:10px;">Видалення незворотне: зникнуть кошик, історія переглядів, відгуки й звернення. ${currentUser && currentUser.has_password === false ? 'Щоб підтвердити, введіть email свого акаунта.' : 'Щоб підтвердити, введіть пароль.'}</p>
+          ${currentUser && currentUser.has_password === false
+            ? '<div class="field"><label for="acDeletePassword">Email акаунта</label><input type="text" id="acDeletePassword" autocomplete="off" data-no-eye></div>'
+            : '<div class="field"><label for="acDeletePassword">Пароль</label><input type="password" id="acDeletePassword" autocomplete="current-password"></div>'}
           <label class="cab-hint" style="display:flex;gap:6px;align-items:center;margin-bottom:12px;cursor:pointer;">
             <input type="checkbox" id="acDeleteConfirm"> Я розумію, що це незворотно</label>
           <div class="cab-actions"><button type="button" class="btn-secondary" id="deleteAccountBtn" style="border-color:#b3261e;color:#ff8a80;">Видалити назавжди</button></div>
@@ -3476,11 +3504,12 @@
       delBtn.addEventListener('click', async () => {
         const status = $('deleteStatus');
         if (!$('acDeleteConfirm').checked) { cabStatus(status, 'Поставте позначку, що розумієте наслідки', false); return; }
-        if (!$('acDeletePassword').value) { cabStatus(status, 'Введіть пароль', false); return; }
+        const noPw = Boolean(currentUser && currentUser.has_password === false);
+        if (!$('acDeletePassword').value) { cabStatus(status, noPw ? 'Введіть email акаунта' : 'Введіть пароль', false); return; }
         if (!confirm('Видалити обліковий запис назавжди?')) return;
         delBtn.disabled = true;
         try {
-          const res = await fetch(`${API_BASE}/api/account/delete`, { method: 'POST', headers: cabJson(), body: JSON.stringify({ password: $('acDeletePassword').value, confirm: true }) });
+          const res = await fetch(`${API_BASE}/api/account/delete`, { method: 'POST', headers: cabJson(), body: JSON.stringify(noPw ? { email: $('acDeletePassword').value, confirm: true } : { password: $('acDeletePassword').value, confirm: true }) });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data.error || 'Не вдалося видалити');
           hideAccountPage();
@@ -3516,13 +3545,14 @@
     // Пароль
     const pwBtn = $('changePasswordBtn');
     if (pwBtn) {
-      const ids = ['acCurrentPassword', 'acNewPassword', 'acNewPassword2'];
+      const ids = ['acCurrentPassword', 'acNewPassword', 'acNewPassword2'].filter((id) => $(id));
       $('acShowPasswords').addEventListener('change', (e) => ids.forEach((id) => { $(id).type = e.target.checked ? 'text' : 'password'; }));
       pwBtn.addEventListener('click', async () => {
         const status = $('passwordStatus');
-        const cur = $('acCurrentPassword').value;
+        const hasCur = Boolean($('acCurrentPassword'));
+        const cur = hasCur ? $('acCurrentPassword').value : '';
         const next = $('acNewPassword').value;
-        if (!cur || !next) { cabStatus(status, 'Введіть поточний і новий пароль', false); return; }
+        if ((hasCur && !cur) || !next) { cabStatus(status, hasCur ? 'Введіть поточний і новий пароль' : 'Введіть новий пароль', false); return; }
         if (next.length < 10) { cabStatus(status, 'Новий пароль — мінімум 10 символів', false); return; }
         if (next !== $('acNewPassword2').value) { cabStatus(status, 'Паролі не збігаються', false); return; }
         pwBtn.disabled = true;
@@ -3535,7 +3565,8 @@
           ids.forEach((id) => { $(id).value = ''; });
           // Сервер завершив усі інші сесії й видав свіжий токен для цього пристрою.
           setAuthToken(data.token);
-          cabStatus(status, 'Пароль змінено. На інших пристроях потрібно буде увійти знову.', true);
+          if (currentUser) currentUser.has_password = true;
+          cabStatus(status, 'Пароль збережено. На інших пристроях потрібно буде увійти знову.', true);
         } catch (err) {
           cabStatus(status, err.message, false);
         } finally {
@@ -4000,6 +4031,101 @@
       registerStatus.hidden = false;
     }
   });
+
+  // ---------- Вхід і реєстрація через Google ----------
+  // Кнопка з'являється, лише якщо сервер повідомив GOOGLE_CLIENT_ID (/api/config). Токен від Google перевіряє бекенд.
+  const googleTermsBackdrop = document.getElementById('googleTermsBackdrop');
+  let googleCredential = null;   // токен Google, поки людина підтверджує згоду з правилами (лише в пам'яті сторінки)
+
+  function finishSocialLogin(data) {
+    setAuthToken(data.token);
+    currentUser = data.user;
+    setLoggedInUI();
+    refreshCartBadge();
+    syncGuestViews();
+    authBackdrop.hidden = true;
+    registerBackdrop.hidden = true;
+    googleTermsBackdrop.hidden = true;
+    checkTermsAfterLogin();
+  }
+
+  async function sendGoogleCredential(credential, acceptTerms) {
+    const res = await fetch(`${API_BASE}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential, acceptTerms: acceptTerms === true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Не вдалося увійти через Google');
+    return data;
+  }
+
+  async function onGoogleCredential(resp) {
+    try {
+      const data = await sendGoogleCredential(resp.credential, false);
+      if (data.needsTerms) {
+        googleCredential = resp.credential;
+        document.getElementById('googleTermsText').textContent = `${data.name || 'Вітаємо'}, акаунт ${data.email} ще не зареєстрований. Щоб створити його, прийміть правила та умови.`;
+        document.getElementById('googleTermsCheck').checked = false;
+        document.getElementById('googleTermsStatus').hidden = true;
+        document.getElementById('googleTermsField').classList.remove('invalid');
+        authBackdrop.hidden = true;
+        registerBackdrop.hidden = true;
+        googleTermsBackdrop.hidden = false;
+        return;
+      }
+      finishSocialLogin(data);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  document.getElementById('googleTermsCancel').addEventListener('click', () => { googleTermsBackdrop.hidden = true; googleCredential = null; });
+  document.getElementById('googleTermsOk').addEventListener('click', async () => {
+    const status = document.getElementById('googleTermsStatus');
+    status.hidden = true;
+    if (!document.getElementById('googleTermsCheck').checked) {
+      document.getElementById('googleTermsField').classList.add('invalid');
+      status.textContent = 'Підтвердіть, що ви ознайомились із правилами та умовами';
+      status.className = 'modal-status error';
+      status.hidden = false;
+      return;
+    }
+    const btn = document.getElementById('googleTermsOk');
+    btn.disabled = true;
+    try {
+      const data = await sendGoogleCredential(googleCredential, true);
+      googleCredential = null;
+      finishSocialLogin(data);
+    } catch (err) {
+      status.textContent = err.message;
+      status.className = 'modal-status error';
+      status.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  (async function initGoogleSignIn() {
+    let clientId = null;
+    try { clientId = (await (await fetch(`${API_BASE}/api/config`)).json()).googleClientId || null; } catch (e) { /* без кнопки */ }
+    if (!clientId) return;
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.onload = () => {
+      try {
+        window.google.accounts.id.initialize({ client_id: clientId, callback: onGoogleCredential, ux_mode: 'popup' });
+        [['googleBtnLogin', 'googleLoginBox'], ['googleBtnRegister', 'googleRegisterBox']].forEach(([btnId, boxId]) => {
+          window.google.accounts.id.renderButton(document.getElementById(btnId), {
+            type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', width: 300, locale: 'uk',
+          });
+          document.getElementById(boxId).hidden = false;
+        });
+      } catch (e) { console.warn('Google Sign-In не запустився:', e); }
+    };
+    document.head.appendChild(s);
+  })();
 
   // ---------- Phone verification (SMS) ----------
   // Після реєстрації або входу з непідтвердженим номером сервер не видає
