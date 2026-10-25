@@ -2482,25 +2482,36 @@
       return;
     }
 
-    // Category/seller dropdown options are computed ONCE right after the
-    // full list is in, from the data itself — no extra server round-trip.
-    const catNames = new Set();
-    const sellerNames = new Set();
-    liveAllItems.forEach((p) => {
-      if (p.categoryName || p.section) catNames.add(p.categoryName || p.section);
-      if (p.meta?.hubberSupplierName) sellerNames.add(p.meta.hubberSupplierName);
-    });
-    liveCategoryOptions = [...catNames].sort((a, b) => a.localeCompare(b, 'uk'));
-    liveSellerOptions = [...sellerNames].sort((a, b) => a.localeCompare(b, 'uk'));
-
-    const catSel = document.getElementById('lgCategory');
-    catSel.innerHTML = '<option value="">Усі категорії</option>' + liveCategoryOptions.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    const sellerSel = document.getElementById('lgSeller');
-    sellerSel.innerHTML = '<option value="">Усі продавці</option>' + liveSellerOptions.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    refreshLiveFilterOptions();
 
     document.getElementById('liveGridWrap').hidden = false;
     liveView.page = 1;
     renderLiveGrid();
+  }
+
+  // Списки «Категорія» і «Продавець» над таблицею: біля кожного пункту — кількість товарів, що лишились у списку; пункт із нулем
+  // зникає. Перераховується локально (без запитів до сервера) після формування списку й після кожного імпорту.
+  function refreshLiveFilterOptions() {
+    const cats = new Map();
+    const sellers = new Map();
+    liveAllItems.forEach((p) => {
+      const c = p.categoryName || p.section;
+      if (c) cats.set(c, (cats.get(c) || 0) + 1);
+      const sName = p.meta?.hubberSupplierName;
+      if (sName) sellers.set(sName, (sellers.get(sName) || 0) + 1);
+    });
+    liveCategoryOptions = [...cats.keys()].sort((a, b) => a.localeCompare(b, 'uk'));
+    liveSellerOptions = [...sellers.keys()].sort((a, b) => a.localeCompare(b, 'uk'));
+
+    const fill = (selId, allLabel, names, counts) => {
+      const sel = document.getElementById(selId);
+      const prev = sel.value;   // вибраний фільтр зберігаємо, якщо в ньому ще є товари
+      sel.innerHTML = `<option value="">${allLabel} (${liveAllItems.length})</option>` +
+        names.map((n) => `<option value="${esc(n)}">${esc(n)} (${counts.get(n)})</option>`).join('');
+      sel.value = counts.has(prev) ? prev : '';
+    };
+    fill('lgCategory', 'Усі категорії', liveCategoryOptions, cats);
+    fill('lgSeller', 'Усі продавці', liveSellerOptions, sellers);
   }
 
   // ----- Excel-style filter/sort/paginate, entirely client-side -----
@@ -2754,6 +2765,7 @@
     const importedIds = new Set(items.map((p) => String(p.supplierProductId)));
     liveAllItems = liveAllItems.filter((p) => !importedIds.has(String(p.supplierProductId))); // just-imported items drop out of the list
     liveSelected.clear();
+    refreshLiveFilterOptions();   // категорії без товарів зникають, в інших оновлюється кількість
     renderLiveGrid();
     await loadManualSuppliers();
   });
