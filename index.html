@@ -691,18 +691,6 @@
   .field-hint { font-size: 12px; color: var(--muted); margin-top: -2px; }
 
   /* ---------- Homepage "picked for you" banner ---------- */
-  .homepage-banner {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    background: var(--sand); border: 1px solid var(--line); border-radius: 6px;
-    padding: 12px 16px; margin-bottom: 16px; font-size: 14px; flex-wrap: wrap;
-  }
-  .homepage-banner button {
-    background: transparent; border: 1px solid var(--forest); color: var(--link);
-    padding: 8px 14px; border-radius: 4px; font-family: 'Inter', sans-serif;
-    font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap;
-  }
-  .homepage-banner button:hover { background: var(--forest); color: var(--white); }
-  .homepage-banner[hidden] { display: none; } /* без цього display:flex перебивав атрибут hidden і банер «10 випадкових товарів» не зникав у категорії */
 
   /* ---------- Responsive polish across breakpoints ---------- */
   .header-right { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
@@ -1084,11 +1072,6 @@
         <source media="(max-width: 640px)" srcset="assets/hero-mobile.jpg">
         <img src="assets/hero.jpg" alt="В Хату.UA — Абсолютно все. В один клік" width="1600" height="540" fetchpriority="high">
       </picture>
-    </div>
-
-    <div class="homepage-banner" id="homepageBanner" hidden>
-      <span>Ми показали 10 випадкових товарів із каталогу.</span>
-      <button type="button" id="homepageShowAllBtn">Показати всі товари</button>
     </div>
 
     <div class="catalog-body">
@@ -1569,7 +1552,6 @@
   const contentCount = document.getElementById('contentCount');
   const sortSelect = document.getElementById('sortSelect');
   const limitSelect = document.getElementById('limitSelect');
-  const homepageBanner = document.getElementById('homepageBanner');
   const heroEl = document.getElementById('hero');
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
@@ -1705,7 +1687,7 @@
         // shopper's purchase/browsing history (or, for a guest, whatever
         // they've looked at in this browser) — see /api/products/recommended.
         // No pagination, same as the old random list this replaced.
-        const params = new URLSearchParams({ limit: 10 });
+        const params = new URLSearchParams({ limit: 25 });
         const headers = {};
         if (authToken) headers.Authorization = `Bearer ${authToken}`;
         else { const guestIds = getGuestViews(); if (guestIds.length) params.set('viewed', guestIds.slice(0, 20).join(',')); }
@@ -1740,7 +1722,7 @@
         contentCount.textContent = state.homepage ? '' : `${data.pagination.total} товар(ів)`;
       }
 
-      homepageBanner.hidden = !state.homepage; heroEl.hidden = homepageBanner.hidden;
+      heroEl.hidden = !state.homepage;
       if (state.homepage) contentTitle.textContent = data.personalized ? 'Рекомендуємо саме вам' : 'Рекомендуємо';
       const hasMore = !state.homepage && data.pagination.page < data.pagination.totalPages;
       loadMoreBtn.hidden = !hasMore;
@@ -1755,13 +1737,13 @@
     }
   }
 
-  // Leaves the random "10 for you" homepage view and switches to a normal,
+  // Leaves the homepage "recommended" view and switches to a normal,
   // paginated listing (used the moment the visitor sorts, filters, changes
   // the per-page count, searches, or asks to see everything).
   function exitHomepage() {
     if (!state.homepage) return false;
     state.homepage = false;
-    homepageBanner.hidden = true; heroEl.hidden = homepageBanner.hidden;
+    heroEl.hidden = true;
     return true;
   }
 
@@ -2031,10 +2013,6 @@
     state.limit = parseInt(limitSelect.value, 10) || 50;
     state.page = 1;
     loadProducts(false);
-  });
-
-  document.getElementById('homepageShowAllBtn').addEventListener('click', () => {
-    selectShopCategory('', '');
   });
 
   loadMoreBtn.addEventListener('click', () => {
