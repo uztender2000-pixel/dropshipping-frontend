@@ -2213,7 +2213,39 @@
   async function loadCategoriesCache() {
     const { ok, data } = await api('/api/admin/categories');
     categoriesCache = ok ? data : [];
+    syncCategoryViews();   // додали/перейменували/перенесли/видалили категорію — усі списки оновлюються без перезавантаження сторінки
     return categoriesCache;
+  }
+
+  // Повна назва категорії зі шляхом («Одяг › Жіноче взуття › Кросівки та кеди»): назви на нижньому рівні повторюються.
+  function catPathLabel(id) {
+    const parts = [];
+    let cur = categoriesCache.find((c) => c.id === id);
+    while (cur) { parts.unshift(cur.name); cur = cur.parent_id ? categoriesCache.find((c) => c.id === cur.parent_id) : null; }
+    return parts.join(' › ');
+  }
+
+  function fillShopCategoryFilterSelect() {
+    const sel = document.getElementById('pfShopCategory');
+    if (!sel) return;
+    const prev = sel.value;   // вибраний фільтр не збиваємо
+    const flat = flattenTreeForOptions(buildCategoryTree(categoriesCache));
+    sel.innerHTML = '<option value="">Будь-яка</option><option value="unassigned">Ще без категорії</option>' +
+      flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+    if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  }
+
+  // Перемальовує все, що показує список категорій, зберігаючи вибір, розгорнуті гілки та результати пошуку товарів.
+  function syncCategoryViews() {
+    try {
+      fillShopCategoryFilterSelect();
+      if (liveTargetCategoryId !== null && !categoriesCache.some((c) => c.id === liveTargetCategoryId)) {
+        liveTargetCategoryId = null;
+        document.getElementById('liveTargetCategoryBtn').textContent = '— не призначати —';
+      }
+      renderLiveTargetCategoryPanel();
+      if (!document.getElementById('assignCatModalBackdrop').hidden) renderAssignCatTree();
+    } catch (e) { /* частина екранів ще може бути не ініціалізована під час першого завантаження */ }
   }
 
   async function loadManualSuppliers() {
@@ -2288,12 +2320,7 @@
   });
 
   async function loadShopCategoryFilterOptions() {
-    await loadCategoriesCache();
-    const tree = buildCategoryTree(categoriesCache);
-    const flat = flattenTreeForOptions(tree);
-    const sel = document.getElementById('pfShopCategory');
-    sel.innerHTML = '<option value="">Будь-яка</option><option value="unassigned">Ще без категорії</option>' +
-      flat.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+    await loadCategoriesCache();   // заповнення фільтра виконує syncCategoryViews()
   }
 
   function currentProductFilter() {
@@ -2592,7 +2619,8 @@
         return `
         <div style="margin-left:${depth * 18}px;display:flex;align-items:center;gap:4px;">
           ${hasChildren ? `<button type="button" class="tree-toggle" data-toggle-id="${esc(n.id)}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);width:16px;">${isOpen ? '▼' : '▶'}</button>` : `<span style="display:inline-block;width:16px;"></span>`}
-          <button type="button" class="cat-pick-item" data-cat-id="${esc(n.id)}" style="background:${isSelected ? 'var(--blue)' : 'none'};color:${isSelected ? '#fff' : 'var(--ink)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;flex:1;font-size:13px;">${esc(n.name)}</button>
+          <button type="button" class="cat-pick-item" data-cat-id="${esc(n.id)}" data-has-children="${hasChildren ? '1' : ''}" style="background:${isSelected ? 'var(--blue)' : 'none'};color:${isSelected ? '#fff' : 'var(--ink)'};border:none;border-radius:4px;padding:3px 8px;cursor:pointer;text-align:left;flex:1;font-size:13px;font-weight:${hasChildren ? 600 : 400};">${esc(n.name)}${hasChildren ? ` <span style="color:var(--muted);font-weight:400;">(${n.children.length})</span>` : ''}</button>
+          ${hasChildren ? `<button type="button" class="cat-pick-self" data-cat-id="${esc(n.id)}" title="Обрати саме цю категорію, а не підкатегорію" style="background:none;border:1px solid #D7E1EE;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;color:var(--muted);">обрати</button>` : ''}
         </div>
         ${hasChildren && isOpen ? renderList(n.children, depth + 1) : ''}
       `;
@@ -2625,10 +2653,19 @@
       renderLiveTargetCategoryPanel();
       return;
     }
-    const pick = e.target.closest('.cat-pick-item');
+    const pickSelf = e.target.closest('.cat-pick-self');
+    const pick = pickSelf || e.target.closest('.cat-pick-item');
     if (pick) {
+      // Клік по категорії з підкатегоріями лише розкриває/згортає її; обирається підкатегорія без стрілки
+      // (або явно кнопкою «обрати» біля батьківської категорії).
+      if (!pickSelf && pick.dataset.hasChildren === '1') {
+        const id = parseInt(pick.dataset.catId, 10);
+        if (liveTargetCatExpanded.has(id)) liveTargetCatExpanded.delete(id); else liveTargetCatExpanded.add(id);
+        renderLiveTargetCategoryPanel();
+        return;
+      }
       liveTargetCategoryId = pick.dataset.catId ? parseInt(pick.dataset.catId, 10) : null;
-      document.getElementById('liveTargetCategoryBtn').textContent = pick.dataset.catId ? pick.textContent : '— не призначати —';
+      document.getElementById('liveTargetCategoryBtn').textContent = liveTargetCategoryId ? catPathLabel(liveTargetCategoryId) : '— не призначати —';
       document.getElementById('liveTargetCategoryPanel').hidden = true;
     }
   });
@@ -2638,7 +2675,8 @@
     const panel = document.getElementById('liveTargetCategoryPanel');
     const btn = document.getElementById('liveTargetCategoryBtn');
     if (!panel || panel.hidden) return;
-    if (!panel.contains(e.target) && e.target !== btn) panel.hidden = true;
+    const inside = e.composedPath().includes(panel);   // після перемальовування e.target вже не в DOM, тому дивимось шлях події
+    if (!inside && e.target !== btn) panel.hidden = true;
   });
 
   document.getElementById('lfApplyBtn').addEventListener('click', () => runLiveSearch());
@@ -3122,6 +3160,7 @@
       const { ok, data } = await api('/api/admin/categories', { method: 'POST', body: { name, parent_id: parentId || null } });
       if (ok) created += 1; else { errors.push(`«${name}»: ${data?.error || 'помилка'}`); failed.push(name); }
     }
+    if (created && parentId) liveTargetCatExpanded.add(parseInt(parentId, 10));
     if (created) await loadCategoriesCache();
     return { created, errors, failed, total: names.length };
   }
