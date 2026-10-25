@@ -643,7 +643,10 @@
             <div class="field-row" style="align-items:end;margin:0;">
               <div class="field" style="margin:0;position:relative;">
                 <label>Одразу віднести до категорії сайту (необов'язково — якщо категорія постачальника вам не підходить)</label>
-                <button type="button" class="btn-sm" id="liveTargetCategoryBtn" style="width:100%;text-align:left;">— не призначати —</button>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" class="btn-sm" id="liveTargetCategoryBtn" style="flex:1;min-width:0;text-align:left;">— не призначати —</button>
+                  <button type="button" class="btn-sm" id="liveTargetCategoryRefresh" title="Підтягнути категорії, які ви додали в іншій вкладці">↻ Оновити</button>
+                </div>
                 <div id="liveTargetCategoryPanel" hidden style="position:absolute;top:100%;left:0;right:0;z-index:15;background:#fff;border:1px solid #D7E1EE;border-radius:6px;padding:8px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.12);"></div>
               </div>
             </div>
@@ -2212,7 +2215,7 @@
 
   async function loadCategoriesCache() {
     const { ok, data } = await api('/api/admin/categories');
-    categoriesCache = ok ? data : [];
+    if (ok) categoriesCache = data;   // при збої мережі лишаємо останній відомий список, а не порожній
     syncCategoryViews();   // додали/перейменували/перенесли/видалили категорію — усі списки оновлюються без перезавантаження сторінки
     return categoriesCache;
   }
@@ -2651,10 +2654,43 @@
     renderLiveTargetCategoryPanel();
   }
 
+  // Оновлення списку категорій без перезавантаження сторінки (щоб не втрачати сформований перелік товарів): вручну кнопкою,
+  // автоматично при відкритті списку та при поверненні на цю вкладку (наприклад, після додавання категорії в іншій вкладці).
+  let categoriesRefreshing = false;
+  let lastCategoriesRefresh = 0;
+  async function refreshCategoriesNow(manual) {
+    if (categoriesRefreshing) return;
+    categoriesRefreshing = true;
+    const btn = document.getElementById('liveTargetCategoryRefresh');
+    if (manual) { btn.disabled = true; btn.textContent = '↻ Оновлюємо…'; }
+    const before = categoriesCache.length;
+    try {
+      await loadCategoriesCache();
+      lastCategoriesRefresh = Date.now();
+      if (manual) {
+        const added = categoriesCache.length - before;
+        toast(added > 0 ? `Список категорій оновлено: нових ${added}` : 'Список категорій оновлено, нових немає');
+      }
+    } finally {
+      categoriesRefreshing = false;
+      btn.disabled = false;
+      btn.textContent = '↻ Оновити';
+    }
+  }
+
   document.getElementById('liveTargetCategoryBtn').addEventListener('click', () => {
     const panel = document.getElementById('liveTargetCategoryPanel');
     panel.hidden = !panel.hidden;
+    if (!panel.hidden) refreshCategoriesNow(false);   // відкрили список — одразу підтягуємо свіжі категорії
   });
+  document.getElementById('liveTargetCategoryRefresh').addEventListener('click', () => refreshCategoriesNow(true));
+  const refreshOnReturn = () => {
+    const wrap = document.getElementById('liveGridWrap');
+    if (document.visibilityState === 'hidden' || !wrap || wrap.hidden) return;   // лише коли на екрані сформований перелік
+    if (Date.now() - lastCategoriesRefresh > 5000) refreshCategoriesNow(false);
+  };
+  window.addEventListener('focus', refreshOnReturn);
+  document.addEventListener('visibilitychange', refreshOnReturn);
 
   document.getElementById('liveTargetCategoryPanel').addEventListener('click', (e) => {
     const toggle = e.target.closest('.tree-toggle');
