@@ -662,6 +662,16 @@
             <button class="btn-sm" id="lgSelectAllFiltered">Обрати всі за фільтром (<span id="lgFilteredCount">0</span>)</button>
           </div>
 
+          <!-- Пропозиції «куди класти»: за тим, як ви вже розкладали товари з цих категорій постачальника -->
+          <div class="panel" id="liveSuggestPanel" style="display:none;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <strong>💡 Пропозиції категорій</strong>
+              <span style="font-size:12px;color:var(--muted);">Система запам'ятала, куди ви раніше клали товари з цих категорій постачальника. Кнопка обирає всі товари групи й підставляє категорію; імпорт підтверджуєте ви.</span>
+            </div>
+            <div style="overflow-x:auto;"><table class="tm-table"><tbody id="liveSuggestBody"></tbody></table></div>
+            <div id="liveSuggestFoot" style="font-size:12px;color:var(--muted);"></div>
+          </div>
+
           <div id="liveResultsInfo" style="font-size:13px;color:var(--muted);margin-bottom:8px;"></div>
 
           <div class="panel" style="padding:0;overflow-x:auto;">
@@ -2248,6 +2258,7 @@
       }
       renderLiveTargetCategoryPanel();
       if (!document.getElementById('assignCatModalBackdrop').hidden) renderAssignCatTree();
+      renderLiveSuggestions();   // шляхи категорій у підказках теж оновлюються
     } catch (e) { /* частина екранів ще може бути не ініціалізована під час першого завантаження */ }
   }
 
@@ -2490,6 +2501,7 @@
     document.getElementById('liveGridWrap').hidden = false;
     liveView.page = 1;
     renderLiveGrid();
+    loadLiveSuggestions();   // підказки «куди класти» (не блокують показ списку)
   }
 
   // Списки «Категорія» і «Продавець» над таблицею: біля кожного пункту — кількість товарів, що лишились у списку; пункт із нулем
@@ -2515,7 +2527,68 @@
     };
     fill('lgCategory', 'Усі категорії', liveCategoryOptions, cats);
     fill('lgSeller', 'Усі продавці', liveSellerOptions, sellers);
+    renderLiveSuggestions();   // кількості в групах змінилися
   }
+
+  // ----- Пропозиції категорій сайту для груп товарів постачальника -----
+  let liveSuggestions = {};   // назва категорії постачальника -> { category_id, uses, total, alts }
+  const LIVE_IMPORT_LIMIT = 200;   // стільки товарів сервер приймає за один імпорт
+
+  async function loadLiveSuggestions() {
+    const supplierId = document.getElementById('pfSupplier').value;
+    if (!supplierId) return;
+    if (!categoriesCache.length) await loadCategoriesCache();
+    const r = await api(`/api/admin/products/category-suggestions?supplier_id=${encodeURIComponent(supplierId)}`);
+    liveSuggestions = r.ok ? (r.data.suggestions || {}) : {};
+    renderLiveSuggestions();
+  }
+
+  function renderLiveSuggestions() {
+    const panel = document.getElementById('liveSuggestPanel');
+    const groups = new Map();
+    liveAllItems.forEach((p) => { const c = p.categoryName || p.section; if (c) groups.set(c, (groups.get(c) || 0) + 1); });
+    const known = (id) => categoriesCache.some((c) => c.id === id);
+    const rows = [...groups].map(([name, n]) => ({ name, n, s: liveSuggestions[name] }))
+      .filter((r) => r.s && known(r.s.category_id))
+      .sort((a, b) => b.n - a.n);
+    panel.style.display = rows.length ? 'flex' : 'none';
+    if (!rows.length) return;
+    const shown = rows.slice(0, 40);
+    document.getElementById('liveSuggestBody').innerHTML = shown.map((r) => {
+      const share = r.s.total ? r.s.uses / r.s.total : 0;
+      const trust = share >= 0.999 ? '<span class="badge on">завжди сюди</span>' : share >= 0.95 ? '<span class="badge on">майже завжди сюди</span>' : share >= 0.7 ? '<span class="badge info">здебільшого сюди</span>' : '<span class="badge warn">різні варіанти</span>';
+      const alts = (r.s.alts || []).filter((a) => known(a.category_id)).map((a) => `${esc(catPathLabel(a.category_id))} (${a.uses})`).join('; ');
+      return `<tr>
+        <td><strong>${esc(r.name)}</strong><div style="font-size:12px;color:var(--muted);">у списку: ${r.n}</div></td>
+        <td>→ ${esc(catPathLabel(r.s.category_id))}<div style="font-size:12px;color:var(--muted);">обирали ${r.s.uses} з ${r.s.total} ${trust}${alts ? `<br>інші варіанти: ${alts}` : ''}</div></td>
+        <td style="text-align:right;white-space:nowrap;"><button type="button" class="btn-sm primary" data-sg-cat="${esc(r.name)}">Обрати ${Math.min(r.n, LIVE_IMPORT_LIMIT)} і призначити</button></td>
+      </tr>`;
+    }).join('');
+    const withoutHint = groups.size - rows.length;
+    document.getElementById('liveSuggestFoot').textContent =
+      (rows.length > shown.length ? `Показано ${shown.length} із ${rows.length} груп з пропозицією. ` : '') +
+      (withoutHint > 0 ? `Ще ${withoutHint} категорій постачальника без пропозиції (ви ще не клали їх товари на сайт): призначте вручну, і наступного разу система їх запам'ятає.` : '');
+  }
+
+  document.getElementById('liveSuggestBody').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-sg-cat]');
+    if (!btn) return;
+    const name = btn.dataset.sgCat;
+    const sg = liveSuggestions[name];
+    const items = liveAllItems.filter((p) => (p.categoryName || p.section) === name);
+    if (!sg || !items.length) return;
+    liveSelected.clear();   // категорія призначається всім обраним, тому змішувати групи не можна
+    items.slice(0, LIVE_IMPORT_LIMIT).forEach((p) => liveSelected.set(String(p.supplierProductId), p));
+    liveTargetCategoryId = sg.category_id;
+    document.getElementById('liveTargetCategoryBtn').textContent = catPathLabel(sg.category_id);
+    document.getElementById('lgCategory').value = name;
+    liveView.page = 1;
+    renderLiveGrid();
+    document.getElementById('liveBulkBar').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    toast(items.length > LIVE_IMPORT_LIMIT
+      ? `Обрано перші ${LIVE_IMPORT_LIMIT} із ${items.length}. Натисніть «Імпортувати обрані», потім повторіть для решти.`
+      : `Обрано ${items.length}. Перевірте категорію й натисніть «Імпортувати обрані на сайт».`);
+  });
 
   // ----- Excel-style filter/sort/paginate, entirely client-side -----
   function currentGridFilter() {
@@ -2804,6 +2877,7 @@
     refreshLiveFilterOptions();   // категорії без товарів зникають, в інших оновлюється кількість
     renderLiveGrid();
     await loadManualSuppliers();
+    loadLiveSuggestions();   // щойно зроблений вибір теж стає підказкою для наступних груп
   });
 
   document.getElementById('statusHelpBtn').addEventListener('click', () => {
