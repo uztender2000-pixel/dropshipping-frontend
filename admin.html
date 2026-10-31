@@ -2515,7 +2515,8 @@
       const sName = p.meta?.hubberSupplierName;
       if (sName) sellers.set(sName, (sellers.get(sName) || 0) + 1);
     });
-    liveCategoryOptions = [...cats.keys()].sort((a, b) => a.localeCompare(b, 'uk'));
+    // Категорії — від більшої кількості товарів до меншої (за однакової кількості — за алфавітом); продавці — за алфавітом.
+    liveCategoryOptions = [...cats.keys()].sort((a, b) => (cats.get(b) - cats.get(a)) || a.localeCompare(b, 'uk'));
     liveSellerOptions = [...sellers.keys()].sort((a, b) => a.localeCompare(b, 'uk'));
 
     const fill = (selId, allLabel, names, counts) => {
