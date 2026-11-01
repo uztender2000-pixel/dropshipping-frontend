@@ -544,6 +544,20 @@
   .fo-panel.fo-last { flex: 1 1 340px; width: auto; min-width: 340px; }
   .fo-panel.fo-last .fo-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 
+  /* «Підбір за авто» */
+  .fit-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 12px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  .fit-bar[hidden] { display: none; }
+  .fit-title { font-weight: 700; margin-right: 4px; }
+  .fit-bar select { min-width: 150px; max-width: 280px; flex: 1 1 150px; }
+  .fit-btn { background: var(--rust); color: var(--white); border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+  .fit-btn:hover { background: var(--rust-dark); }
+  .fit-btn:disabled { opacity: .5; cursor: default; }
+  .fit-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--sand); border: 1px solid var(--rust); color: var(--ink);
+    border-radius: 999px; padding: 5px 6px 5px 12px; font-size: 13px; }
+  .fit-chip button { background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; }
+  .fit-chip button:hover { color: var(--ink); }
+
   .cat-breadcrumb { margin-bottom: 10px; }
   .cat-breadcrumb[hidden] { display: none; }
 
@@ -1043,6 +1057,15 @@
 
   <main class="content">
     <nav class="breadcrumb cat-breadcrumb" id="catBreadcrumb" hidden></nav>
+    <!-- Підбір за авто: з'являється, коли в каталозі є товари з визначеною маркою/моделлю авто -->
+    <div class="fit-bar" id="fitBar" hidden>
+      <span class="fit-title">🚗 Підбір за авто</span>
+      <select id="fitBrand" class="sort-select" aria-label="Марка авто"><option value="">Марка</option></select>
+      <select id="fitModel" class="sort-select" aria-label="Модель авто" disabled><option value="">Модель</option></select>
+      <button type="button" class="fit-btn" id="fitApply" disabled>Показати товари</button>
+      <span class="fit-chip" id="fitChip" hidden><span id="fitChipText"></span><button type="button" id="fitClear" title="Скинути підбір" aria-label="Скинути підбір">✕</button></span>
+    </div>
+
     <div class="content-header">
       <div>
         <h2 class="content-title" id="contentTitle">Усі товари</h2>
@@ -1544,7 +1567,7 @@
   };
 
   const state = { shopCategoryId: '', shopCategoryName: '', sort: 'newest', query: '', page: 1, limit: 50, loading: false, reloadQueued: false, homepage: true,
-    filters: {}, priceMin: '', priceMax: '', facets: null, lastTotal: 0 };
+    filters: {}, priceMin: '', priceMax: '', facets: null, lastTotal: 0, fit: null };
 
   const grid = document.getElementById('grid');
   const stateMessage = document.getElementById('stateMessage');
@@ -1713,7 +1736,9 @@
       state.lastTotal = data.pagination.total || 0;
       updateFiltersApplyLabel();
       if (data.products.length === 0 && !append) {
-        if (hasActiveFilters()) {
+        if (state.fit && !hasActiveFilters()) {
+          stateMessage.textContent = 'Для цього авто в обраній категорії товарів немає. Оберіть іншу категорію або скиньте підбір.';
+        } else if (hasActiveFilters()) {
           stateMessage.innerHTML = 'За обраними фільтрами нічого не знайдено.<br>Змініть умови або <button type="button" class="af-clear" id="stateResetFilters">скиньте фільтри</button>.';
         } else {
           stateMessage.textContent = 'У цій категорії поки немає товарів.';
@@ -2053,6 +2078,7 @@
     if (Object.keys(state.filters).length) params.set('filters', JSON.stringify(state.filters));
     if (state.priceMin !== '') params.set('price_min', state.priceMin);
     if (state.priceMax !== '') params.set('price_max', state.priceMax);
+    if (state.fit) { params.set('fit_brand', state.fit.brand); if (state.fit.model) params.set('fit_model', state.fit.model); }   // підбір за авто діє і в списку, і у фільтрах
   }
 
   // Повне скидання (зміна категорії/пошуку): і вибір, і самі групи фільтрів.
@@ -4032,6 +4058,85 @@
       registerStatus.hidden = false;
     }
   });
+
+  // ---------- Підбір за авто ----------
+  // Вибір марки й моделі фільтрує товари (килимки тощо) для цього авто. Вибране авто запам'ятовується в браузері
+  // («Моє авто»): наступного разу марка й модель підставляються самі, але товари показуються лише після натискання кнопки.
+  const fitBar = document.getElementById('fitBar');
+  const fitBrandSel = document.getElementById('fitBrand');
+  const fitModelSel = document.getElementById('fitModel');
+  const fitApplyBtn = document.getElementById('fitApply');
+  const fitChip = document.getElementById('fitChip');
+  const FIT_KEY = 'myCar';
+
+  function fitSaved() { try { return JSON.parse(localStorage.getItem(FIT_KEY) || 'null'); } catch (e) { return null; } }
+  function fitSave(v) { try { if (v) localStorage.setItem(FIT_KEY, JSON.stringify(v)); else localStorage.removeItem(FIT_KEY); } catch (e) { /* без збереження */ } }
+  function fitLabel(f) { return f.model ? `${f.brand} ${f.model}` : f.brand; }
+
+  async function fitLoadModels(brand, selectModel) {
+    fitModelSel.innerHTML = '<option value="">Усі моделі</option>';
+    fitModelSel.disabled = !brand;
+    fitApplyBtn.disabled = !brand;
+    if (!brand) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/products/meta/fit-models?brand=${encodeURIComponent(brand)}`);
+      const data = await res.json();
+      fitModelSel.innerHTML = '<option value="">Усі моделі</option>' + (data.models || []).map((m) =>
+        `<option value="${catEsc(m.model)}">${catEsc(m.model)}${m.years ? ` · ${catEsc(m.years)}` : ''} (${m.products})</option>`).join('');
+      if (selectModel && [...fitModelSel.options].some((o) => o.value === selectModel)) fitModelSel.value = selectModel;
+    } catch (e) { /* список моделей не завантажився — лишаємо «Усі моделі» */ }
+  }
+
+  function fitRenderChip() {
+    fitChip.hidden = !state.fit;
+    if (state.fit) document.getElementById('fitChipText').textContent = `Авто: ${fitLabel(state.fit)}`;
+  }
+
+  function fitApply() {
+    const brand = fitBrandSel.value;
+    if (!brand) return;
+    state.fit = { brand, model: fitModelSel.value || '' };
+    fitSave(state.fit);
+    fitRenderChip();
+    state.homepage = false;
+    heroEl.hidden = true;
+    state.page = 1;
+    contentTitle.textContent = `Товари для ${fitLabel(state.fit)}`;
+    resetFilters();
+    loadProducts(false);
+    loadFilters();
+  }
+
+  function fitClear() {
+    state.fit = null;
+    fitRenderChip();
+    state.page = 1;
+    contentTitle.textContent = state.shopCategoryId ? (state.shopCategoryName || 'Товари') : 'Усі товари';
+    resetFilters();
+    loadProducts(false);
+    loadFilters();
+  }
+
+  fitBrandSel.addEventListener('change', () => fitLoadModels(fitBrandSel.value, ''));
+  fitApplyBtn.addEventListener('click', fitApply);
+  document.getElementById('fitClear').addEventListener('click', fitClear);
+
+  (async function initFitBar() {
+    try {
+      const res = await fetch(`${API_BASE}/api/products/meta/fit-brands`);
+      if (!res.ok) return;
+      const brands = (await res.json()).brands || [];
+      if (!brands.length) return;                       // немає даних — панель не показуємо
+      fitBrandSel.innerHTML = '<option value="">Марка</option>' + brands.map((b) =>
+        `<option value="${catEsc(b.brand)}">${catEsc(b.brand)} (${b.products})</option>`).join('');
+      fitBar.hidden = false;
+      const saved = fitSaved();
+      if (saved && [...fitBrandSel.options].some((o) => o.value === saved.brand)) {
+        fitBrandSel.value = saved.brand;
+        await fitLoadModels(saved.brand, saved.model);
+      }
+    } catch (e) { /* без підбору за авто сайт працює як і раніше */ }
+  })();
 
   // ---------- Вхід і реєстрація через Google ----------
   // Кнопка з'являється, лише якщо сервер повідомив GOOGLE_CLIENT_ID (/api/config). Токен від Google перевіряє бекенд.
