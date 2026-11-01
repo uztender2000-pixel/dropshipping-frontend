@@ -637,6 +637,7 @@
           <div class="panel" id="liveBulkBar" style="display:none;flex-direction:column;gap:10px;">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <span id="liveSelectedCount" style="font-weight:700;"></span>
+              <button class="btn-sm" id="liveSelectedClear" title="Зняти вибір з усіх обраних товарів (і з тих, що на інших сторінках)">✕ Скинути обрані</button>
               <span style="flex:1;"></span>
               <button class="btn-sm primary" id="liveImportBtn">✅ Імпортувати обрані на сайт</button>
             </div>
@@ -659,7 +660,7 @@
             <div class="field" style="margin:0;width:110px;"><label>Ціна від</label><input type="number" id="lgPriceFrom" min="0" step="0.01"></div>
             <div class="field" style="margin:0;width:110px;"><label>Ціна до</label><input type="number" id="lgPriceTo" min="0" step="0.01"></div>
             <button class="btn-sm" id="lgFilterReset">Скинути</button>
-            <button class="btn-sm" id="lgSelectAllFiltered">Обрати всі за фільтром (<span id="lgFilteredCount">0</span>)</button>
+            <button class="btn-sm" id="lgSelectAllFiltered" title="Сервер приймає не більше 200 товарів за один імпорт">Обрати за фільтром (до 200 з <span id="lgFilteredCount">0</span>)</button>
           </div>
 
           <!-- Пропозиції «куди класти»: за тим, як ви вже розкладали товари з цих категорій постачальника -->
@@ -2591,6 +2592,22 @@
       : `Обрано ${items.length}. Перевірте категорію й натисніть «Імпортувати обрані на сайт».`);
   });
 
+  // Додає товари до обраних, але не більше LIVE_IMPORT_LIMIT разом: стільки сервер приймає за один імпорт.
+  // Решту можна обрати й імпортувати наступним проходом.
+  function liveAddToSelection(items) {
+    let added = 0;
+    let blocked = 0;
+    for (const p of items) {
+      const id = String(p.supplierProductId);
+      if (liveSelected.has(id)) continue;
+      if (liveSelected.size >= LIVE_IMPORT_LIMIT) { blocked++; continue; }
+      liveSelected.set(id, p);
+      added++;
+    }
+    if (blocked) toast(`Обрано максимум ${LIVE_IMPORT_LIMIT} товарів: стільки сервер приймає за один імпорт. Імпортуйте їх і оберіть решту.`);
+    return { added, blocked };
+  }
+
   // ----- Excel-style filter/sort/paginate, entirely client-side -----
   function currentGridFilter() {
     return {
@@ -2688,7 +2705,7 @@
   function updateLiveBulkBar() {
     const bar = document.getElementById('liveBulkBar');
     bar.style.display = liveSelected.size ? 'flex' : 'none';
-    document.getElementById('liveSelectedCount').textContent = `Обрано для імпорту: ${liveSelected.size}`;
+    document.getElementById('liveSelectedCount').textContent = `Обрано для імпорту: ${liveSelected.size} (максимум ${LIVE_IMPORT_LIMIT} за раз)`;
   }
 
   let liveTargetCategoryId = null;
@@ -2826,7 +2843,11 @@
     renderLiveGrid();
   });
   document.getElementById('lgSelectAllFiltered').addEventListener('click', () => {
-    computeFilteredSorted().forEach((p) => liveSelected.set(String(p.supplierProductId), p));
+    liveAddToSelection(computeFilteredSorted());
+    renderLiveGrid();
+  });
+  document.getElementById('liveSelectedClear').addEventListener('click', () => {
+    liveSelected.clear();   // знімає вибір з усіх, у тому числі з товарів на інших сторінках
     renderLiveGrid();
   });
   document.getElementById('lgPageSize').addEventListener('change', (e) => { liveView.pageSize = parseInt(e.target.value, 10) || 50; liveView.page = 1; renderLiveGrid(); });
@@ -2849,7 +2870,7 @@
     const tr = e.target.closest('tr[data-id]');
     const id = tr.dataset.id;
     const item = liveAllItems.find((p) => String(p.supplierProductId) === id);
-    if (check.checked) liveSelected.set(id, item); else liveSelected.delete(id);
+    if (check.checked) { if (liveAddToSelection([item]).blocked) check.checked = false; } else liveSelected.delete(id);
     updateLiveBulkBar();
   });
 
@@ -2857,15 +2878,14 @@
     // Scoped to the current visible page only — "Обрати всі за фільтром" above covers the whole filtered set.
     const start = (liveView.page - 1) * liveView.pageSize;
     const pageItems = computeFilteredSorted().slice(start, start + liveView.pageSize);
-    pageItems.forEach((p) => {
-      const id = String(p.supplierProductId);
-      if (e.target.checked) liveSelected.set(id, p); else liveSelected.delete(id);
-    });
+    if (e.target.checked) liveAddToSelection(pageItems);
+    else pageItems.forEach((p) => liveSelected.delete(String(p.supplierProductId)));
     renderLiveGrid();
   });
 
   document.getElementById('liveImportBtn').addEventListener('click', async () => {
     if (!liveSelected.size) return;
+    if (liveSelected.size > LIVE_IMPORT_LIMIT) return toast(`За один раз можна імпортувати не більше ${LIVE_IMPORT_LIMIT} товарів. Натисніть «Скинути обрані» й оберіть менше.`, 'err');
     const supplier_id = document.getElementById('pfSupplier').value;
     const items = [...liveSelected.values()];
     const category_ids = liveTargetCategoryId ? [liveTargetCategoryId] : [];
