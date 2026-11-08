@@ -1059,7 +1059,7 @@
     <nav class="breadcrumb cat-breadcrumb" id="catBreadcrumb" hidden></nav>
     <!-- Підбір за авто: з'являється, коли в каталозі є товари з визначеною маркою/моделлю авто -->
     <div class="fit-bar" id="fitBar" hidden>
-      <span class="fit-title">🚗 Підбір за авто</span>
+      <span class="fit-title" id="fitTitle">🚗 Підбір за авто</span>
       <select id="fitBrand" class="sort-select" aria-label="Марка авто"><option value="">Марка</option></select>
       <select id="fitModel" class="sort-select" aria-label="Модель авто" disabled><option value="">Модель</option></select>
       <button type="button" class="fit-btn" id="fitApply" disabled>Показати товари</button>
@@ -1792,6 +1792,8 @@
     state.homepage = false;
     state.shopCategoryId = categoryId;
     state.shopCategoryName = categoryName;
+    state.fit = null;   // підбір авто/телефона діє лише в тій категорії, де його обрали
+    try { fitRefreshForCategory(categoryId); } catch (e) { /* підбір ще не ініціалізовано під час першого запуску */ }
     state.query = '';
     state.page = 1;
     searchInput.value = '';
@@ -2078,7 +2080,7 @@
     if (Object.keys(state.filters).length) params.set('filters', JSON.stringify(state.filters));
     if (state.priceMin !== '') params.set('price_min', state.priceMin);
     if (state.priceMax !== '') params.set('price_max', state.priceMax);
-    if (state.fit) { params.set('fit_brand', state.fit.brand); if (state.fit.model) params.set('fit_model', state.fit.model); }   // підбір за авто діє і в списку, і у фільтрах
+    if (state.fit) { params.set('fit_kind', state.fit.kind); params.set('fit_brand', state.fit.brand); if (state.fit.model) params.set('fit_model', state.fit.model); }   // підбір діє і в списку, і у фільтрах
   }
 
   // Повне скидання (зміна категорії/пошуку): і вибір, і самі групи фільтрів.
@@ -4059,28 +4061,36 @@
     }
   });
 
-  // ---------- Підбір за авто ----------
-  // Вибір марки й моделі фільтрує товари (килимки тощо) для цього авто. Вибране авто запам'ятовується в браузері
-  // («Моє авто»): наступного разу марка й модель підставляються самі, але товари показуються лише після натискання кнопки.
+  // ---------- Підбір за авто / телефоном ----------
+  // Панель з'являється лише тоді, коли покупець зайшов у категорію, де є товари з визначеною маркою/моделлю (килимки, чохли…),
+  // і пропонує тільки ті марки й моделі, для яких у цій категорії справді є товари. При переході в іншу категорію підбір скидається,
+  // а запам'ятане «Моє авто» / «Мій телефон» підставляється в списки (товари показуються після натискання кнопки).
   const fitBar = document.getElementById('fitBar');
   const fitBrandSel = document.getElementById('fitBrand');
   const fitModelSel = document.getElementById('fitModel');
   const fitApplyBtn = document.getElementById('fitApply');
   const fitChip = document.getElementById('fitChip');
-  const FIT_KEY = 'myCar';
+  const FIT_TEXT = {
+    car: { title: '🚗 Підбір за авто', chip: 'Авто', key: 'myCar' },
+    phone: { title: '📱 Підбір за телефоном', chip: 'Телефон', key: 'myPhone' },
+  };
+  let fitKind = null;
+  let fitReq = 0;   // номер останнього запиту: відповіді на застарілі запити ігноруємо
 
-  function fitSaved() { try { return JSON.parse(localStorage.getItem(FIT_KEY) || 'null'); } catch (e) { return null; } }
-  function fitSave(v) { try { if (v) localStorage.setItem(FIT_KEY, JSON.stringify(v)); else localStorage.removeItem(FIT_KEY); } catch (e) { /* без збереження */ } }
-  function fitLabel(f) { return f.model ? `${f.brand} ${f.model}` : f.brand; }
+  function fitSaved(kind) { try { return JSON.parse(localStorage.getItem(FIT_TEXT[kind].key) || 'null'); } catch (e) { return null; } }
+  function fitSave(kind, v) { try { localStorage.setItem(FIT_TEXT[kind].key, JSON.stringify(v)); } catch (e) { /* без збереження */ } }
+  function fitLabel(f) { return f.model || f.brand; }
 
   async function fitLoadModels(brand, selectModel) {
     fitModelSel.innerHTML = '<option value="">Усі моделі</option>';
     fitModelSel.disabled = !brand;
     fitApplyBtn.disabled = !brand;
-    if (!brand) return;
+    if (!brand || !fitKind) return;
+    const my = fitReq;
     try {
-      const res = await fetch(`${API_BASE}/api/products/meta/fit-models?brand=${encodeURIComponent(brand)}`);
-      const data = await res.json();
+      const url = `${API_BASE}/api/products/meta/fit-models?kind=${fitKind}&brand=${encodeURIComponent(brand)}&shop_category_id=${encodeURIComponent(state.shopCategoryId || '')}`;
+      const data = await (await fetch(url)).json();
+      if (my !== fitReq) return;
       fitModelSel.innerHTML = '<option value="">Усі моделі</option>' + (data.models || []).map((m) =>
         `<option value="${catEsc(m.model)}">${catEsc(m.model)}${m.years ? ` · ${catEsc(m.years)}` : ''} (${m.products})</option>`).join('');
       if (selectModel && [...fitModelSel.options].some((o) => o.value === selectModel)) fitModelSel.value = selectModel;
@@ -4089,19 +4099,44 @@
 
   function fitRenderChip() {
     fitChip.hidden = !state.fit;
-    if (state.fit) document.getElementById('fitChipText').textContent = `Авто: ${fitLabel(state.fit)}`;
+    if (state.fit) document.getElementById('fitChipText').textContent = `${FIT_TEXT[state.fit.kind].chip}: ${state.fit.model || state.fit.brand}`;
+  }
+
+  async function fitRefreshForCategory(categoryId) {
+    const my = ++fitReq;
+    fitBar.hidden = true;
+    fitKind = null;
+    fitRenderChip();
+    if (!categoryId) return;                         // головна й «Усі товари» — без підбору
+    try {
+      const res = await fetch(`${API_BASE}/api/products/meta/fit-brands?shop_category_id=${encodeURIComponent(categoryId)}`);
+      if (!res.ok || my !== fitReq) return;
+      const data = await res.json();
+      if (my !== fitReq || !data.kind || !(data.brands || []).length) return;   // у цій категорії підбір не потрібен
+      fitKind = data.kind;
+      document.getElementById('fitTitle').textContent = FIT_TEXT[fitKind].title;
+      fitBrandSel.innerHTML = '<option value="">Марка</option>' + data.brands.map((b) =>
+        `<option value="${catEsc(b.brand)}">${catEsc(b.brand)} (${b.products})</option>`).join('');
+      fitModelSel.innerHTML = '<option value="">Модель</option>';
+      fitModelSel.disabled = true;
+      fitApplyBtn.disabled = true;
+      fitBar.hidden = false;
+      const saved = fitSaved(fitKind);
+      if (saved && [...fitBrandSel.options].some((o) => o.value === saved.brand)) {
+        fitBrandSel.value = saved.brand;
+        await fitLoadModels(saved.brand, saved.model);
+      }
+    } catch (e) { /* без підбору сайт працює як і раніше */ }
   }
 
   function fitApply() {
     const brand = fitBrandSel.value;
-    if (!brand) return;
-    state.fit = { brand, model: fitModelSel.value || '' };
-    fitSave(state.fit);
+    if (!brand || !fitKind) return;
+    state.fit = { kind: fitKind, brand, model: fitModelSel.value || '' };
+    fitSave(fitKind, { brand, model: state.fit.model });
     fitRenderChip();
-    state.homepage = false;
-    heroEl.hidden = true;
     state.page = 1;
-    contentTitle.textContent = `Товари для ${fitLabel(state.fit)}`;
+    contentTitle.textContent = `${state.shopCategoryName || 'Товари'}: ${fitLabel(state.fit)}`;
     resetFilters();
     loadProducts(false);
     loadFilters();
@@ -4111,7 +4146,7 @@
     state.fit = null;
     fitRenderChip();
     state.page = 1;
-    contentTitle.textContent = state.shopCategoryId ? (state.shopCategoryName || 'Товари') : 'Усі товари';
+    contentTitle.textContent = state.shopCategoryName || 'Товари';
     resetFilters();
     loadProducts(false);
     loadFilters();
@@ -4120,23 +4155,6 @@
   fitBrandSel.addEventListener('change', () => fitLoadModels(fitBrandSel.value, ''));
   fitApplyBtn.addEventListener('click', fitApply);
   document.getElementById('fitClear').addEventListener('click', fitClear);
-
-  (async function initFitBar() {
-    try {
-      const res = await fetch(`${API_BASE}/api/products/meta/fit-brands`);
-      if (!res.ok) return;
-      const brands = (await res.json()).brands || [];
-      if (!brands.length) return;                       // немає даних — панель не показуємо
-      fitBrandSel.innerHTML = '<option value="">Марка</option>' + brands.map((b) =>
-        `<option value="${catEsc(b.brand)}">${catEsc(b.brand)} (${b.products})</option>`).join('');
-      fitBar.hidden = false;
-      const saved = fitSaved();
-      if (saved && [...fitBrandSel.options].some((o) => o.value === saved.brand)) {
-        fitBrandSel.value = saved.brand;
-        await fitLoadModels(saved.brand, saved.model);
-      }
-    } catch (e) { /* без підбору за авто сайт працює як і раніше */ }
-  })();
 
   // ---------- Вхід і реєстрація через Google ----------
   // Кнопка з'являється, лише якщо сервер повідомив GOOGLE_CLIENT_ID (/api/config). Токен від Google перевіряє бекенд.
